@@ -13,6 +13,9 @@ export default async function HomePage() {
   return (
     <>
       <Hero />
+      <SectionContainer>
+        <FeatureCarousel />
+      </SectionContainer>
       <SectionContainer className="py-12">
         <div
           className="rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur-sm"
