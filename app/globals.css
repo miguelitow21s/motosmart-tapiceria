@@ -1,0 +1,160 @@
+@import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Sora:wght@300;400;500;600;700&display=swap");
+@import "../styles/animations.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  --background: 0 0% 2%;
+  --foreground: 0 0% 98%;
+  --surface: 240 5% 8%;
+  --border: 0 0% 100% / 0.12;
+  --muted: 240 4% 65%;
+  --primary: 0 100% 56%;
+  --primary-foreground: 0 0% 100%;
+  --radius-xl: 0.9rem;
+  --radius-2xl: 1.1rem;
+  --radius-3xl: 1.6rem;
+  --shadow-card: 0 14px 32px rgba(0, 0, 0, 0.32);
+  --shadow-glow: 0 0 22px rgba(255, 30, 30, 0.45);
+  /* spacing + typography rhythm */
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --font-size-sm: clamp(0.92rem, 0.36vw + 0.82rem, 1rem);
+  --font-size-base: clamp(1rem, 0.45vw + 0.86rem, 1.12rem);
+  --font-size-lg: clamp(1.15rem, 0.6vw + 0.96rem, 1.35rem);
+  --font-size-xl: clamp(1.35rem, 1vw + 1rem, 1.75rem);
+  --font-size-display: clamp(2.5rem, 2.8vw + 1.8rem, 4.2rem);
+  /* motion tokens */
+  --ease-smooth: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-emphasized: cubic-bezier(0.22, 1, 0.36, 1);
+  --motion-fast: 0.18s;
+  --motion-normal: 0.32s;
+  --motion-slow: 0.6s;
+}
+
+body {
+  @apply bg-background text-foreground antialiased;
+  background-image: theme("backgroundImage.honeycomb");
+  background-size: 40px 40px, 40px 40px, cover;
+  min-height: 100vh;
+  font-size: var(--font-size-base);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 30, 30, 0.5) rgba(255, 255, 255, 0.08);
+  box-sizing: border-box;
+}
+
+::selection {
+  background: rgba(255, 30, 30, 0.35);
+  color: #fff7f7;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  letter-spacing: -0.02em;
+  font-family: "Orbitron", system-ui, sans-serif;
+}
+
+p {
+  line-height: 1.6;
+  font-size: var(--font-size-base);
+}
+
+a,
+button {
+  transition: transform var(--motion-fast) var(--ease-smooth), opacity var(--motion-fast) var(--ease-smooth), box-shadow var(--motion-fast) var(--ease-smooth), color var(--motion-fast) var(--ease-smooth);
+}
+
+:focus-visible {
+  outline: 2px solid rgba(255, 30, 30, 0.75);
+  outline-offset: 2px;
+}
+
+a:hover {
+  color: #fff;
+}
+
+.focus-ring {
+  outline: 2px solid rgba(255, 30, 30, 0.65);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 6px rgba(255, 30, 30, 0.12);
+}
+
+.btn-ripple::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at var(--ripple-x, 50%) var(--ripple-y, 50%), rgba(255, 255, 255, 0.28), transparent 55%);
+  opacity: 0;
+  transform: scale(0.6);
+  pointer-events: none;
+  transition: opacity var(--motion-fast) var(--ease-smooth), transform var(--motion-normal) var(--ease-emphasized);
+}
+
+.btn-ripple:active::after {
+  opacity: 1;
+  transform: scale(1.25);
+}
+
+.card-overlay {
+  position: relative;
+  overflow: hidden;
+}
+
+.card-overlay::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(145deg, rgba(255, 30, 30, 0.12), transparent 45%);
+  opacity: 0;
+  transition: opacity var(--motion-normal) var(--ease-smooth);
+  pointer-events: none;
+}
+
+.card-overlay:hover::after {
+  opacity: 1;
+}
+
+[data-animate="fade-up"] {
+  animation: fade-in-up var(--motion-slow) var(--ease-emphasized) both;
+}
+
+[data-animate="fade-in"] {
+  animation: fade-in var(--motion-normal) var(--ease-smooth) both;
+}
+
+[data-animate="zoom-in"] {
+  animation: zoom-in var(--motion-normal) var(--ease-emphasized) both;
+}
+
+[data-animate-stagger] > * {
+  animation: fade-in-up var(--motion-slow) var(--ease-emphasized) both;
+  animation-delay: calc(var(--i, 0) * 0.07s);
+}
+
+[data-animate-text] > * {
+  animation: fade-in var(--motion-normal) var(--ease-smooth) both;
+  animation-delay: calc(var(--i, 0) * 0.05s);
+}
+
+a svg,
+button svg {
+  transition: transform var(--motion-fast) var(--ease-smooth), opacity var(--motion-fast) var(--ease-smooth);
+}
+
+a:hover svg,
+button:hover svg {
+  transform: translateY(-1px);
+}
