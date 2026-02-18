@@ -42,10 +42,6 @@ export default async function HomePage() {
       </SectionContainer>
 
       <SectionContainer>
-        <FeatureCarousel />
-      </SectionContainer>
-
-      <SectionContainer>
         <div className="grid gap-4 md:grid-cols-3" data-animate-stagger>
           <Card className="h-full space-y-3" style={{ "--i": 0 } as CSSProperties}>
             <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-primary">
