@@ -10,6 +10,7 @@ const brandSchema = z.object({
   name: z.string().min(2).max(60),
   slug: z.string().min(2).max(60).regex(/^[a-z0-9-]+$/),
   description: z.string().max(300).default(""),
+  logo_url: z.string().url().nullable().optional(),
   is_active: z.boolean().default(true)
 });
 
@@ -42,6 +43,7 @@ export async function POST(request: Request) {
     name: sanitizeText(parsed.data.name),
     slug: parsed.data.slug,
     description: sanitizeText(parsed.data.description),
+    logo_url: parsed.data.logo_url ?? null,
     is_active: parsed.data.is_active
   };
 
@@ -77,6 +79,7 @@ export async function PATCH(request: Request) {
       ...rest,
       name: sanitizeText(rest.name),
       description: sanitizeText(rest.description),
+      logo_url: rest.logo_url ?? null,
       updated_at: new Date().toISOString()
     })
     .eq("id", id);

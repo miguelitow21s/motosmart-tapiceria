@@ -5,7 +5,7 @@ import { SectionContainer } from "@/components/shared/section-container";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
-export function Hero() {
+export function Hero({ showCustomizer = false }: { showCustomizer?: boolean }) {
   return (
     <SectionContainer className="pt-16 md:pt-24">
       <div
@@ -29,9 +29,11 @@ export function Hero() {
           <Button asChild size="lg" className="w-full sm:w-auto">
             <Link href="/catalogo">Ver catalogo</Link>
           </Button>
-          <Button variant="secondary" asChild size="lg" className="w-full sm:w-auto">
-            <Link href="/personalizador">Pedir un diseño</Link>
-          </Button>
+          {showCustomizer ? (
+            <Button variant="secondary" asChild size="lg" className="w-full sm:w-auto">
+              <Link href="/personalizador">Pedir un diseño</Link>
+            </Button>
+          ) : null}
           <span className="text-sm text-neutral-400" style={{ "--i": 3 } as CSSProperties}>
             Envíos y asesoría a todo Colombia
           </span>

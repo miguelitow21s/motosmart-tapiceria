@@ -5,7 +5,7 @@ import { isFeatureEnabled } from "@/lib/feature-flags";
 
 export default async function PersonalizadorPage() {
   const enabled = await isFeatureEnabled("customizer_enabled");
-  if (!enabled) redirect("/");
+  if (!enabled) redirect("/catalogo");
 
   return (
     <SectionContainer className="py-16">

@@ -4,6 +4,7 @@ import { Navbar } from "@/components/shared/navbar";
 import { Footer } from "@/components/shared/footer";
 import { WhatsAppFab } from "@/components/shared/whatsapp-fab";
 import { siteConfig } from "@/config/site";
+import { isFeatureEnabled } from "@/lib/feature-flags";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
@@ -22,11 +23,13 @@ export const metadata: Metadata = {
   }
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const showCustomizer = await isFeatureEnabled("customizer_enabled");
+
   return (
     <html lang="es">
       <body>
-        <Navbar />
+        <Navbar showCustomizer={showCustomizer} />
         <main>{children}</main>
         <Footer />
         <WhatsAppFab />

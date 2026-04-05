@@ -10,9 +10,10 @@ import Link from "next/link";
 
 export default async function HomePage() {
   const checkoutEnabled = await isFeatureEnabled("checkout_enabled");
+  const customizerEnabled = await isFeatureEnabled("customizer_enabled");
   return (
     <>
-      <Hero />
+      <Hero showCustomizer={customizerEnabled} />
       <SectionContainer>
         <FeatureCarousel />
       </SectionContainer>
@@ -29,9 +30,11 @@ export default async function HomePage() {
             <Button asChild>
               <Link href="/catalogo">Ver catálogo</Link>
             </Button>
-            <Button variant="secondary" asChild>
-              <Link href="/personalizador">Solicitar un diseño</Link>
-            </Button>
+            {customizerEnabled ? (
+              <Button variant="secondary" asChild>
+                <Link href="/personalizador">Solicitar un diseño</Link>
+              </Button>
+            ) : null}
             {checkoutEnabled ? (
               <Button variant="secondary" asChild>
                 <Link href="/checkout">Agendar instalación</Link>

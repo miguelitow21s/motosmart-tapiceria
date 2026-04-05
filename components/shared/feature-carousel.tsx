@@ -1,32 +1,66 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { SmartImage } from "@/components/shared/smart-image";
 
-const slides = [
+type CarouselSlide = {
+  id: string;
+  title: string;
+  description: string;
+  image: string;
+  alt: string;
+};
+
+const fallbackSlides: CarouselSlide[] = [
   {
+    id: "fallback-1",
     title: "Costuras de alto contraste",
     description: "Hilos reforzados y patrones deportivos para un look agresivo y duradero.",
-    image:
-      "https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=1600&q=80"
+    image: "https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=1600&q=80",
+    alt: "Costuras de alto contraste"
   },
   {
+    id: "fallback-2",
     title: "Acabados antideslizantes",
     description: "Materiales con agarre superior para confort y control en cualquier clima.",
-    image:
-      "https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=1600&q=80"
+    image: "https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=1600&q=80",
+    alt: "Acabados antideslizantes"
   },
   {
+    id: "fallback-3",
     title: "Diseño a dos tonos",
     description: "Combinaciones personalizadas que resaltan la silueta de tu moto.",
-    image:
-      "https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=1600&q=80"
+    image: "https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=1600&q=80",
+    alt: "Diseño a dos tonos"
   }
 ];
 
 export function FeatureCarousel() {
   const trackRef = useRef<HTMLDivElement>(null);
+  const [slides, setSlides] = useState<CarouselSlide[]>(fallbackSlides);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadSlides() {
+      try {
+        const response = await fetch("/api/carousel", { cache: "no-store" });
+        if (!response.ok) return;
+        const payload = (await response.json()) as { data?: CarouselSlide[] };
+        if (!cancelled && payload.data?.length) {
+          setSlides(payload.data);
+        }
+      } catch {
+        // fallback local si falla la API
+      }
+    }
+
+    loadSlides();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const scrollBy = (direction: -1 | 1) => {
     const el = trackRef.current;
@@ -68,12 +102,12 @@ export function FeatureCarousel() {
       >
         {slides.map((slide, idx) => (
           <div
-            key={slide.title}
+            key={slide.id}
             className="group relative w-72 flex-shrink-0 snap-start overflow-hidden rounded-2xl border border-white/10 bg-black/50"
             style={{ "--i": idx } as React.CSSProperties}
           >
             <div className="relative h-44 w-full">
-              <SmartImage src={slide.image} alt={slide.title} fill priority={idx === 0} />
+              <SmartImage src={slide.image} alt={slide.alt} fill priority={idx === 0} />
             </div>
             <div className="space-y-1 p-4" data-animate-text>
               <h4 className="font-display text-lg text-white" style={{ "--i": 0 } as React.CSSProperties}>

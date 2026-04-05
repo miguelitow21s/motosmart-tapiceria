@@ -18,6 +18,9 @@ export interface Design {
   image_url: string;
   is_active: boolean;
   base_price: number;
+  discount_price: number | null;
+  promotion_label: string;
+  promotion_active: boolean;
 }
 
 export interface CustomOrderPayload {

@@ -16,6 +16,14 @@ export function DesignGrid({ designs }: { designs: Design[] }) {
   return (
     <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3" data-animate-stagger>
       {designs.map((design, idx) => (
+        (() => {
+          const hasPromo =
+            design.promotion_active &&
+            typeof design.discount_price === "number" &&
+            design.discount_price > 0 &&
+            design.discount_price < design.base_price;
+
+          return (
         <Card key={design.id} className="overflow-hidden p-0" style={{ "--i": idx } as CSSProperties}>
           <div className="relative h-52 w-full">
             <SmartImage
@@ -32,11 +40,23 @@ export function DesignGrid({ designs }: { designs: Design[] }) {
             <p className="text-sm text-neutral-300" style={{ "--i": 1 } as CSSProperties}>
               {design.short_description}
             </p>
-            <p className="text-primary" style={{ "--i": 2 } as CSSProperties}>
-              Desde {formatCOP(design.base_price)}
-            </p>
+            {hasPromo ? (
+              <div className="space-y-1" style={{ "--i": 2 } as CSSProperties}>
+                <div className="inline-flex rounded-full border border-red-300/30 bg-red-500/10 px-2 py-0.5 text-xs text-red-200">
+                  {design.promotion_label || "Promocion"}
+                </div>
+                <p className="text-primary">Desde {formatCOP(design.discount_price as number)}</p>
+                <p className="text-xs text-neutral-400 line-through">Antes {formatCOP(design.base_price)}</p>
+              </div>
+            ) : (
+              <p className="text-primary" style={{ "--i": 2 } as CSSProperties}>
+                Desde {formatCOP(design.base_price)}
+              </p>
+            )}
           </div>
         </Card>
+          );
+        })()
       ))}
     </div>
   );

@@ -13,6 +13,9 @@ const designSchema = z.object({
   short_description: z.string().max(180).default(""),
   image_url: z.string().url(),
   base_price: z.number().int().nonnegative(),
+  discount_price: z.number().nonnegative().nullable().optional(),
+  promotion_label: z.string().max(60).default(""),
+  promotion_active: z.boolean().default(false),
   is_active: z.boolean().default(true)
 });
 
@@ -47,7 +50,9 @@ export async function POST(request: Request) {
   const payload = {
     ...parsed.data,
     name: sanitizeText(parsed.data.name),
-    short_description: sanitizeText(parsed.data.short_description)
+    short_description: sanitizeText(parsed.data.short_description),
+    promotion_label: sanitizeText(parsed.data.promotion_label),
+    discount_price: parsed.data.discount_price ?? null
   };
   const { error } = await supabase.from("designs").insert(payload);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -81,6 +86,8 @@ export async function PATCH(request: Request) {
       ...rest,
       name: sanitizeText(rest.name),
       short_description: sanitizeText(rest.short_description),
+      promotion_label: sanitizeText(rest.promotion_label),
+      discount_price: rest.discount_price ?? null,
       updated_at: new Date().toISOString()
     })
     .eq("id", id);
@@ -90,7 +97,12 @@ export async function PATCH(request: Request) {
     action: "update",
     entity: "design",
     entityId: id,
-    detail: { slug: rest.slug, is_active: rest.is_active }
+    detail: {
+      slug: rest.slug,
+      is_active: rest.is_active,
+      promotion_active: rest.promotion_active,
+      discount_price: rest.discount_price ?? null
+    }
   });
   return NextResponse.json({ ok: true });
 }
