@@ -243,6 +243,9 @@ export function AdminDashboard() {
       short_description: selected.short_description,
       image_url: selected.image_url,
       base_price: Number(selected.base_price),
+      discount_price: selected.discount_price ? Number(selected.discount_price) : null,
+      promotion_label: selected.promotion_label ?? "",
+      promotion_active: Boolean(selected.promotion_active),
       is_active: selected.is_active
     });
   }
@@ -275,13 +278,22 @@ export function AdminDashboard() {
 
   async function saveDesign() {
     const hasId = Boolean(designForm.id);
+    const payload = {
+      ...designForm,
+      discount_price:
+        designForm.promotion_active && typeof designForm.discount_price === "number"
+          ? designForm.discount_price
+          : null,
+      promotion_label: designForm.promotion_active ? designForm.promotion_label : ""
+    };
+
     const res = await fetch("/api/admin/designs", {
       method: hasId ? "PATCH" : "POST",
       headers: {
         "Content-Type": "application/json",
         "x-csrf-token": getCsrfToken() ?? ""
       },
-      body: JSON.stringify(designForm)
+      body: JSON.stringify(payload)
     });
 
     setMessage(res.ok ? (hasId ? "Diseño actualizado" : "Diseño creado") : "Error guardando diseño");
@@ -609,6 +621,30 @@ export function AdminDashboard() {
           value={designForm.base_price}
           onChange={(e) => setDesignForm((prev) => ({ ...prev, base_price: Number(e.target.value || 0) }))}
         />
+        <Input
+          placeholder="Precio con descuento (opcional)"
+          type="number"
+          value={designForm.discount_price ?? ""}
+          onChange={(e) =>
+            setDesignForm((prev) => ({
+              ...prev,
+              discount_price: e.target.value === "" ? null : Number(e.target.value)
+            }))
+          }
+        />
+        <Input
+          placeholder="Etiqueta promocion (ej: Oferta del mes)"
+          value={designForm.promotion_label}
+          onChange={(e) => setDesignForm((prev) => ({ ...prev, promotion_label: e.target.value }))}
+        />
+        <label className="inline-flex items-center gap-2 text-sm text-neutral-300">
+          <input
+            type="checkbox"
+            checked={designForm.promotion_active}
+            onChange={(e) => setDesignForm((prev) => ({ ...prev, promotion_active: e.target.checked }))}
+          />
+          Promocion activa en tienda
+        </label>
         <Textarea
           placeholder="Descripción corta"
           value={designForm.short_description}
