@@ -45,7 +45,17 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
 
-    const role = (user.user_metadata.role as string | undefined) ?? "customer";
+    const { data: profile } = await supabase
+      .from("users")
+      .select("roles(name)")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    const role =
+      (profile as { roles?: { name?: string } | null } | null)?.roles?.name ??
+      (user.user_metadata.role as string | undefined) ??
+      "customer";
+
     if (role !== "admin" && role !== "editor") {
       return NextResponse.redirect(new URL("/", request.url));
     }
