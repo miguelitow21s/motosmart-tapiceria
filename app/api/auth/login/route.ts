@@ -15,7 +15,16 @@ export async function POST(request: Request) {
   const parsed = loginSchema.safeParse(payload);
 
   if (!parsed.success) {
-    return NextResponse.json({ error: "Datos invalidos" }, { status: 400 });
+    return NextResponse.json(
+      {
+        error: "Datos invalidos",
+        detail: parsed.error.issues.map((issue) => ({
+          path: issue.path.join("."),
+          message: issue.message
+        }))
+      },
+      { status: 400 }
+    );
   }
 
   const ip = request.headers.get("x-forwarded-for") ?? "unknown";

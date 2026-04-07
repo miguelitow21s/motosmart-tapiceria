@@ -11,8 +11,8 @@ export const customOrderSchema = z.object({
 });
 
 export const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(6).max(72)
+  email: z.string().trim().email(),
+  password: z.string().trim().min(1).max(72)
 });
 
 export function sanitizeText(value: string) {
