@@ -73,7 +73,7 @@ on conflict (sku) do nothing;
 insert into public.features(name, enabled)
 values
   ('catalog_enabled', true),
-  ('customizer_enabled', true),
+  ('customizer_enabled', false),
   ('checkout_enabled', true),
   ('admin_uploads_enabled', true)
 on conflict (name) do update set enabled = excluded.enabled;
