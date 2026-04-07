@@ -1,9 +1,7 @@
 import type { MetadataRoute } from "next";
 import { siteConfig } from "@/config/site";
-import { isFeatureEnabled } from "@/lib/feature-flags";
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const customizerEnabled = await isFeatureEnabled("customizer_enabled");
+export default function sitemap(): MetadataRoute.Sitemap {
   const routes = [
     "",
     "/catalogo",
@@ -11,10 +9,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/contactanos",
     "/login"
   ];
-
-  if (customizerEnabled) {
-    routes.push("/personalizador");
-  }
 
   return routes.map((route) => ({
     url: `${siteConfig.url}${route}`,

@@ -17,11 +17,10 @@ const links = [
   { href: "/contactanos", label: "Contacto" }
 ];
 
-export function Navbar({ showCustomizer = false }: { showCustomizer?: boolean }) {
+export function Navbar() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const navLinks = showCustomizer ? [...links.slice(0, 2), { href: "/personalizador", label: "Personalizador" }, ...links.slice(2)] : links;
 
   useEffect(() => {
     function onScroll() {
@@ -44,7 +43,7 @@ export function Navbar({ showCustomizer = false }: { showCustomizer?: boolean })
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-8">
         <LogoGlow />
         <div className="hidden items-center gap-6 md:flex">
-          {navLinks.map((link) => (
+          {links.map((link) => (
             <motion.div key={link.href} whileHover={{ y: -2 }}>
               <Link
                 className={cn(
@@ -92,7 +91,7 @@ export function Navbar({ showCustomizer = false }: { showCustomizer?: boolean })
             className="overflow-hidden border-t border-white/10 bg-black/90 md:hidden"
           >
             <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-4">
-              {navLinks.map((link) => (
+              {links.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
