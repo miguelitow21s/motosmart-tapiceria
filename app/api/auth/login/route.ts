@@ -5,16 +5,20 @@ import { checkRateLimit, clearRateLimit } from "@/lib/rate-limit";
 import { assertCsrf, loginSchema } from "@/lib/security";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
-const ADMIN_BOOTSTRAP_EMAIL = "nataliaagudelo@gmail.com";
-const ADMIN_BOOTSTRAP_PASSWORD = "123456";
+const ADMIN_BOOTSTRAP_EMAIL = (process.env.ADMIN_BOOTSTRAP_EMAIL ?? "nataliaagudelo@gmail.com").toLowerCase();
+const ADMIN_BOOTSTRAP_PASSWORD = process.env.ADMIN_BOOTSTRAP_PASSWORD ?? "123456";
 
 async function tryBootstrapAdminUser(email: string, password: string) {
+  const normalizedEmail = email.toLowerCase();
   if (
-    email.toLowerCase() !== ADMIN_BOOTSTRAP_EMAIL ||
-    password !== ADMIN_BOOTSTRAP_PASSWORD ||
-    !process.env.SUPABASE_SERVICE_ROLE_KEY
+    normalizedEmail !== ADMIN_BOOTSTRAP_EMAIL ||
+    password !== ADMIN_BOOTSTRAP_PASSWORD
   ) {
-    return;
+    return { attempted: false, reason: "credentials-not-matching-bootstrap" as const };
+  }
+
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return { attempted: true, reason: "missing-service-role-key" as const };
   }
 
   const adminClient = createClient(
@@ -23,34 +27,43 @@ async function tryBootstrapAdminUser(email: string, password: string) {
   );
 
   const listed = await adminClient.auth.admin.listUsers({ page: 1, perPage: 1000 });
-  const existing = listed.data.users.find((user) => user.email?.toLowerCase() === email.toLowerCase());
+  if (listed.error) {
+    return { attempted: true, reason: "list-users-failed" as const };
+  }
+  const existing = listed.data.users.find((user) => user.email?.toLowerCase() === normalizedEmail);
 
   let userId = existing?.id;
   if (!existing) {
     const created = await adminClient.auth.admin.createUser({
-      email,
+      email: normalizedEmail,
       password,
       email_confirm: true,
       user_metadata: { role: "admin" },
       app_metadata: { role: "admin", provider: "email", providers: ["email"] }
     });
+    if (created.error) {
+      return { attempted: true, reason: "create-user-failed" as const };
+    }
     userId = created.data.user?.id;
   } else {
-    await adminClient.auth.admin.updateUserById(existing.id, {
+    const updated = await adminClient.auth.admin.updateUserById(existing.id, {
       password,
       email_confirm: true,
       user_metadata: { ...(existing.user_metadata ?? {}), role: "admin" },
       app_metadata: { ...(existing.app_metadata ?? {}), role: "admin", provider: "email", providers: ["email"] }
     });
+    if (updated.error) {
+      return { attempted: true, reason: "update-user-failed" as const };
+    }
   }
 
-  if (!userId) return;
+  if (!userId) return { attempted: true, reason: "missing-user-id" as const };
 
   const role = await adminClient.from("roles").select("id").eq("name", "admin").maybeSingle();
   const roleId = role.data?.id;
-  if (!roleId) return;
+  if (!roleId) return { attempted: true, reason: "admin-role-not-found" as const };
 
-  await adminClient.from("users").upsert(
+  const upserted = await adminClient.from("users").upsert(
     {
       id: userId,
       role_id: roleId,
@@ -59,6 +72,11 @@ async function tryBootstrapAdminUser(email: string, password: string) {
     },
     { onConflict: "id" }
   );
+  if (upserted.error) {
+    return { attempted: true, reason: "upsert-profile-failed" as const };
+  }
+
+  return { attempted: true, reason: "ok" as const };
 }
 
 export async function POST(request: Request) {
@@ -125,8 +143,13 @@ export async function POST(request: Request) {
   );
 
   let signInResult = await supabase.auth.signInWithPassword(parsed.data);
+  let bootstrapResult: { attempted: boolean; reason: string } = {
+    attempted: false,
+    reason: "not-required"
+  };
+
   if (signInResult.error) {
-    await tryBootstrapAdminUser(parsed.data.email, parsed.data.password);
+    bootstrapResult = await tryBootstrapAdminUser(parsed.data.email, parsed.data.password);
     signInResult = await supabase.auth.signInWithPassword(parsed.data);
   }
 
@@ -137,7 +160,22 @@ export async function POST(request: Request) {
       ip,
       success: false
     });
-    return NextResponse.json({ error: "Credenciales invalidas" }, { status: 401 });
+    const isAdminBootstrapAttempt = parsed.data.email.toLowerCase() === ADMIN_BOOTSTRAP_EMAIL;
+    return NextResponse.json(
+      {
+        error: "Credenciales invalidas",
+        detail: isAdminBootstrapAttempt
+          ? {
+              bootstrap: bootstrapResult.reason,
+              hint:
+                bootstrapResult.reason === "missing-service-role-key"
+                  ? "Configura SUPABASE_SERVICE_ROLE_KEY en Vercel y redeploy."
+                  : "Verifica que el proyecto de Supabase y las variables de entorno coincidan con produccion."
+            }
+          : undefined
+      },
+      { status: 401 }
+    );
   }
 
   clearRateLimit(key);
