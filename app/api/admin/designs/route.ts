@@ -135,7 +135,22 @@ export async function PATCH(request: Request) {
   const { role } = await getCurrentUserRole();
   if (!canAccessAdmin(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const parsed = designSchema.extend({ id: z.string().uuid() }).safeParse(await request.json());
+  const payload = await request.json();
+  const parsedId = z.object({ id: z.string().uuid() }).safeParse(payload);
+  if (!parsedId.success) {
+    return NextResponse.json(
+      {
+        error: "Invalid payload",
+        detail: parsedId.error.issues.map((issue) => ({
+          path: issue.path.join("."),
+          message: issue.message
+        }))
+      },
+      { status: 400 }
+    );
+  }
+
+  const parsed = designSchema.safeParse(payload);
   if (!parsed.success) {
     return NextResponse.json(
       {
@@ -150,7 +165,8 @@ export async function PATCH(request: Request) {
   }
 
   const supabase = await createServerSupabaseClient();
-  const { id, ...rest } = parsed.data;
+  const id = parsedId.data.id;
+  const { id: _ignoredId, ...rest } = parsed.data;
   const normalized = normalizePromotionPayload(rest);
   const { error } = await supabase
     .from("designs")
