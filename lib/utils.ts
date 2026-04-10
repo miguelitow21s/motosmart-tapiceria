@@ -12,3 +12,22 @@ export function formatCOP(value: number) {
     maximumFractionDigits: 0
   }).format(value);
 }
+
+export function getPromotionMeta(basePrice: number, discountPrice: number | null | undefined, promotionActive: boolean) {
+  if (!promotionActive || typeof discountPrice !== "number" || discountPrice <= 0 || discountPrice >= basePrice) {
+    return {
+      hasPromotion: false,
+      savings: 0,
+      percentOff: 0
+    };
+  }
+
+  const savings = basePrice - discountPrice;
+  const percentOff = Math.round((savings / basePrice) * 100);
+
+  return {
+    hasPromotion: true,
+    savings,
+    percentOff
+  };
+}

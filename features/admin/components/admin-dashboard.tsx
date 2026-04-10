@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { formatCOP, getPromotionMeta } from "@/lib/utils";
 
 type Brand = {
   id: string;
@@ -141,6 +142,15 @@ export function AdminDashboard() {
     [images]
   );
   const allSiteImages = useMemo(() => images, [images]);
+  const promotionPreview = useMemo(
+    () =>
+      getPromotionMeta(
+        Number(designForm.base_price || 0),
+        typeof designForm.discount_price === "number" ? designForm.discount_price : null,
+        designForm.promotion_active
+      ),
+    [designForm.base_price, designForm.discount_price, designForm.promotion_active]
+  );
 
   function getCsrfToken() {
     return document.cookie
@@ -304,6 +314,23 @@ export function AdminDashboard() {
       setSelectedDesignId("");
       setDesignForm(emptyDesignForm);
     }
+  }
+
+  function applyDiscountPercent(percent: number) {
+    const base = Number(designForm.base_price || 0);
+    if (base <= 0) {
+      setMessage("Define primero el precio base para calcular descuentos");
+      return;
+    }
+
+    const nextDiscount = Math.max(1, Math.round(base * (1 - percent / 100)));
+    setDesignForm((prev) => ({
+      ...prev,
+      promotion_active: true,
+      discount_price: nextDiscount,
+      promotion_label: prev.promotion_label || `${percent}% OFF`
+    }));
+    setMessage(`Descuento aplicado: ${percent}%`);
   }
 
   async function submitSetting() {
@@ -552,7 +579,21 @@ export function AdminDashboard() {
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
-      <Card className="space-y-3">
+      <Card id="overview" className="space-y-3 lg:col-span-2">
+        <h3 className="font-display text-lg text-white">Centro de administracion MotoSmart</h3>
+        <p className="text-sm text-neutral-300">
+          Gestiona catalogo, precios, fotos, visibilidad y configuraciones en un solo lugar.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <a className="rounded-lg border border-white/15 px-3 py-1.5 text-xs text-neutral-200 hover:bg-white/10" href="#brands">Ir a Marcas</a>
+          <a className="rounded-lg border border-white/15 px-3 py-1.5 text-xs text-neutral-200 hover:bg-white/10" href="#designs">Ir a Diseños y Precios</a>
+          <a className="rounded-lg border border-white/15 px-3 py-1.5 text-xs text-neutral-200 hover:bg-white/10" href="#media">Ir a Fotos</a>
+          <a className="rounded-lg border border-white/15 px-3 py-1.5 text-xs text-neutral-200 hover:bg-white/10" href="#features">Ir a Modulos</a>
+          <a className="rounded-lg border border-white/15 px-3 py-1.5 text-xs text-neutral-200 hover:bg-white/10" href="#history">Ir a Historial</a>
+        </div>
+      </Card>
+
+      <Card id="brands" className="space-y-3 scroll-mt-28">
         <h3 className="font-display text-lg text-white">Marcas (crear / editar)</h3>
         <select
           className="h-11 rounded-xl border border-white/15 bg-black/40 px-3 text-sm text-white"
@@ -581,7 +622,7 @@ export function AdminDashboard() {
         <Button onClick={saveBrand}>{brandForm.id ? "Actualizar marca" : "Crear marca"}</Button>
       </Card>
 
-      <Card className="space-y-3">
+      <Card id="designs" className="space-y-3 scroll-mt-28">
         <h3 className="font-display text-lg text-white">Diseños y precios (crear / editar)</h3>
         <select
           className="h-11 rounded-xl border border-white/15 bg-black/40 px-3 text-sm text-white"
@@ -632,6 +673,13 @@ export function AdminDashboard() {
             }))
           }
         />
+        <div className="flex flex-wrap gap-2">
+          {[10, 15, 20, 25, 30].map((percent) => (
+            <Button key={percent} type="button" size="sm" variant="secondary" onClick={() => applyDiscountPercent(percent)}>
+              {percent}% OFF
+            </Button>
+          ))}
+        </div>
         <Input
           placeholder="Etiqueta promocion (ej: Oferta del mes)"
           value={designForm.promotion_label}
@@ -645,6 +693,17 @@ export function AdminDashboard() {
           />
           Promocion activa en tienda
         </label>
+        {designForm.promotion_active ? (
+          <div className="rounded-xl border border-emerald-300/25 bg-emerald-500/10 p-3 text-sm text-emerald-200">
+            {promotionPreview.hasPromotion ? (
+              <p>
+                Precio final {formatCOP(designForm.discount_price as number)} | Antes {formatCOP(designForm.base_price)} | Ahorro {formatCOP(promotionPreview.savings)} ({promotionPreview.percentOff}% OFF)
+              </p>
+            ) : (
+              <p>Configura un precio de descuento valido (menor al base) para activar la promocion.</p>
+            )}
+          </div>
+        ) : null}
         <Textarea
           placeholder="Descripción corta"
           value={designForm.short_description}
@@ -653,7 +712,7 @@ export function AdminDashboard() {
         <Button onClick={saveDesign}>{designForm.id ? "Actualizar diseño" : "Crear diseño"}</Button>
       </Card>
 
-      <Card className="space-y-3 lg:col-span-2">
+      <Card id="media" className="space-y-3 lg:col-span-2 scroll-mt-28">
         <h3 className="font-display text-lg text-white">Centro de fotos del sitio</h3>
         <p className="text-sm text-neutral-300">
           Desde aqui puedes subir fotos nuevas y usarlas en carrusel, marcas o diseños.
@@ -830,14 +889,14 @@ export function AdminDashboard() {
         </div>
       </Card>
 
-      <Card className="space-y-3 lg:col-span-2">
+      <Card id="settings" className="space-y-3 lg:col-span-2 scroll-mt-28">
         <h3 className="font-display text-lg text-white">Editar textos / settings</h3>
         <Input placeholder="Clave" value={settingKey} onChange={(e) => setSettingKey(e.target.value)} />
         <Textarea value={settingValue} onChange={(e) => setSettingValue(e.target.value)} />
         <Button onClick={submitSetting}>Guardar setting</Button>
       </Card>
 
-      <Card className="space-y-3 lg:col-span-2">
+      <Card id="products" className="space-y-3 lg:col-span-2 scroll-mt-28">
         <h3 className="font-display text-lg text-white">Visibilidad de productos</h3>
         <div className="space-y-2">
           {products.map((product) => (
@@ -856,7 +915,7 @@ export function AdminDashboard() {
         </div>
       </Card>
 
-      <Card className="space-y-3 lg:col-span-2">
+      <Card id="features" className="space-y-3 lg:col-span-2 scroll-mt-28">
         <h3 className="font-display text-lg text-white">Feature flags</h3>
         <div className="space-y-2">
           {features.map((feature) => (
@@ -870,7 +929,7 @@ export function AdminDashboard() {
         </div>
       </Card>
 
-      <Card className="space-y-3 lg:col-span-2">
+      <Card id="history" className="space-y-3 lg:col-span-2 scroll-mt-28">
         <h3 className="font-display text-lg text-white">Historial de cambios</h3>
         <div className="space-y-2">
           {activity.map((item) => (

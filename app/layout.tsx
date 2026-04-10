@@ -4,6 +4,7 @@ import { Navbar } from "@/components/shared/navbar";
 import { Footer } from "@/components/shared/footer";
 import { WhatsAppFab } from "@/components/shared/whatsapp-fab";
 import { siteConfig } from "@/config/site";
+import { canAccessAdmin, getCurrentUserRole } from "@/lib/auth";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
@@ -22,11 +23,14 @@ export const metadata: Metadata = {
   }
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const { user, role } = await getCurrentUserRole();
+  const isAdmin = canAccessAdmin(role);
+
   return (
     <html lang="es">
       <body>
-        <Navbar />
+        <Navbar isAuthenticated={Boolean(user)} isAdmin={isAdmin} />
         <main>{children}</main>
         <Footer />
         <WhatsAppFab />

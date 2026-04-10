@@ -13,11 +13,50 @@ const designSchema = z.object({
   short_description: z.string().max(180).default(""),
   image_url: z.string().url(),
   base_price: z.number().int().nonnegative(),
-  discount_price: z.number().nonnegative().nullable().optional(),
+  discount_price: z.number().positive().nullable().optional(),
   promotion_label: z.string().max(60).default(""),
   promotion_active: z.boolean().default(false),
   is_active: z.boolean().default(true)
+}).superRefine((value, ctx) => {
+  if (!value.promotion_active) return;
+
+  if (typeof value.discount_price !== "number") {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["discount_price"],
+      message: "Debes definir precio de descuento cuando la promocion esta activa"
+    });
+    return;
+  }
+
+  if (value.discount_price >= value.base_price) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["discount_price"],
+      message: "El descuento debe ser menor al precio base"
+    });
+  }
+
+  if (value.promotion_label.trim().length < 3) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["promotion_label"],
+      message: "La etiqueta de promocion debe tener al menos 3 caracteres"
+    });
+  }
 });
+
+function normalizePromotionPayload(payload: z.infer<typeof designSchema>) {
+  const active = payload.promotion_active;
+
+  return {
+    ...payload,
+    name: sanitizeText(payload.name),
+    short_description: sanitizeText(payload.short_description),
+    promotion_label: active ? sanitizeText(payload.promotion_label) : "",
+    discount_price: active ? payload.discount_price ?? null : null
+  };
+}
 
 export async function GET() {
   const { role } = await getCurrentUserRole();
@@ -44,16 +83,21 @@ export async function POST(request: Request) {
   if (!canAccessAdmin(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const parsed = designSchema.safeParse(await request.json());
-  if (!parsed.success) return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+  if (!parsed.success) {
+    return NextResponse.json(
+      {
+        error: "Invalid payload",
+        detail: parsed.error.issues.map((issue) => ({
+          path: issue.path.join("."),
+          message: issue.message
+        }))
+      },
+      { status: 400 }
+    );
+  }
 
   const supabase = await createServerSupabaseClient();
-  const payload = {
-    ...parsed.data,
-    name: sanitizeText(parsed.data.name),
-    short_description: sanitizeText(parsed.data.short_description),
-    promotion_label: sanitizeText(parsed.data.promotion_label),
-    discount_price: parsed.data.discount_price ?? null
-  };
+  const payload = normalizePromotionPayload(parsed.data);
   const { error } = await supabase.from("designs").insert(payload);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   await logAdminActivity({
@@ -76,18 +120,26 @@ export async function PATCH(request: Request) {
   if (!canAccessAdmin(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const parsed = designSchema.extend({ id: z.string().uuid() }).safeParse(await request.json());
-  if (!parsed.success) return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+  if (!parsed.success) {
+    return NextResponse.json(
+      {
+        error: "Invalid payload",
+        detail: parsed.error.issues.map((issue) => ({
+          path: issue.path.join("."),
+          message: issue.message
+        }))
+      },
+      { status: 400 }
+    );
+  }
 
   const supabase = await createServerSupabaseClient();
   const { id, ...rest } = parsed.data;
+  const normalized = normalizePromotionPayload(rest);
   const { error } = await supabase
     .from("designs")
     .update({
-      ...rest,
-      name: sanitizeText(rest.name),
-      short_description: sanitizeText(rest.short_description),
-      promotion_label: sanitizeText(rest.promotion_label),
-      discount_price: rest.discount_price ?? null,
+      ...normalized,
       updated_at: new Date().toISOString()
     })
     .eq("id", id);
@@ -98,10 +150,10 @@ export async function PATCH(request: Request) {
     entity: "design",
     entityId: id,
     detail: {
-      slug: rest.slug,
-      is_active: rest.is_active,
-      promotion_active: rest.promotion_active,
-      discount_price: rest.discount_price ?? null
+      slug: normalized.slug,
+      is_active: normalized.is_active,
+      promotion_active: normalized.promotion_active,
+      discount_price: normalized.discount_price
     }
   });
   return NextResponse.json({ ok: true });

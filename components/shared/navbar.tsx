@@ -7,20 +7,30 @@ import { Menu, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { LogoGlow } from "@/components/shared/logo-glow";
+import { AdminSessionActions } from "@/components/shared/admin-session-actions";
 import { trackEvent } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 
-const links = [
+const publicLinks = [
   { href: "/", label: "Inicio" },
   { href: "/catalogo", label: "Catalogo" },
   { href: "/sobre-nosotros", label: "Nosotros" },
   { href: "/contactanos", label: "Contacto" }
 ];
 
-export function Navbar() {
+const adminLinks = [
+  { href: "/admin", label: "Resumen" },
+  { href: "/admin#brands", label: "Marcas" },
+  { href: "/admin#designs", label: "Precios y Diseños" },
+  { href: "/admin#media", label: "Fotos" },
+  { href: "/admin#features", label: "Modulos" }
+];
+
+export function Navbar({ isAdmin = false, isAuthenticated = false }: { isAdmin?: boolean; isAuthenticated?: boolean }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const links = isAdmin ? adminLinks : publicLinks;
 
   useEffect(() => {
     function onScroll() {
@@ -36,8 +46,12 @@ export function Navbar() {
       className={cn(
         "sticky top-0 z-50 border-b border-white/10 backdrop-blur-xl transition-all duration-300",
         scrolled
-          ? "bg-black/85 py-0.5 shadow-[0_12px_30px_rgba(0,0,0,0.3)]"
-          : "bg-gradient-to-b from-black/70 via-black/55 to-transparent"
+          ? isAdmin
+            ? "bg-red-950/80 py-0.5 shadow-[0_12px_30px_rgba(120,0,0,0.35)]"
+            : "bg-black/85 py-0.5 shadow-[0_12px_30px_rgba(0,0,0,0.3)]"
+          : isAdmin
+            ? "bg-gradient-to-b from-red-950/70 via-black/55 to-transparent"
+            : "bg-gradient-to-b from-black/70 via-black/55 to-transparent"
       )}
     >
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-8">
@@ -67,10 +81,21 @@ export function Navbar() {
             </motion.div>
           ))}
         </div>
-        <div className="hidden md:block">
-          <Button asChild size="sm">
-            <Link href="/login">Panel Admin</Link>
-          </Button>
+        <div className="hidden items-center gap-2 md:flex">
+          {isAdmin ? (
+            <>
+              <Button asChild variant="secondary" size="sm">
+                <Link href="/">Ver tienda publica</Link>
+              </Button>
+              <AdminSessionActions compact />
+            </>
+          ) : isAuthenticated ? (
+            <AdminSessionActions compact />
+          ) : (
+            <Button asChild size="sm">
+              <Link href="/login">Panel Admin</Link>
+            </Button>
+          )}
         </div>
         <button
           type="button"
@@ -104,11 +129,28 @@ export function Navbar() {
                   {link.label}
                 </Link>
               ))}
-              <Button asChild size="sm" className="mt-2">
-                <Link href="/login" onClick={() => setOpen(false)}>
-                  Panel Admin
-                </Link>
-              </Button>
+              {isAdmin ? (
+                <div className="mt-2 flex gap-2">
+                  <Button asChild size="sm" variant="secondary" className="flex-1">
+                    <Link href="/" onClick={() => setOpen(false)}>
+                      Ver tienda
+                    </Link>
+                  </Button>
+                  <div className="flex-1">
+                    <AdminSessionActions compact />
+                  </div>
+                </div>
+              ) : isAuthenticated ? (
+                <div className="mt-2">
+                  <AdminSessionActions compact />
+                </div>
+              ) : (
+                <Button asChild size="sm" className="mt-2">
+                  <Link href="/login" onClick={() => setOpen(false)}>
+                    Panel Admin
+                  </Link>
+                </Button>
+              )}
             </div>
           </motion.div>
         ) : null}
