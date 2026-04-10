@@ -1,7 +1,9 @@
 import type { CSSProperties } from "react";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { SmartImage } from "@/components/shared/smart-image";
 import { formatCOP, formatDateTimeShort, getPromotionMeta } from "@/lib/utils";
+import { siteConfig } from "@/config/site";
 import type { Design } from "@/types";
 
 export function DesignGrid({ designs }: { designs: Design[] }) {
@@ -87,6 +89,29 @@ export function DesignGrid({ designs }: { designs: Design[] }) {
                 ) : null}
               </div>
             )}
+            <div className="pt-2" style={{ "--i": 3 } as CSSProperties}>
+              <Button asChild className="w-full bg-orange-500 hover:bg-orange-400">
+                <a
+                  href={`https://wa.me/${siteConfig.whatsappNumber}?text=${encodeURIComponent(
+                    [
+                      "Hola MotoSmart, quiero pedir este diseño:",
+                      `- Diseño: ${design.name}`,
+                      `- Precio: ${formatCOP(
+                        promotion.hasPromotion && design.discount_price != null
+                          ? design.discount_price
+                          : design.base_price
+                      )}`,
+                      `- Referencia: ${design.slug}`
+                    ].join("\n")
+                  )}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={`Pedir ${design.name} por WhatsApp`}
+                >
+                  Pedir este
+                </a>
+              </Button>
+            </div>
           </div>
         </Card>
           );
