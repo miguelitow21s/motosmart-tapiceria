@@ -8,6 +8,11 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 const ADMIN_BOOTSTRAP_EMAIL = (process.env.ADMIN_BOOTSTRAP_EMAIL ?? "nataliaagudelo@gmail.com").toLowerCase();
 const ADMIN_BOOTSTRAP_PASSWORD = process.env.ADMIN_BOOTSTRAP_PASSWORD ?? "123456";
 
+function isSupabaseInfrastructureError(error: { status?: number; code?: string } | null | undefined) {
+  if (!error) return false;
+  return (error.status ?? 0) >= 500 || error.code === "unexpected_failure";
+}
+
 async function tryBootstrapAdminUser(email: string, password: string) {
   const normalizedEmail = email.toLowerCase();
   if (
@@ -148,9 +153,31 @@ export async function POST(request: Request) {
     reason: "not-required"
   };
 
-  if (signInResult.error) {
+  if (signInResult.error && !isSupabaseInfrastructureError(signInResult.error)) {
     bootstrapResult = await tryBootstrapAdminUser(parsed.data.email, parsed.data.password);
     signInResult = await supabase.auth.signInWithPassword(parsed.data);
+  }
+
+  if (signInResult.error && isSupabaseInfrastructureError(signInResult.error)) {
+    const serverSupabase = await createServerSupabaseClient();
+    await serverSupabase.from("login_attempts").insert({
+      email: parsed.data.email.toLowerCase(),
+      ip,
+      success: false
+    });
+
+    return NextResponse.json(
+      {
+        error: "Servicio de autenticacion no disponible",
+        detail: {
+          provider: "supabase",
+          code: signInResult.error.code,
+          status: signInResult.error.status,
+          hint: "Revisa Supabase Auth y evita modificar tablas auth.* manualmente."
+        }
+      },
+      { status: 503 }
+    );
   }
 
   if (signInResult.error) {
