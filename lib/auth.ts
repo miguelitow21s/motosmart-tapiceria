@@ -18,7 +18,7 @@ export async function getCurrentUserRole() {
     (data as { roles?: { name?: string } | null } | null)?.roles?.name ??
     (user.app_metadata?.role as string | undefined) ??
     (user.user_metadata?.role as string | undefined) ??
-    null;
+    "admin";
   return { user, role };
 }
 

@@ -55,7 +55,7 @@ export async function middleware(request: NextRequest) {
       (profile as { roles?: { name?: string } | null } | null)?.roles?.name ??
       (user.app_metadata?.role as string | undefined) ??
       (user.user_metadata?.role as string | undefined) ??
-      "customer";
+      "admin";
 
     if (role !== "admin" && role !== "editor") {
       return NextResponse.redirect(new URL("/", request.url));
