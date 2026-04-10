@@ -91,10 +91,19 @@ type ActivityLog = {
 
 type Product = {
   id: string;
+  design_id: string;
   sku: string;
   stock: number;
   is_active: boolean;
   design_name: string;
+};
+
+type ProductForm = {
+  id?: string;
+  design_id: string;
+  sku: string;
+  stock: number;
+  is_active: boolean;
 };
 
 type TabKey =
@@ -200,6 +209,13 @@ const EMPTY_DESIGN_FORM: DesignForm = {
   promotion_active: false,
   promotion_starts_at: null,
   promotion_ends_at: null,
+  is_active: true
+};
+
+const EMPTY_PRODUCT_FORM: ProductForm = {
+  design_id: "",
+  sku: "",
+  stock: 0,
   is_active: true
 };
 
@@ -331,6 +347,9 @@ export function AdminDashboardImpl() {
   const [brandModalOpen, setBrandModalOpen] = useState(false);
   const [editingBrand, setEditingBrand] = useState<Brand>({ id: "", name: "", slug: "", image_url: null, description: "", is_active: true });
   const [brandSearch, setBrandSearch] = useState("");
+
+  const [productModalOpen, setProductModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<ProductForm>(EMPTY_PRODUCT_FORM);
 
   const [editingField, setEditingField] = useState<{ id: string; field: InlineField } | null>(null);
   const [inlineValue, setInlineValue] = useState("");
@@ -659,12 +678,13 @@ export function AdminDashboardImpl() {
     try {
       const res = await fetch("/api/admin/products", { cache: "no-store" });
       const body = (await res.json()) as {
-        data?: Array<{ id: string; sku: string; stock: number; is_active: boolean; designs?: { name?: string } | null }>;
+        data?: Array<{ id: string; design_id: string; sku: string; stock: number; is_active: boolean; designs?: { name?: string } | null }>;
       };
       if (!res.ok) return;
       setProducts(
         (body.data ?? []).map((p) => ({
           id: p.id,
+          design_id: p.design_id,
           sku: p.sku,
           stock: p.stock,
           is_active: p.is_active,
@@ -927,6 +947,75 @@ export function AdminDashboardImpl() {
       return;
     }
     notify("success", "Visibilidad de producto actualizada");
+  }
+
+  function openNewProductModal() {
+    setEditingProduct(EMPTY_PRODUCT_FORM);
+    setProductModalOpen(true);
+  }
+
+  function openEditProductModal(product: Product) {
+    setEditingProduct({
+      id: product.id,
+      design_id: product.design_id,
+      sku: product.sku,
+      stock: product.stock,
+      is_active: product.is_active
+    });
+    setProductModalOpen(true);
+  }
+
+  async function saveProduct() {
+    const isEdit = Boolean(editingProduct.id);
+    const payload = {
+      ...(isEdit ? { id: editingProduct.id } : {}),
+      design_id: editingProduct.design_id,
+      sku: editingProduct.sku,
+      stock: Number(editingProduct.stock),
+      is_active: editingProduct.is_active
+    };
+
+    const res = await fetch("/api/admin/products", {
+      method: isEdit ? "PATCH" : "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-csrf-token": getCsrfToken()
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const body = (await res.json()) as { error?: string };
+    if (!res.ok) {
+      notify("error", body.error ?? "No se pudo guardar producto");
+      return;
+    }
+
+    notify("success", isEdit ? "Producto actualizado" : "Producto creado");
+    setProductModalOpen(false);
+    await Promise.all([loadProducts(), loadActivity()]);
+  }
+
+  async function deleteProduct(productId: string) {
+    const previous = [...products];
+    setProducts((current) => current.filter((item) => item.id !== productId));
+
+    const res = await fetch("/api/admin/products", {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        "x-csrf-token": getCsrfToken()
+      },
+      body: JSON.stringify({ id: productId })
+    });
+
+    const body = (await res.json()) as { error?: string };
+    if (!res.ok) {
+      setProducts(previous);
+      notify("error", body.error ?? "No se pudo eliminar producto");
+      return;
+    }
+
+    notify("success", "Producto eliminado");
   }
 
   async function saveBrand() {
@@ -1620,7 +1709,12 @@ export function AdminDashboardImpl() {
           </div>
 
           <Card className="border-neutral-700 bg-neutral-950 p-4">
-            <h4 className="mb-2 font-display text-base text-white">Productos (visibilidad rápida)</h4>
+            <div className="mb-2 flex items-center justify-between">
+              <h4 className="font-display text-base text-white">Productos</h4>
+              <Button size="sm" className="bg-orange-500 hover:bg-orange-400" onClick={openNewProductModal}>
+                <Plus className="mr-1 h-4 w-4" /> Nuevo producto
+              </Button>
+            </div>
             <div className="space-y-2">
               {products.map((product) => (
                 <div key={product.id} className="flex items-center justify-between rounded-xl border border-neutral-700 p-2">
@@ -1628,9 +1722,25 @@ export function AdminDashboardImpl() {
                     <p className="text-sm text-white">{product.sku}</p>
                     <p className="text-xs text-neutral-400">{product.design_name} | Stock: {product.stock}</p>
                   </div>
-                  <Button size="sm" variant={product.is_active ? "default" : "secondary"} onClick={() => void toggleProduct(product)}>
-                    {product.is_active ? "Activo" : "Inactivo"}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant={product.is_active ? "default" : "secondary"} onClick={() => void toggleProduct(product)}>
+                      {product.is_active ? "Activo" : "Inactivo"}
+                    </Button>
+                    <Button size="sm" variant="secondary" onClick={() => openEditProductModal(product)}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() =>
+                        openConfirm("Eliminar producto", "Esta acción eliminará el producto de forma permanente.", async () => {
+                          await deleteProduct(product.id);
+                        })
+                      }
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -1857,6 +1967,51 @@ export function AdminDashboardImpl() {
           <div className="flex gap-2">
             <Button className="bg-orange-500 hover:bg-orange-400" onClick={() => void saveBrand()}><Save className="mr-1 h-4 w-4" />Guardar</Button>
             <Button variant="secondary" onClick={() => setBrandModalOpen(false)}>Cancelar</Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal open={productModalOpen} onClose={() => setProductModalOpen(false)} title={editingProduct.id ? "Editar producto" : "Nuevo producto"}>
+        <div className="space-y-3">
+          <select
+            className="h-11 w-full rounded-xl border border-neutral-700 bg-neutral-800 px-3 text-sm text-white"
+            value={editingProduct.design_id}
+            onChange={(event) => setEditingProduct((prev) => ({ ...prev, design_id: event.target.value }))}
+          >
+            <option value="">Selecciona diseño</option>
+            {designs.map((design) => (
+              <option key={design.id} value={design.id}>
+                {design.name}
+              </option>
+            ))}
+          </select>
+          <Input
+            placeholder="SKU"
+            value={editingProduct.sku}
+            onChange={(event) => setEditingProduct((prev) => ({ ...prev, sku: event.target.value.toUpperCase() }))}
+          />
+          <Input
+            type="number"
+            min={0}
+            placeholder="Stock"
+            value={editingProduct.stock}
+            onChange={(event) => setEditingProduct((prev) => ({ ...prev, stock: Number(event.target.value || 0) }))}
+          />
+          <label className="inline-flex items-center gap-2 text-sm text-neutral-300">
+            <input
+              type="checkbox"
+              checked={editingProduct.is_active}
+              onChange={(event) => setEditingProduct((prev) => ({ ...prev, is_active: event.target.checked }))}
+            />
+            Activo
+          </label>
+          <div className="flex gap-2">
+            <Button className="bg-orange-500 hover:bg-orange-400" onClick={() => void saveProduct()}>
+              <Save className="mr-1 h-4 w-4" /> Guardar
+            </Button>
+            <Button variant="secondary" onClick={() => setProductModalOpen(false)}>
+              Cancelar
+            </Button>
           </div>
         </div>
       </Modal>

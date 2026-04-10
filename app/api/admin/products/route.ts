@@ -48,7 +48,7 @@ export async function GET() {
   const supabase = await createServerSupabaseClient();
   const { data, error } = await supabase
     .from("products")
-    .select("id,sku,is_active,stock,designs(name)")
+    .select("id,design_id,sku,is_active,stock,designs(name)")
     .order("created_at", { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
