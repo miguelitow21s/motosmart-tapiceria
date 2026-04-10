@@ -94,7 +94,7 @@ export function DesignGrid({ designs }: { designs: Design[] }) {
                 <a
                   href={`https://wa.me/${siteConfig.whatsappNumber}?text=${encodeURIComponent(
                     [
-                      "Hola MotoSmart, quiero pedir este diseño:",
+                      "Hola MotoSmart, me interesa este diseño:",
                       `- Diseño: ${design.name}`,
                       `- Precio: ${formatCOP(
                         promotion.hasPromotion && design.discount_price != null
@@ -106,9 +106,9 @@ export function DesignGrid({ designs }: { designs: Design[] }) {
                   )}`}
                   target="_blank"
                   rel="noreferrer"
-                  aria-label={`Pedir ${design.name} por WhatsApp`}
+                  aria-label={`Solicitar ${design.name} por WhatsApp`}
                 >
-                  Pedir este
+                  Solicitar por WhatsApp
                 </a>
               </Button>
             </div>
