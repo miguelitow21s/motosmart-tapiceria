@@ -1,10 +1,10 @@
-import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { canAccessAdmin, getCurrentUserRole } from "@/lib/auth";
 import { logAdminActivity } from "@/lib/admin-activity";
 import { isFeatureEnabled } from "@/lib/feature-flags";
 import { assertCsrf, sanitizeText } from "@/lib/security";
+import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 const imageUpdateSchema = z.object({
   id: z.string().uuid(),
@@ -20,14 +20,7 @@ const imageDeleteSchema = z.object({
 });
 
 async function createAdminClient() {
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY");
-  }
-
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-  );
+  return createAdminSupabaseClient();
 }
 
 function getStoragePathFromPublicUrl(url: string) {

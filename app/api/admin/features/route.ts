@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { canAccessAdmin, getCurrentUserRole } from "@/lib/auth";
 import { logAdminActivity } from "@/lib/admin-activity";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { assertCsrf } from "@/lib/security";
+import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 const featureSchema = z.object({
   name: z.string().min(2).max(120),
@@ -24,7 +24,7 @@ export async function GET() {
   const { role } = await getCurrentUserRole();
   if (!canAccessAdmin(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const supabase = await createServerSupabaseClient();
+  const supabase = createAdminSupabaseClient();
   const { data, error } = await supabase.from("features").select("name,enabled").order("name");
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ data });
@@ -43,7 +43,7 @@ export async function PATCH(request: Request) {
   const parsed = featureSchema.safeParse(await request.json());
   if (!parsed.success) return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
 
-  const supabase = await createServerSupabaseClient();
+  const supabase = createAdminSupabaseClient();
   const { error } = await supabase
     .from("features")
     .update({ enabled: parsed.data.enabled, updated_at: new Date().toISOString() })
@@ -76,7 +76,7 @@ export async function POST(request: Request) {
   const key = (parsed.data.key ?? parsed.data.name ?? "").trim();
   if (!key) return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
 
-  const supabase = await createServerSupabaseClient();
+  const supabase = createAdminSupabaseClient();
   const { error } = await supabase
     .from("features")
     .upsert({ name: key, enabled: parsed.data.enabled, updated_at: new Date().toISOString() }, { onConflict: "name" });
