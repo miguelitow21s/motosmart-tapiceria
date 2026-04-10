@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { canAccessAdmin, getCurrentUserRole } from "@/lib/auth";
 import { logAdminActivity } from "@/lib/admin-activity";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { assertCsrf } from "@/lib/security";
+import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 const settingSchema = z.object({
   key: z.string().min(2).max(100),
@@ -14,7 +14,7 @@ export async function GET() {
   const { role } = await getCurrentUserRole();
   if (!canAccessAdmin(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const supabase = await createServerSupabaseClient();
+  const supabase = createAdminSupabaseClient();
   const { data, error } = await supabase.from("settings").select("*").order("key");
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ data });
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
   const parsed = settingSchema.safeParse(await request.json());
   if (!parsed.success) return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
 
-  const supabase = await createServerSupabaseClient();
+  const supabase = createAdminSupabaseClient();
   const { error } = await supabase.from("settings").upsert(parsed.data, { onConflict: "key" });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   await logAdminActivity({

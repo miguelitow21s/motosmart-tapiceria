@@ -3,6 +3,7 @@ import { z } from "zod";
 import { canAccessAdmin, getCurrentUserRole } from "@/lib/auth";
 import { logAdminActivity } from "@/lib/admin-activity";
 import { assertCsrf } from "@/lib/security";
+import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 const carouselUpdateSchema = z.object({
@@ -10,7 +11,7 @@ const carouselUpdateSchema = z.object({
 });
 
 export async function GET() {
-  const supabase = await createServerSupabaseClient();
+  const supabase = createAdminSupabaseClient();
   const { data, error } = await supabase
     .from("images")
     .select("id,storage_path,alt_text,created_at,designs(name,short_description),brands(name)")
@@ -55,7 +56,7 @@ export async function POST(request: Request) {
   const parsed = carouselUpdateSchema.safeParse(await request.json());
   if (!parsed.success) return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
 
-  const supabase = await createServerSupabaseClient();
+  const supabase = createAdminSupabaseClient();
 
   const { error: clearError } = await supabase
     .from("images")

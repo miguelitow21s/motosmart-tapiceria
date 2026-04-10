@@ -1613,7 +1613,8 @@ export function AdminDashboardImpl() {
                                     body: JSON.stringify({ id: design.id })
                                   });
                                   if (!res.ok) {
-                                    notify("error", "Este endpoint no está habilitado en backend");
+                                    const body = (await res.json()) as { error?: string };
+                                    notify("error", body.error ?? "No se pudo eliminar diseño");
                                     return;
                                   }
                                   await loadDesigns();
@@ -1694,7 +1695,8 @@ export function AdminDashboardImpl() {
                           body: JSON.stringify({ id: brand.id })
                         });
                         if (!res.ok) {
-                          notify("error", "Este endpoint no está habilitado en backend");
+                          const body = (await res.json()) as { error?: string };
+                          notify("error", body.error ?? "No se pudo eliminar marca");
                           return;
                         }
                         await loadBrands();
@@ -1867,7 +1869,8 @@ export function AdminDashboardImpl() {
                     headers: { "x-csrf-token": getCsrfToken() }
                   });
                   if (!res.ok) {
-                    notify("error", "Este endpoint no está habilitado en backend");
+                    const body = (await res.json()) as { error?: string };
+                    notify("error", body.error ?? "No se pudo limpiar historial");
                     return;
                   }
                   await loadActivity();

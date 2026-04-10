@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { canAccessAdmin, getCurrentUserRole } from "@/lib/auth";
 import { logAdminActivity } from "@/lib/admin-activity";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { assertCsrf, sanitizeText } from "@/lib/security";
+import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 const brandSchema = z.object({
   id: z.string().uuid().optional(),
@@ -22,7 +22,7 @@ export async function GET() {
   const { role } = await getCurrentUserRole();
   if (!canAccessAdmin(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const supabase = await createServerSupabaseClient();
+  const supabase = createAdminSupabaseClient();
   const { data, error } = await supabase.from("brands").select("*").order("created_at", { ascending: false });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
   const parsed = brandSchema.safeParse(await request.json());
   if (!parsed.success) return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
 
-  const supabase = await createServerSupabaseClient();
+  const supabase = createAdminSupabaseClient();
   const payload = {
     name: sanitizeText(parsed.data.name),
     slug: parsed.data.slug,
@@ -75,7 +75,7 @@ export async function PATCH(request: Request) {
   const parsed = brandSchema.extend({ id: z.string().uuid() }).safeParse(await request.json());
   if (!parsed.success) return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
 
-  const supabase = await createServerSupabaseClient();
+  const supabase = createAdminSupabaseClient();
   const { id, ...rest } = parsed.data;
   const { error } = await supabase
     .from("brands")
@@ -111,7 +111,7 @@ export async function DELETE(request: Request) {
   const parsed = deleteBrandSchema.safeParse(await request.json());
   if (!parsed.success) return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
 
-  const supabase = await createServerSupabaseClient();
+  const supabase = createAdminSupabaseClient();
 
   const { count, error: countError } = await supabase
     .from("designs")

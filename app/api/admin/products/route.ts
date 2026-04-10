@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { canAccessAdmin, getCurrentUserRole } from "@/lib/auth";
 import { logAdminActivity } from "@/lib/admin-activity";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { assertCsrf } from "@/lib/security";
+import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 const createProductSchema = z.object({
   design_id: z.string().uuid(),
@@ -45,7 +45,7 @@ export async function GET() {
   const { role } = await getCurrentUserRole();
   if (!canAccessAdmin(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const supabase = await createServerSupabaseClient();
+  const supabase = createAdminSupabaseClient();
   const { data, error } = await supabase
     .from("products")
     .select("id,design_id,sku,is_active,stock,designs(name)")
@@ -81,7 +81,7 @@ export async function PATCH(request: Request) {
   if (parsed.data.stock !== undefined) payload.stock = parsed.data.stock;
   if (parsed.data.is_active !== undefined) payload.is_active = parsed.data.is_active;
 
-  const supabase = await createServerSupabaseClient();
+  const supabase = createAdminSupabaseClient();
   const { error } = await supabase
     .from("products")
     .update(payload)
@@ -111,7 +111,7 @@ export async function POST(request: Request) {
   const parsed = createProductSchema.safeParse(await request.json());
   if (!parsed.success) return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
 
-  const supabase = await createServerSupabaseClient();
+  const supabase = createAdminSupabaseClient();
   const payload = {
     design_id: parsed.data.design_id,
     sku: sanitizeSku(parsed.data.sku),
@@ -144,7 +144,7 @@ export async function DELETE(request: Request) {
   const parsed = deleteSchema.safeParse(await request.json());
   if (!parsed.success) return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
 
-  const supabase = await createServerSupabaseClient();
+  const supabase = createAdminSupabaseClient();
   const { error } = await supabase.from("products").delete().eq("id", parsed.data.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
