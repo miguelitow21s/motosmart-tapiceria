@@ -1,5 +1,6 @@
--- Desactiva personalizador por defecto y crea/actualiza usuario admin inicial
+-- Desactiva personalizador por defecto y sincroniza perfil admin si ya existe en Auth
 -- Ejecutar despues de 001_initial.sql y 002_discounts_promotions.sql
+-- Nota: no escribir manualmente en auth.users ni auth.identities.
 
 insert into public.features(name, enabled)
 values ('customizer_enabled', false)
@@ -10,7 +11,6 @@ declare
   v_admin_role_id uuid;
   v_user_id uuid;
   v_email text := 'nataliaagudelo@gmail.com';
-  v_password text := '123456';
 begin
   select id into v_admin_role_id from public.roles where name = 'admin' limit 1;
 
@@ -19,67 +19,11 @@ begin
     select id into v_admin_role_id from public.roles where name = 'admin' limit 1;
   end if;
 
-  select id into v_user_id from auth.users where email = v_email limit 1;
+  -- Solo sincroniza si el usuario ya existe en Auth.
+  select id into v_user_id from auth.users where lower(email) = lower(v_email) limit 1;
 
   if v_user_id is null then
-    v_user_id := gen_random_uuid();
-
-    insert into auth.users (
-      instance_id,
-      id,
-      aud,
-      role,
-      email,
-      encrypted_password,
-      email_confirmed_at,
-      created_at,
-      updated_at,
-      raw_app_meta_data,
-      raw_user_meta_data,
-      is_super_admin
-    )
-    values (
-      '00000000-0000-0000-0000-000000000000',
-      v_user_id,
-      'authenticated',
-      'authenticated',
-      v_email,
-      crypt(v_password, gen_salt('bf')),
-      now(),
-      now(),
-      now(),
-      '{"provider":"email","providers":["email"]}'::jsonb,
-      '{}'::jsonb,
-      false
-    );
-
-    insert into auth.identities (
-      id,
-      user_id,
-      provider_id,
-      identity_data,
-      provider,
-      last_sign_in_at,
-      created_at,
-      updated_at
-    )
-    values (
-      gen_random_uuid(),
-      v_user_id,
-      v_email,
-      jsonb_build_object('sub', v_user_id::text, 'email', v_email),
-      'email',
-      now(),
-      now(),
-      now()
-    );
-  else
-    update auth.users
-    set
-      encrypted_password = crypt(v_password, gen_salt('bf')),
-      email_confirmed_at = coalesce(email_confirmed_at, now()),
-      updated_at = now()
-    where id = v_user_id;
+    return;
   end if;
 
   insert into public.users (id, role_id, full_name, created_at, updated_at)

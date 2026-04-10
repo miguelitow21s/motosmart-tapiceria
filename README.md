@@ -46,6 +46,12 @@ Copiar `.env.example` a `.env.local` y completar:
 5. En Authentication, activar Email/Password.
 6. Crear usuario admin y registrarlo tambien en `public.users` con rol `admin`.
 
+### Nota importante de Auth
+
+- No insertar ni actualizar manualmente tablas `auth.users` o `auth.identities` desde SQL.
+- Para crear usuarios admin usar Supabase Auth (Dashboard o Admin API).
+- El perfil en `public.users` se sincroniza automaticamente con la migracion `005_profiles_trigger_and_backfill.sql`.
+
 ## Despliegue Vercel
 
 1. Subir repo a GitHub.
