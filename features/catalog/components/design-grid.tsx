@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import { Card } from "@/components/ui/card";
 import { SmartImage } from "@/components/shared/smart-image";
-import { formatCOP, getPromotionMeta } from "@/lib/utils";
+import { formatCOP, formatDateTimeShort, getPromotionMeta } from "@/lib/utils";
 import type { Design } from "@/types";
 
 export function DesignGrid({ designs }: { designs: Design[] }) {
@@ -13,14 +13,36 @@ export function DesignGrid({ designs }: { designs: Design[] }) {
     );
   }
 
+  const sortedDesigns = [...designs].sort((a, b) => {
+    const promoA = getPromotionMeta(
+      a.base_price,
+      a.discount_price,
+      a.promotion_active,
+      a.promotion_starts_at,
+      a.promotion_ends_at
+    );
+    const promoB = getPromotionMeta(
+      b.base_price,
+      b.discount_price,
+      b.promotion_active,
+      b.promotion_starts_at,
+      b.promotion_ends_at
+    );
+    if (promoA.hasPromotion && !promoB.hasPromotion) return -1;
+    if (!promoA.hasPromotion && promoB.hasPromotion) return 1;
+    return a.name.localeCompare(b.name);
+  });
+
   return (
     <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3" data-animate-stagger>
-      {designs.map((design, idx) => (
+      {sortedDesigns.map((design, idx) => (
         (() => {
           const promotion = getPromotionMeta(
             design.base_price,
             design.discount_price,
-            design.promotion_active
+            design.promotion_active,
+            design.promotion_starts_at,
+            design.promotion_ends_at
           );
 
           return (
@@ -53,11 +75,17 @@ export function DesignGrid({ designs }: { designs: Design[] }) {
                 <p className="text-primary">Desde {formatCOP(design.discount_price as number)}</p>
                 <p className="text-xs text-neutral-400 line-through">Antes {formatCOP(design.base_price)}</p>
                 <p className="text-xs text-emerald-300">Ahorras {formatCOP(promotion.savings)}</p>
+                {design.promotion_ends_at ? (
+                  <p className="text-[11px] text-amber-200">Hasta {formatDateTimeShort(design.promotion_ends_at)}</p>
+                ) : null}
               </div>
             ) : (
-              <p className="text-primary" style={{ "--i": 2 } as CSSProperties}>
-                Desde {formatCOP(design.base_price)}
-              </p>
+              <div style={{ "--i": 2 } as CSSProperties}>
+                <p className="text-primary">Desde {formatCOP(design.base_price)}</p>
+                {design.promotion_active && design.promotion_starts_at ? (
+                  <p className="text-[11px] text-cyan-200">Promo inicia {formatDateTimeShort(design.promotion_starts_at)}</p>
+                ) : null}
+              </div>
             )}
           </div>
         </Card>

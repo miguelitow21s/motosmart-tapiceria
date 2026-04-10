@@ -21,6 +21,8 @@ export interface Design {
   discount_price: number | null;
   promotion_label: string;
   promotion_active: boolean;
+  promotion_starts_at: string | null;
+  promotion_ends_at: string | null;
 }
 
 export interface CustomOrderPayload {

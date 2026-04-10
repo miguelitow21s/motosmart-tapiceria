@@ -13,12 +13,26 @@ export function formatCOP(value: number) {
   }).format(value);
 }
 
-export function getPromotionMeta(basePrice: number, discountPrice: number | null | undefined, promotionActive: boolean) {
-  if (!promotionActive || typeof discountPrice !== "number" || discountPrice <= 0 || discountPrice >= basePrice) {
+export function getPromotionMeta(
+  basePrice: number,
+  discountPrice: number | null | undefined,
+  promotionActive: boolean,
+  promotionStartsAt?: string | null,
+  promotionEndsAt?: string | null,
+  nowDate: Date = new Date()
+) {
+  const startsAt = promotionStartsAt ? new Date(promotionStartsAt) : null;
+  const endsAt = promotionEndsAt ? new Date(promotionEndsAt) : null;
+  const started = !startsAt || startsAt <= nowDate;
+  const notEnded = !endsAt || endsAt > nowDate;
+  const inWindow = started && notEnded;
+
+  if (!promotionActive || !inWindow || typeof discountPrice !== "number" || discountPrice <= 0 || discountPrice >= basePrice) {
     return {
       hasPromotion: false,
       savings: 0,
-      percentOff: 0
+      percentOff: 0,
+      status: promotionActive && !inWindow ? "scheduled" as const : "inactive" as const
     };
   }
 
@@ -28,6 +42,19 @@ export function getPromotionMeta(basePrice: number, discountPrice: number | null
   return {
     hasPromotion: true,
     savings,
-    percentOff
+    percentOff,
+    status: "live" as const
   };
+}
+
+export function formatDateTimeShort(value: string | null | undefined) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return new Intl.DateTimeFormat("es-CO", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(date);
 }

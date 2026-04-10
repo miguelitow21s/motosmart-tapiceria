@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { formatCOP, getPromotionMeta } from "@/lib/utils";
+import { formatCOP, formatDateTimeShort, getPromotionMeta } from "@/lib/utils";
 
 type Brand = {
   id: string;
@@ -27,6 +27,8 @@ type Design = {
   discount_price: number | null;
   promotion_label: string;
   promotion_active: boolean;
+  promotion_starts_at: string | null;
+  promotion_ends_at: string | null;
   is_active: boolean;
 };
 
@@ -57,6 +59,8 @@ type DesignForm = {
   discount_price: number | null;
   promotion_label: string;
   promotion_active: boolean;
+  promotion_starts_at: string | null;
+  promotion_ends_at: string | null;
   is_active: boolean;
 };
 
@@ -87,8 +91,29 @@ const emptyDesignForm: DesignForm = {
   discount_price: null,
   promotion_label: "",
   promotion_active: false,
+  promotion_starts_at: null,
+  promotion_ends_at: null,
   is_active: true
 };
+
+function isoToLocalDateTimeInput(value: string | null | undefined) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+  const hh = String(date.getHours()).padStart(2, "0");
+  const min = String(date.getMinutes()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+}
+
+function localDateTimeInputToIso(value: string | null) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString();
+}
 
 function extractLinkedName(value: AdminImage["brands"] | AdminImage["designs"]) {
   if (!value) return "Sin asignar";
@@ -147,9 +172,17 @@ export function AdminDashboard() {
       getPromotionMeta(
         Number(designForm.base_price || 0),
         typeof designForm.discount_price === "number" ? designForm.discount_price : null,
-        designForm.promotion_active
+        designForm.promotion_active,
+        localDateTimeInputToIso(designForm.promotion_starts_at),
+        localDateTimeInputToIso(designForm.promotion_ends_at)
       ),
-    [designForm.base_price, designForm.discount_price, designForm.promotion_active]
+    [
+      designForm.base_price,
+      designForm.discount_price,
+      designForm.promotion_active,
+      designForm.promotion_starts_at,
+      designForm.promotion_ends_at
+    ]
   );
 
   function getCsrfToken() {
@@ -256,6 +289,8 @@ export function AdminDashboard() {
       discount_price: selected.discount_price ? Number(selected.discount_price) : null,
       promotion_label: selected.promotion_label ?? "",
       promotion_active: Boolean(selected.promotion_active),
+      promotion_starts_at: isoToLocalDateTimeInput(selected.promotion_starts_at),
+      promotion_ends_at: isoToLocalDateTimeInput(selected.promotion_ends_at),
       is_active: selected.is_active
     });
   }
@@ -294,7 +329,9 @@ export function AdminDashboard() {
         designForm.promotion_active && typeof designForm.discount_price === "number"
           ? designForm.discount_price
           : null,
-      promotion_label: designForm.promotion_active ? designForm.promotion_label : ""
+      promotion_label: designForm.promotion_active ? designForm.promotion_label : "",
+      promotion_starts_at: designForm.promotion_active ? localDateTimeInputToIso(designForm.promotion_starts_at) : null,
+      promotion_ends_at: designForm.promotion_active ? localDateTimeInputToIso(designForm.promotion_ends_at) : null
     };
 
     const res = await fetch("/api/admin/designs", {
@@ -331,6 +368,20 @@ export function AdminDashboard() {
       promotion_label: prev.promotion_label || `${percent}% OFF`
     }));
     setMessage(`Descuento aplicado: ${percent}%`);
+  }
+
+  function applyPromotionWindow(days: number) {
+    const start = new Date();
+    const end = new Date(start);
+    end.setDate(end.getDate() + days);
+
+    setDesignForm((prev) => ({
+      ...prev,
+      promotion_active: true,
+      promotion_starts_at: isoToLocalDateTimeInput(start.toISOString()),
+      promotion_ends_at: isoToLocalDateTimeInput(end.toISOString())
+    }));
+    setMessage(`Campana programada por ${days} dia(s)`);
   }
 
   async function submitSetting() {
@@ -693,6 +744,35 @@ export function AdminDashboard() {
           />
           Promocion activa en tienda
         </label>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <div>
+            <label className="mb-1 block text-xs text-neutral-400">Inicio promocion</label>
+            <Input
+              type="datetime-local"
+              value={designForm.promotion_starts_at ?? ""}
+              onChange={(e) => setDesignForm((prev) => ({ ...prev, promotion_starts_at: e.target.value || null }))}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-neutral-400">Fin promocion</label>
+            <Input
+              type="datetime-local"
+              value={designForm.promotion_ends_at ?? ""}
+              onChange={(e) => setDesignForm((prev) => ({ ...prev, promotion_ends_at: e.target.value || null }))}
+            />
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" size="sm" variant="secondary" onClick={() => applyPromotionWindow(2)}>
+            Flash 48h
+          </Button>
+          <Button type="button" size="sm" variant="secondary" onClick={() => applyPromotionWindow(7)}>
+            Semana promo
+          </Button>
+          <Button type="button" size="sm" variant="secondary" onClick={() => applyPromotionWindow(30)}>
+            Campana mensual
+          </Button>
+        </div>
         {designForm.promotion_active ? (
           <div className="rounded-xl border border-emerald-300/25 bg-emerald-500/10 p-3 text-sm text-emerald-200">
             {promotionPreview.hasPromotion ? (
@@ -702,6 +782,9 @@ export function AdminDashboard() {
             ) : (
               <p>Configura un precio de descuento valido (menor al base) para activar la promocion.</p>
             )}
+            <p className="mt-1 text-xs text-emerald-100/90">
+              Ventana: {formatDateTimeShort(localDateTimeInputToIso(designForm.promotion_starts_at))} - {formatDateTimeShort(localDateTimeInputToIso(designForm.promotion_ends_at))}
+            </p>
           </div>
         ) : null}
         <Textarea

@@ -16,6 +16,8 @@ const designSchema = z.object({
   discount_price: z.number().positive().nullable().optional(),
   promotion_label: z.string().max(60).default(""),
   promotion_active: z.boolean().default(false),
+  promotion_starts_at: z.string().datetime().nullable().optional(),
+  promotion_ends_at: z.string().datetime().nullable().optional(),
   is_active: z.boolean().default(true)
 }).superRefine((value, ctx) => {
   if (!value.promotion_active) return;
@@ -44,6 +46,18 @@ const designSchema = z.object({
       message: "La etiqueta de promocion debe tener al menos 3 caracteres"
     });
   }
+
+  if (value.promotion_starts_at && value.promotion_ends_at) {
+    const start = new Date(value.promotion_starts_at);
+    const end = new Date(value.promotion_ends_at);
+    if (end <= start) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["promotion_ends_at"],
+        message: "La fecha fin debe ser posterior a la fecha de inicio"
+      });
+    }
+  }
 });
 
 function normalizePromotionPayload(payload: z.infer<typeof designSchema>) {
@@ -54,7 +68,9 @@ function normalizePromotionPayload(payload: z.infer<typeof designSchema>) {
     name: sanitizeText(payload.name),
     short_description: sanitizeText(payload.short_description),
     promotion_label: active ? sanitizeText(payload.promotion_label) : "",
-    discount_price: active ? payload.discount_price ?? null : null
+    discount_price: active ? payload.discount_price ?? null : null,
+    promotion_starts_at: active ? payload.promotion_starts_at ?? null : null,
+    promotion_ends_at: active ? payload.promotion_ends_at ?? null : null
   };
 }
 

@@ -31,7 +31,7 @@ export async function getDesignsByBrandSlug(slug: string): Promise<Design[]> {
   const { data, error } = await supabase
     .from("designs")
     .select(
-      "id,brand_id,name,slug,short_description,image_url,is_active,base_price,discount_price,promotion_label,promotion_active"
+      "id,brand_id,name,slug,short_description,image_url,is_active,base_price,discount_price,promotion_label,promotion_active,promotion_starts_at,promotion_ends_at"
     )
     .eq("brand_id", brand.id)
     .eq("is_active", true)

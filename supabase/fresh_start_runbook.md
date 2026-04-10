@@ -28,6 +28,7 @@ En Supabase SQL Editor ejecuta, en este orden:
 3. supabase/migrations/003_bootstrap_admin_and_hide_customizer.sql
 4. supabase/migrations/004_fix_admin_login_and_role_check.sql
 5. supabase/migrations/005_profiles_trigger_and_backfill.sql
+6. supabase/migrations/006_promotion_scheduling.sql
 
 Nota:
 - No ejecutar repair_current_auth.sql ni emergency_bootstrap_admin_auth.sql en proyecto nuevo.
