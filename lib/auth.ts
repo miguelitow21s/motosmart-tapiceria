@@ -12,12 +12,12 @@ export async function getCurrentUserRole() {
     .from("users")
     .select("id, roles(name)")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
 
   const role =
     (data as { roles?: { name?: string } | null } | null)?.roles?.name ??
     (user.app_metadata?.role as string | undefined) ??
-    (user.user_metadata.role as string | undefined) ??
+    (user.user_metadata?.role as string | undefined) ??
     null;
   return { user, role };
 }

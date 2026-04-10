@@ -84,6 +84,36 @@ async function tryBootstrapAdminUser(email: string, password: string) {
   return { attempted: true, reason: "ok" as const };
 }
 
+async function syncRoleMetadataAfterSignIn(user: { id: string; app_metadata?: Record<string, unknown> | null }) {
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return;
+
+  const adminClient = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  );
+
+  const profile = await adminClient
+    .from("users")
+    .select("roles(name)")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const dbRole = (profile.data as { roles?: { name?: string } | null } | null)?.roles?.name;
+  if (!dbRole) return;
+
+  const currentRole = typeof user.app_metadata?.role === "string" ? user.app_metadata.role : undefined;
+  if (currentRole === dbRole) return;
+
+  await adminClient.auth.admin.updateUserById(user.id, {
+    app_metadata: {
+      ...(user.app_metadata ?? {}),
+      role: dbRole,
+      provider: "email",
+      providers: ["email"]
+    }
+  });
+}
+
 export async function POST(request: Request) {
   try {
     assertCsrf(request);
@@ -212,6 +242,10 @@ export async function POST(request: Request) {
     ip,
     success: true
   });
+
+  if (signInResult.data.user) {
+    await syncRoleMetadataAfterSignIn(signInResult.data.user);
+  }
 
   return response;
 }

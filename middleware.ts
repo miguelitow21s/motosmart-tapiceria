@@ -54,7 +54,7 @@ export async function middleware(request: NextRequest) {
     const role =
       (profile as { roles?: { name?: string } | null } | null)?.roles?.name ??
       (user.app_metadata?.role as string | undefined) ??
-      (user.user_metadata.role as string | undefined) ??
+      (user.user_metadata?.role as string | undefined) ??
       "customer";
 
     if (role !== "admin" && role !== "editor") {
