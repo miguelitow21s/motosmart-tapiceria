@@ -14,6 +14,10 @@ const brandSchema = z.object({
   is_active: z.boolean().default(true)
 });
 
+const deleteBrandSchema = z.object({
+  id: z.string().uuid()
+});
+
 export async function GET() {
   const { role } = await getCurrentUserRole();
   if (!canAccessAdmin(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -91,5 +95,46 @@ export async function PATCH(request: Request) {
     entityId: id,
     detail: { slug: rest.slug, is_active: rest.is_active }
   });
+  return NextResponse.json({ ok: true });
+}
+
+export async function DELETE(request: Request) {
+  try {
+    assertCsrf(request);
+  } catch {
+    return NextResponse.json({ error: "CSRF invalido" }, { status: 403 });
+  }
+
+  const { role } = await getCurrentUserRole();
+  if (!canAccessAdmin(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const parsed = deleteBrandSchema.safeParse(await request.json());
+  if (!parsed.success) return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+
+  const supabase = await createServerSupabaseClient();
+
+  const { count, error: countError } = await supabase
+    .from("designs")
+    .select("id", { count: "exact", head: true })
+    .eq("brand_id", parsed.data.id);
+
+  if (countError) return NextResponse.json({ error: countError.message }, { status: 500 });
+  if ((count ?? 0) > 0) {
+    return NextResponse.json(
+      { error: "No se puede eliminar la marca porque tiene diseños asociados" },
+      { status: 409 }
+    );
+  }
+
+  const { error } = await supabase.from("brands").delete().eq("id", parsed.data.id);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  await logAdminActivity({
+    action: "delete",
+    entity: "brand",
+    entityId: parsed.data.id,
+    detail: { hardDelete: true }
+  });
+
   return NextResponse.json({ ok: true });
 }

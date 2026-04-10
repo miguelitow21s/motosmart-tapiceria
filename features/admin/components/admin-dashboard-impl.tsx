@@ -7,6 +7,7 @@ import {
   ArrowDown,
   ArrowUp,
   Check,
+  Clock3,
   Copy,
   Flag,
   ImagePlus,
@@ -329,6 +330,7 @@ export function AdminDashboardImpl() {
 
   const [brandModalOpen, setBrandModalOpen] = useState(false);
   const [editingBrand, setEditingBrand] = useState<Brand>({ id: "", name: "", slug: "", image_url: null, description: "", is_active: true });
+  const [brandSearch, setBrandSearch] = useState("");
 
   const [editingField, setEditingField] = useState<{ id: string; field: InlineField } | null>(null);
   const [inlineValue, setInlineValue] = useState("");
@@ -347,6 +349,7 @@ export function AdminDashboardImpl() {
 
   const [uploadQueue, setUploadQueue] = useState<UploadDraft[]>([]);
   const [carouselUpload, setCarouselUpload] = useState<UploadDraft | null>(null);
+  const [carouselDropActive, setCarouselDropActive] = useState(false);
 
   const [settingsForm, setSettingsForm] = useState<Record<string, string>>({});
   const [activityFilter, setActivityFilter] = useState("all");
@@ -413,6 +416,16 @@ export function AdminDashboardImpl() {
     if (galleryDesignFilter !== "all") list = list.filter((img) => img.design_id === galleryDesignFilter);
     return list;
   }, [images, galleryFilter, galleryBrandFilter, galleryDesignFilter]);
+
+  const filteredBrands = useMemo(() => {
+    const query = brandSearch.trim().toLowerCase();
+    if (!query) return brands;
+    return brands.filter((brand) => {
+      const name = brand.name.toLowerCase();
+      const slug = brand.slug.toLowerCase();
+      return name.includes(query) || slug.includes(query);
+    });
+  }, [brands, brandSearch]);
 
   const metrics = useMemo(() => {
     const promoLive = designs.filter((d) => {
@@ -1154,6 +1167,53 @@ export function AdminDashboardImpl() {
     );
   }
 
+  function formatRelativeTime(value: string) {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "fecha inválida";
+
+    const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+    if (seconds < 60) return "hace unos segundos";
+
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `hace ${minutes} min`;
+
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `hace ${hours} h`;
+
+    const days = Math.floor(hours / 24);
+    if (days < 30) return `hace ${days} d`;
+
+    const months = Math.floor(days / 30);
+    if (months < 12) return `hace ${months} mes${months > 1 ? "es" : ""}`;
+
+    const years = Math.floor(months / 12);
+    return `hace ${years} año${years > 1 ? "s" : ""}`;
+  }
+
+  function getActivityIcon(action: string) {
+    const normalized = action.toLowerCase();
+    if (normalized.includes("create") || normalized.includes("insert")) return Plus;
+    if (normalized.includes("update") || normalized.includes("edit") || normalized.includes("toggle")) return Pencil;
+    if (normalized.includes("delete") || normalized.includes("remove")) return Trash2;
+    if (normalized.includes("upload")) return Upload;
+    return Activity;
+  }
+
+  function handleCarouselDrop(files: FileList | null) {
+    const file = files?.[0];
+    if (!file) return;
+    setCarouselUpload({
+      id: `${file.name}-${Date.now()}`,
+      file,
+      preview: URL.createObjectURL(file),
+      alt: file.name.replace(/\.[^/.]+$/, ""),
+      brand_id: "",
+      design_id: "",
+      is_carousel: true,
+      folder: "carousel"
+    });
+  }
+
   return (
     <div className="space-y-6">
       <Card className="border-neutral-700 bg-neutral-900">
@@ -1225,8 +1285,8 @@ export function AdminDashboardImpl() {
               <div className="space-y-2 text-sm">
                 {activity.slice(0, 5).map((item) => (
                   <div key={item.id} className="rounded-lg border border-neutral-700 p-2">
-                    <p className="text-white">{item.action}</p>
-                    <p className="text-xs text-neutral-400">{new Date(item.created_at).toLocaleString("es-CO")}</p>
+                        <p className="text-white">{item.action}</p>
+                        <p className="text-xs text-neutral-400">{formatRelativeTime(item.created_at)} · {new Date(item.created_at).toLocaleString("es-CO")}</p>
                   </div>
                 ))}
               </div>
@@ -1280,22 +1340,31 @@ export function AdminDashboardImpl() {
 
           <Card className="border-neutral-700 bg-neutral-950 p-4">
             <h4 className="mb-2 text-sm text-white">Subir nueva foto</h4>
+            <div
+              className={cn(
+                "mb-3 rounded-xl border-2 border-dashed p-6 text-center text-sm transition",
+                carouselDropActive
+                  ? "border-orange-400 bg-orange-500/10 text-orange-200"
+                  : "border-neutral-700 text-neutral-400"
+              )}
+              onDragOver={(event) => {
+                event.preventDefault();
+                setCarouselDropActive(true);
+              }}
+              onDragLeave={() => setCarouselDropActive(false)}
+              onDrop={(event) => {
+                event.preventDefault();
+                setCarouselDropActive(false);
+                handleCarouselDrop(event.dataTransfer.files);
+              }}
+            >
+              Arrastra una imagen aquí o usa el selector de archivo
+            </div>
             <Input
               type="file"
               accept="image/*"
               onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                setCarouselUpload({
-                  id: `${file.name}-${Date.now()}`,
-                  file,
-                  preview: URL.createObjectURL(file),
-                  alt: file.name.replace(/\.[^/.]+$/, ""),
-                  brand_id: "",
-                  design_id: "",
-                  is_carousel: true,
-                  folder: "carousel"
-                });
+                handleCarouselDrop(e.target.files);
               }}
             />
             {carouselUpload ? (
@@ -1501,9 +1570,16 @@ export function AdminDashboardImpl() {
               <Plus className="mr-1 h-4 w-4" /> Nueva marca
             </Button>
           </div>
+          <div className="max-w-md">
+            <Input
+              placeholder="Buscar marca por nombre o slug"
+              value={brandSearch}
+              onChange={(event) => setBrandSearch(event.target.value)}
+            />
+          </div>
           {loading.brands ? renderSkeleton(5) : null}
           <div className="space-y-2">
-            {brands.map((brand) => (
+            {filteredBrands.map((brand) => (
               <div key={brand.id} className="flex items-center justify-between rounded-xl border border-neutral-700 bg-neutral-950 p-3">
                 <div className="min-w-0">
                   <p className="text-white">{brand.name}</p>
@@ -1699,11 +1775,20 @@ export function AdminDashboardImpl() {
             {pagedActivity.map((entry) => (
               <div key={entry.id} className="rounded-xl border border-neutral-700 bg-neutral-950 p-3">
                 <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm text-white">{entry.action}</p>
-                    <p className="mt-1 text-xs text-neutral-400">{entry.details ?? "Sin detalles"}</p>
+                  <div className="flex gap-2">
+                    {(() => {
+                      const Icon = getActivityIcon(entry.action);
+                      return <Icon className="mt-0.5 h-4 w-4 text-neutral-400" />;
+                    })()}
+                    <div>
+                      <p className="text-sm text-white">{entry.action}</p>
+                      <p className="mt-1 text-xs text-neutral-400">{entry.details ?? "Sin detalles"}</p>
+                    </div>
                   </div>
-                  <p className="text-xs text-neutral-500">{new Date(entry.created_at).toLocaleString("es-CO")}</p>
+                  <div className="text-right">
+                    <p className="text-xs text-neutral-400 flex items-center justify-end gap-1"><Clock3 className="h-3.5 w-3.5" />{formatRelativeTime(entry.created_at)}</p>
+                    <p className="text-xs text-neutral-500">{new Date(entry.created_at).toLocaleString("es-CO")}</p>
+                  </div>
                 </div>
               </div>
             ))}

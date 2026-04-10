@@ -12,7 +12,7 @@ export async function GET() {
     .from("admin_activity_logs")
     .select("id,action,entity,entity_id,detail,created_at")
     .order("created_at", { ascending: false })
-    .limit(30);
+    .limit(50);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ data });

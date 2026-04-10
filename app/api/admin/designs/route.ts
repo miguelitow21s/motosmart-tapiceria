@@ -74,6 +74,10 @@ function normalizePromotionPayload(payload: z.infer<typeof designSchema>) {
   };
 }
 
+const deleteDesignSchema = z.object({
+  id: z.string().uuid()
+});
+
 export async function GET() {
   const { role } = await getCurrentUserRole();
   if (!canAccessAdmin(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -188,5 +192,32 @@ export async function PATCH(request: Request) {
       discount_price: normalized.discount_price
     }
   });
+  return NextResponse.json({ ok: true });
+}
+
+export async function DELETE(request: Request) {
+  try {
+    assertCsrf(request);
+  } catch {
+    return NextResponse.json({ error: "CSRF invalido" }, { status: 403 });
+  }
+
+  const { role } = await getCurrentUserRole();
+  if (!canAccessAdmin(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const parsed = deleteDesignSchema.safeParse(await request.json());
+  if (!parsed.success) return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+
+  const supabase = await createServerSupabaseClient();
+  const { error } = await supabase.from("designs").delete().eq("id", parsed.data.id);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  await logAdminActivity({
+    action: "delete",
+    entity: "design",
+    entityId: parsed.data.id,
+    detail: { hardDelete: true }
+  });
+
   return NextResponse.json({ ok: true });
 }

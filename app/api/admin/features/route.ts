@@ -10,6 +10,16 @@ const featureSchema = z.object({
   enabled: z.boolean()
 });
 
+const createFeatureSchema = z.object({
+  key: z.string().min(2).max(120).optional(),
+  name: z.string().min(2).max(120).optional(),
+  enabled: z.boolean().default(false)
+}).superRefine((value, ctx) => {
+  if (!value.key && !value.name) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["key"], message: "Missing key/name" });
+  }
+});
+
 export async function GET() {
   const { role } = await getCurrentUserRole();
   if (!canAccessAdmin(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -48,4 +58,36 @@ export async function PATCH(request: Request) {
   });
 
   return NextResponse.json({ ok: true });
+}
+
+export async function POST(request: Request) {
+  try {
+    assertCsrf(request);
+  } catch {
+    return NextResponse.json({ error: "CSRF invalido" }, { status: 403 });
+  }
+
+  const { role } = await getCurrentUserRole();
+  if (!canAccessAdmin(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const parsed = createFeatureSchema.safeParse(await request.json());
+  if (!parsed.success) return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+
+  const key = (parsed.data.key ?? parsed.data.name ?? "").trim();
+  if (!key) return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+
+  const supabase = await createServerSupabaseClient();
+  const { error } = await supabase
+    .from("features")
+    .upsert({ name: key, enabled: parsed.data.enabled, updated_at: new Date().toISOString() }, { onConflict: "name" });
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  await logAdminActivity({
+    action: "create_or_update",
+    entity: "feature",
+    entityId: key,
+    detail: { enabled: parsed.data.enabled }
+  });
+
+  return NextResponse.json({ ok: true }, { status: 201 });
 }
