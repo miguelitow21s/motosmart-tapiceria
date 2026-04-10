@@ -134,6 +134,7 @@ components/ui/modal.tsx
 components/ui/textarea.tsx
 config/site.ts
 features/admin/components/admin-dashboard.tsx
+features/admin/components/admin-dashboard-impl.tsx
 features/auth/components/login-form.tsx
 features/brands/services/brands.service.ts
 features/catalog/components/brand-carousel.tsx
@@ -371,7 +372,9 @@ Nota: en README tambien se menciona bucket weekly, pero el flujo de admin/images
 ## 6. Componentes existentes
 
 ### AdminDashboard
-Archivo: features/admin/components/admin-dashboard.tsx
+Archivos:
+- features/admin/components/admin-dashboard.tsx (wrapper liviano)
+- features/admin/components/admin-dashboard-impl.tsx (implementación completa)
 
 Resumen funcional:
 - CRUD de marcas
@@ -396,11 +399,15 @@ Resumen funcional:
 Snippet real (extracto):
 
 ```ts
-const [brands, setBrands] = useState<Brand[]>([]);
-const [designs, setDesigns] = useState<Design[]>([]);
-const [products, setProducts] = useState<ProductRow[]>([]);
-const [features, setFeatures] = useState<Feature[]>([]);
-const [images, setImages] = useState<AdminImage[]>([]);
+// Wrapper
+export function AdminDashboard() {
+  return <AdminDashboardImpl />;
+}
+
+// Implementación
+export function AdminDashboardImpl() {
+  // ...estado y lógica de tabs/admin
+}
 ```
 
 ### SectionContainer
@@ -426,8 +433,9 @@ export function SectionContainer({
 
 ### Carpeta features/admin
 - features/admin/components/admin-dashboard.tsx
+- features/admin/components/admin-dashboard-impl.tsx
 
-No hay mas submodulos admin fuera de ese componente principal en la carpeta features/admin.
+El dashboard se dividió para mantenibilidad: un wrapper estable y una implementación extensa separada.
 
 ---
 
@@ -607,6 +615,7 @@ const nextConfig: NextConfig = {
 - Admin:
   - app/admin/page.tsx
   - features/admin/components/admin-dashboard.tsx
+  - features/admin/components/admin-dashboard-impl.tsx
   - app/api/admin/designs/route.ts
   - app/api/admin/images/route.ts
 - Catalogo:
