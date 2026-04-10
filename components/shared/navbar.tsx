@@ -90,7 +90,12 @@ export function Navbar({ isAdmin = false, isAuthenticated = false }: { isAdmin?:
               <AdminSessionActions compact />
             </>
           ) : isAuthenticated ? (
-            <AdminSessionActions compact />
+            <>
+              <Button asChild variant="secondary" size="sm">
+                <Link href="/admin">Panel Admin</Link>
+              </Button>
+              <AdminSessionActions compact />
+            </>
           ) : (
             <Button asChild size="sm">
               <Link href="/login">Panel Admin</Link>
@@ -141,7 +146,12 @@ export function Navbar({ isAdmin = false, isAuthenticated = false }: { isAdmin?:
                   </div>
                 </div>
               ) : isAuthenticated ? (
-                <div className="mt-2">
+                <div className="mt-2 space-y-2">
+                  <Button asChild size="sm" variant="secondary" className="w-full">
+                    <Link href="/admin" onClick={() => setOpen(false)}>
+                      Panel Admin
+                    </Link>
+                  </Button>
                   <AdminSessionActions compact />
                 </div>
               ) : (
