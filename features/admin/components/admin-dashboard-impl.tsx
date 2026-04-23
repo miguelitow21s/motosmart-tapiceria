@@ -489,6 +489,9 @@ export function AdminDashboardImpl() {
   }, [filteredActivity, activityPage]);
 
   useEffect(() => {
+    if (window.matchMedia("(max-width: 767px)").matches) {
+      setCatalogView("grid");
+    }
     void bootstrap();
   }, []);
 
@@ -1304,9 +1307,9 @@ export function AdminDashboardImpl() {
   }
 
   return (
-    <div className="space-y-6">
-      <Card className="border-neutral-700 bg-neutral-900">
-        <div className="flex flex-wrap gap-2">
+    <div className="space-y-4 sm:space-y-6">
+      <Card className="border-neutral-700 bg-neutral-900 p-3 sm:p-4">
+        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap sm:overflow-visible">
           {TABS.map((tab) => {
             const Icon = tab.icon;
             return (
@@ -1314,7 +1317,10 @@ export function AdminDashboardImpl() {
                 key={tab.key}
                 variant={activeTab === tab.key ? "default" : "secondary"}
                 size="sm"
-                className={cn(activeTab === tab.key ? "bg-orange-500 hover:bg-orange-400" : "")}
+                className={cn(
+                  "shrink-0 whitespace-nowrap",
+                  activeTab === tab.key ? "bg-orange-500 hover:bg-orange-400" : ""
+                )}
                 onClick={() => setActiveTab(tab.key)}
               >
                 <Icon className="mr-1.5 h-4 w-4" />
@@ -1341,7 +1347,7 @@ export function AdminDashboardImpl() {
       {activeTab === "overview" ? (
         <div className="space-y-4">
           {loading.overview ? renderSkeleton(4) : null}
-          <div className="grid gap-4 md:grid-cols-5">
+          <div className="grid grid-cols-2 gap-4 xl:grid-cols-5">
             <Card className="border-neutral-700 bg-neutral-900 p-4"><p className="text-xs text-neutral-400">Diseños activos</p><p className="font-display text-2xl text-white">{metrics.designsActive}</p></Card>
             <Card className="border-neutral-700 bg-neutral-900 p-4"><p className="text-xs text-neutral-400">Marcas</p><p className="font-display text-2xl text-white">{metrics.totalBrands}</p></Card>
             <Card className="border-neutral-700 bg-neutral-900 p-4"><p className="text-xs text-neutral-400">Fotos catálogo</p><p className="font-display text-2xl text-white">{metrics.totalImages}</p></Card>
@@ -1386,7 +1392,7 @@ export function AdminDashboardImpl() {
 
       {activeTab === "carousel" ? (
         <Card className="space-y-4 border-neutral-700 bg-neutral-900 p-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
             <h3 className="font-display text-lg text-white">Carrusel semanal</h3>
             <p className="text-sm text-neutral-400">{carouselImages.length}/8 fotos</p>
           </div>
@@ -1410,7 +1416,7 @@ export function AdminDashboardImpl() {
                   onChange={(e) => setImages((prev) => prev.map((x) => (x.id === img.id ? { ...x, alt: e.target.value } : x)))}
                   onBlur={() => void patchImage(img.id, { alt: images.find((x) => x.id === img.id)?.alt ?? "" })}
                 />
-                <div className="mt-2 flex gap-2">
+                <div className="mt-2 flex flex-col gap-2 sm:flex-row">
                   <Button
                     variant="secondary"
                     size="sm"
@@ -1460,7 +1466,7 @@ export function AdminDashboardImpl() {
               <div className="mt-3 space-y-2">
                 <img src={carouselUpload.preview} alt="preview" className="h-40 w-full rounded-lg object-cover" />
                 <Input value={carouselUpload.alt} onChange={(e) => setCarouselUpload((prev) => (prev ? { ...prev, alt: e.target.value } : prev))} />
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row">
                   <Button className="bg-orange-500 hover:bg-orange-400" onClick={() => void uploadCarouselImage()}>Confirmar subida</Button>
                   <Button variant="secondary" onClick={() => setCarouselUpload(null)}><X className="mr-1 h-4 w-4" />Cancelar</Button>
                 </div>
@@ -1485,13 +1491,13 @@ export function AdminDashboardImpl() {
 
       {activeTab === "catalog" ? (
         <Card className="space-y-4 border-neutral-700 bg-neutral-900 p-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <Button className="bg-orange-500 hover:bg-orange-400" onClick={openNewDesignModal}><Plus className="mr-1 h-4 w-4" />Nuevo diseño</Button>
-            <Button variant="secondary" onClick={() => setCatalogView((v) => (v === "table" ? "grid" : "table"))}>{catalogView === "table" ? "Modo Grid" : "Modo Tabla"}</Button>
-            <Button variant="secondary" onClick={() => void loadDesigns()}><RefreshCw className="mr-1 h-4 w-4" />Recargar</Button>
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+            <Button className="w-full bg-orange-500 hover:bg-orange-400 sm:w-auto" onClick={openNewDesignModal}><Plus className="mr-1 h-4 w-4" />Nuevo diseño</Button>
+            <Button className="w-full sm:w-auto" variant="secondary" onClick={() => setCatalogView((v) => (v === "table" ? "grid" : "table"))}>{catalogView === "table" ? "Modo Grid" : "Modo Tabla"}</Button>
+            <Button className="w-full sm:w-auto" variant="secondary" onClick={() => void loadDesigns()}><RefreshCw className="mr-1 h-4 w-4" />Recargar</Button>
           </div>
 
-          <div className="grid gap-2 md:grid-cols-5">
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
             <Input placeholder="Buscar diseño" value={catalogSearch} onChange={(e) => setCatalogSearch(e.target.value)} />
             <select className="h-11 rounded-xl border border-neutral-700 bg-neutral-800 px-3 text-sm text-white" value={catalogBrandFilter} onChange={(e) => setCatalogBrandFilter(e.target.value)}>
               <option value="all">Todas las marcas</option>
@@ -1516,8 +1522,8 @@ export function AdminDashboardImpl() {
           {loading.catalog ? renderSkeleton(6) : null}
 
           {catalogView === "table" ? (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
+            <div className="overflow-x-auto rounded-xl border border-neutral-800">
+              <table className="min-w-[980px] text-sm">
                 <thead>
                   <tr className="text-left text-neutral-400">
                     <th className="px-2 py-2">Imagen</th>
@@ -1654,9 +1660,9 @@ export function AdminDashboardImpl() {
 
       {activeTab === "brands" ? (
         <Card className="space-y-4 border-neutral-700 bg-neutral-900 p-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h3 className="font-display text-lg text-white">Marcas</h3>
-            <Button className="bg-orange-500 hover:bg-orange-400" onClick={() => { setEditingBrand({ id: "", name: "", slug: "", image_url: null, description: "", is_active: true }); setBrandModalOpen(true); }}>
+            <Button className="w-full bg-orange-500 hover:bg-orange-400 sm:w-auto" onClick={() => { setEditingBrand({ id: "", name: "", slug: "", image_url: null, description: "", is_active: true }); setBrandModalOpen(true); }}>
               <Plus className="mr-1 h-4 w-4" /> Nueva marca
             </Button>
           </div>
@@ -1670,12 +1676,12 @@ export function AdminDashboardImpl() {
           {loading.brands ? renderSkeleton(5) : null}
           <div className="space-y-2">
             {filteredBrands.map((brand) => (
-              <div key={brand.id} className="flex items-center justify-between rounded-xl border border-neutral-700 bg-neutral-950 p-3">
+              <div key={brand.id} className="flex flex-col gap-3 rounded-xl border border-neutral-700 bg-neutral-950 p-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
                   <p className="text-white">{brand.name}</p>
                   <p className="text-xs text-neutral-400">/{brand.slug} | {brandCounts.get(brand.id) ?? 0} diseños</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 self-stretch sm:self-auto">
                   <Button size="sm" variant="secondary" onClick={() => { setEditingBrand(brand); setBrandModalOpen(true); }}><Pencil className="h-4 w-4" /></Button>
                   <Button
                     size="sm"
@@ -1711,20 +1717,20 @@ export function AdminDashboardImpl() {
           </div>
 
           <Card className="border-neutral-700 bg-neutral-950 p-4">
-            <div className="mb-2 flex items-center justify-between">
+            <div className="mb-2 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
               <h4 className="font-display text-base text-white">Productos</h4>
-              <Button size="sm" className="bg-orange-500 hover:bg-orange-400" onClick={openNewProductModal}>
+              <Button size="sm" className="w-full bg-orange-500 hover:bg-orange-400 sm:w-auto" onClick={openNewProductModal}>
                 <Plus className="mr-1 h-4 w-4" /> Nuevo producto
               </Button>
             </div>
             <div className="space-y-2">
               {products.map((product) => (
-                <div key={product.id} className="flex items-center justify-between rounded-xl border border-neutral-700 p-2">
+                <div key={product.id} className="flex flex-col gap-3 rounded-xl border border-neutral-700 p-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-sm text-white">{product.sku}</p>
                     <p className="text-xs text-neutral-400">{product.design_name} | Stock: {product.stock}</p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <Button size="sm" variant={product.is_active ? "default" : "secondary"} onClick={() => void toggleProduct(product)}>
                       {product.is_active ? "Activo" : "Inactivo"}
                     </Button>
@@ -1752,7 +1758,7 @@ export function AdminDashboardImpl() {
 
       {activeTab === "gallery" ? (
         <Card className="space-y-4 border-neutral-700 bg-neutral-900 p-4">
-          <div className="grid gap-2 md:grid-cols-4">
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
             <select className="h-11 rounded-xl border border-neutral-700 bg-neutral-800 px-3 text-sm text-white" value={galleryFilter} onChange={(e) => setGalleryFilter(e.target.value as "all" | "carousel" | "unlinked")}> 
               <option value="all">Todas</option>
               <option value="carousel">Solo carrusel</option>
@@ -1797,7 +1803,7 @@ export function AdminDashboardImpl() {
                   </div>
                 ))}
               </div>
-              <div className="mt-3 flex gap-2">
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                 <Button className="bg-orange-500 hover:bg-orange-400" onClick={() => void uploadQueueAll()}><Upload className="mr-1 h-4 w-4" />Subir todo</Button>
                 <Button variant="secondary" onClick={() => setUploadQueue([])}>Limpiar cola</Button>
               </div>
@@ -1830,7 +1836,7 @@ export function AdminDashboardImpl() {
               )}
             </div>
           ))}
-          <Button className="bg-orange-500 hover:bg-orange-400" onClick={() => void saveSettingsForm()}><Save className="mr-1 h-4 w-4" />Guardar cambios</Button>
+          <Button className="w-full bg-orange-500 hover:bg-orange-400 sm:w-auto" onClick={() => void saveSettingsForm()}><Save className="mr-1 h-4 w-4" />Guardar cambios</Button>
         </Card>
       ) : null}
 
@@ -1838,7 +1844,7 @@ export function AdminDashboardImpl() {
         <Card className="space-y-3 border-neutral-700 bg-neutral-900 p-4">
           {loading.features ? renderSkeleton(6) : null}
           {features.map((feature) => (
-            <div key={feature.id} className="flex items-center justify-between rounded-xl border border-neutral-700 bg-neutral-950 p-3">
+            <div key={feature.id} className="flex flex-col items-start gap-3 rounded-xl border border-neutral-700 bg-neutral-950 p-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-white">{feature.key}</p>
                 <p className={cn("text-xs", feature.enabled ? "text-emerald-300" : "text-neutral-500")}>{feature.enabled ? "ACTIVO" : "INACTIVO"}</p>
@@ -1854,7 +1860,7 @@ export function AdminDashboardImpl() {
 
       {activeTab === "activity" ? (
         <Card className="space-y-3 border-neutral-700 bg-neutral-900 p-4">
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
             <select className="h-11 rounded-xl border border-neutral-700 bg-neutral-800 px-3 text-sm text-white" value={activityFilter} onChange={(e) => { setActivityFilter(e.target.value); setActivityPage(1); }}>
               <option value="all">Todas las acciones</option>
               {Array.from(new Set(activity.map((a) => a.action))).map((action) => <option key={action} value={action}>{action}</option>)}
@@ -1887,7 +1893,7 @@ export function AdminDashboardImpl() {
           <div className="space-y-2">
             {pagedActivity.map((entry) => (
               <div key={entry.id} className="rounded-xl border border-neutral-700 bg-neutral-950 p-3">
-                <div className="flex items-start justify-between gap-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="flex gap-2">
                     {(() => {
                       const Icon = getActivityIcon(entry.action);
@@ -1898,8 +1904,8 @@ export function AdminDashboardImpl() {
                       <p className="mt-1 text-xs text-neutral-400">{entry.details ?? "Sin detalles"}</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-xs text-neutral-400 flex items-center justify-end gap-1"><Clock3 className="h-3.5 w-3.5" />{formatRelativeTime(entry.created_at)}</p>
+                  <div className="sm:text-right">
+                    <p className="flex items-center gap-1 text-xs text-neutral-400 sm:justify-end"><Clock3 className="h-3.5 w-3.5" />{formatRelativeTime(entry.created_at)}</p>
                     <p className="text-xs text-neutral-500">{new Date(entry.created_at).toLocaleString("es-CO")}</p>
                   </div>
                 </div>
@@ -1907,11 +1913,11 @@ export function AdminDashboardImpl() {
             ))}
           </div>
 
-          <div className="flex items-center justify-between text-sm text-neutral-400">
+          <div className="flex flex-col gap-3 text-sm text-neutral-400 sm:flex-row sm:items-center sm:justify-between">
             <span>Página {activityPage}</span>
             <div className="flex gap-2">
-              <Button size="sm" variant="secondary" disabled={activityPage === 1} onClick={() => setActivityPage((p) => p - 1)}>Anterior</Button>
-              <Button size="sm" variant="secondary" disabled={activityPage * 10 >= filteredActivity.length} onClick={() => setActivityPage((p) => p + 1)}>Siguiente</Button>
+              <Button className="flex-1 sm:flex-none" size="sm" variant="secondary" disabled={activityPage === 1} onClick={() => setActivityPage((p) => p - 1)}>Anterior</Button>
+              <Button className="flex-1 sm:flex-none" size="sm" variant="secondary" disabled={activityPage * 10 >= filteredActivity.length} onClick={() => setActivityPage((p) => p + 1)}>Siguiente</Button>
             </div>
           </div>
         </Card>
@@ -1952,7 +1958,7 @@ export function AdminDashboardImpl() {
           <Textarea className="md:col-span-2" placeholder="Descripción corta" value={editingDesign.short_description} onChange={(e) => setEditingDesign((p) => ({ ...p, short_description: e.target.value }))} />
           <Input className="md:col-span-2" placeholder="Imagen principal URL" value={editingDesign.image_url} onChange={(e) => setEditingDesign((p) => ({ ...p, image_url: e.target.value }))} />
           <Input className="md:col-span-2" type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) void uploadImageForDesign(f); }} />
-          <div className="md:col-span-2 flex gap-2">
+          <div className="md:col-span-2 flex flex-col gap-2 sm:flex-row">
             <Button className="bg-orange-500 hover:bg-orange-400" onClick={() => void saveDesignModal()}><Save className="mr-1 h-4 w-4" />Guardar</Button>
             <Button variant="secondary" onClick={() => setDesignModalOpen(false)}>Cancelar</Button>
           </div>
@@ -1967,7 +1973,7 @@ export function AdminDashboardImpl() {
           <Textarea placeholder="Descripción" value={editingBrand.description ?? ""} onChange={(e) => setEditingBrand((p) => ({ ...p, description: e.target.value }))} />
           <Input type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) void uploadBrandImage(f); }} />
           <label className="inline-flex items-center gap-2 text-sm text-neutral-300"><input type="checkbox" checked={editingBrand.is_active ?? true} onChange={(e) => setEditingBrand((p) => ({ ...p, is_active: e.target.checked }))} />Activa</label>
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <Button className="bg-orange-500 hover:bg-orange-400" onClick={() => void saveBrand()}><Save className="mr-1 h-4 w-4" />Guardar</Button>
             <Button variant="secondary" onClick={() => setBrandModalOpen(false)}>Cancelar</Button>
           </div>
@@ -2008,7 +2014,7 @@ export function AdminDashboardImpl() {
             />
             Activo
           </label>
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <Button className="bg-orange-500 hover:bg-orange-400" onClick={() => void saveProduct()}>
               <Save className="mr-1 h-4 w-4" /> Guardar
             </Button>
@@ -2024,7 +2030,7 @@ export function AdminDashboardImpl() {
           <div className="space-y-3">
             <img src={selectedImage.url} alt={selectedImage.alt ?? "imagen"} className="h-56 w-full rounded-xl object-cover" />
             <Input value={selectedImage.alt ?? ""} onChange={(e) => setSelectedImage((prev) => (prev ? { ...prev, alt: e.target.value } : prev))} />
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               <select className="h-11 rounded-xl border border-neutral-700 bg-neutral-800 px-3 text-sm text-white" value={selectedImage.brand_id ?? ""} onChange={(e) => setSelectedImage((prev) => (prev ? { ...prev, brand_id: e.target.value || null } : prev))}>
                 <option value="">Sin marca</option>
                 {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
@@ -2036,7 +2042,7 @@ export function AdminDashboardImpl() {
             </div>
             <label className="inline-flex items-center gap-2 text-sm text-neutral-300"><input type="checkbox" checked={selectedImage.is_carousel} onChange={(e) => setSelectedImage((prev) => (prev ? { ...prev, is_carousel: e.target.checked } : prev))} />Mostrar en carrusel</label>
             <Input value={selectedImage.url} readOnly />
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
               <Button variant="secondary" onClick={() => { void navigator.clipboard.writeText(selectedImage.url); notify("success", "URL copiada"); }}><Copy className="mr-1 h-4 w-4" />Copiar URL</Button>
               <Button className="bg-orange-500 hover:bg-orange-400" onClick={() => void patchImage(selectedImage.id, selectedImage)}><Save className="mr-1 h-4 w-4" />Guardar cambios</Button>
               <Button
@@ -2058,7 +2064,7 @@ export function AdminDashboardImpl() {
 
       <Modal open={confirmState.open} onClose={() => setConfirmState({ open: false, title: "", description: "", action: null })} title={confirmState.title}>
         <p className="text-sm text-neutral-300">{confirmState.description}</p>
-        <div className="mt-4 flex justify-end gap-2">
+        <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <Button variant="secondary" onClick={() => setConfirmState({ open: false, title: "", description: "", action: null })}>Cancelar</Button>
           <Button className="bg-orange-500 hover:bg-orange-400" onClick={() => void runConfirmAction()}>Confirmar</Button>
         </div>

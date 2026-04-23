@@ -1,13 +1,19 @@
 "use client";
 
 import { MessageCircle } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { siteConfig } from "@/config/site";
 import { trackEvent } from "@/lib/analytics";
 
 export function WhatsAppFab() {
+  const pathname = usePathname();
   const href = `https://wa.me/${siteConfig.whatsappNumber}?text=${encodeURIComponent(
     "Hola MotoSmart, quiero informacion."
   )}`;
+
+  if (pathname.startsWith("/admin")) {
+    return null;
+  }
 
   return (
     <a

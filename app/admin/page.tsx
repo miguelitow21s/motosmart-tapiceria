@@ -15,10 +15,10 @@ export default async function AdminPage() {
   }
 
   return (
-    <SectionContainer className="py-16">
-      <h1 className="font-display text-4xl text-white">Panel admin</h1>
+    <SectionContainer className="py-8 sm:py-10 md:py-16">
+      <h1 className="font-display text-3xl text-white sm:text-4xl">Panel admin</h1>
       <p className="mt-2 text-neutral-300">Rol actual: {role}</p>
-      <div className="mt-8">
+      <div className="mt-6 sm:mt-8">
         <AdminDashboard />
       </div>
     </SectionContainer>
