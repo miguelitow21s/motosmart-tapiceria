@@ -11,7 +11,8 @@ const carouselUpdateSchema = z.object({
 });
 
 export async function GET() {
-  const supabase = createAdminSupabaseClient();
+  // Endpoint publico: cliente anon sujeto a RLS, nunca service_role.
+  const supabase = await createServerSupabaseClient();
   const { data, error } = await supabase
     .from("images")
     .select("id,storage_path,alt_text,created_at,designs(name,short_description),brands(name)")
@@ -20,7 +21,8 @@ export async function GET() {
     .limit(12);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("carousel GET", error.message);
+    return NextResponse.json({ error: "Error interno" }, { status: 500 });
   }
 
   const slides = (data ?? []).map((item) => {
@@ -91,12 +93,17 @@ export async function DELETE(request: Request) {
   const { role } = await getCurrentUserRole();
   if (!canAccessAdmin(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const supabase = await createServerSupabaseClient();
+  // Escritura de admin: mismo cliente que el POST. Con el cliente de usuario
+  // este UPDATE queda denegado por permisos.
+  const supabase = createAdminSupabaseClient();
   const { error } = await supabase
     .from("images")
     .update({ is_weekly_highlight: false })
     .eq("is_weekly_highlight", true);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("carousel DELETE", error.message);
+    return NextResponse.json({ error: "Error interno" }, { status: 500 });
+  }
 
   await logAdminActivity({
     action: "clear",

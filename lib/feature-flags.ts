@@ -14,8 +14,13 @@ export async function isFeatureEnabled(name: FeatureName) {
     .eq("name", name)
     .maybeSingle();
 
-  if (error) return true; // si hay error de red/tabla, no bloqueamos la funcionalidad
-  if (data?.enabled === undefined || data === null) return true; // default on si no hay fila
+  // Falla cerrado: este flag controla capacidades privilegiadas (admin_uploads_enabled).
+  // Un control que se enciende solo cuando algo va mal no es un control.
+  if (error) {
+    console.error("isFeatureEnabled", name, error.message);
+    return false;
+  }
+  if (!data) return false;
   return Boolean(data.enabled);
 }
 

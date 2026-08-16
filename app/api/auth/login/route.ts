@@ -3,85 +3,27 @@ import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { checkRateLimit, clearRateLimit } from "@/lib/rate-limit";
 import { assertCsrf, loginSchema } from "@/lib/security";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
-const ADMIN_BOOTSTRAP_EMAIL = (process.env.ADMIN_BOOTSTRAP_EMAIL ?? "nataliaagudelo@gmail.com").toLowerCase();
-const ADMIN_BOOTSTRAP_PASSWORD = process.env.ADMIN_BOOTSTRAP_PASSWORD ?? "123456";
+// NO añadir aqui credenciales de bootstrap ni rutas de recuperacion de admin.
+// El alta de administradores se hace desde el Dashboard de Supabase
+// (ver supabase/fresh_start_runbook.md). Un endpoint publico jamas debe poder
+// crear usuarios ni cambiar contraseñas.
 
 function isSupabaseInfrastructureError(error: { status?: number; code?: string } | null | undefined) {
   if (!error) return false;
   return (error.status ?? 0) >= 500 || error.code === "unexpected_failure";
 }
 
-async function tryBootstrapAdminUser(email: string, password: string) {
-  const normalizedEmail = email.toLowerCase();
-  if (
-    normalizedEmail !== ADMIN_BOOTSTRAP_EMAIL ||
-    password !== ADMIN_BOOTSTRAP_PASSWORD
-  ) {
-    return { attempted: false, reason: "credentials-not-matching-bootstrap" as const };
+// login_attempts es un log de auditoria: solo lo escribe el servidor con
+// service_role. Un fallo al registrar nunca debe impedir el login.
+async function recordLoginAttempt(email: string, ip: string, success: boolean) {
+  try {
+    const adminClient = createAdminSupabaseClient();
+    await adminClient.from("login_attempts").insert({ email: email.toLowerCase(), ip, success });
+  } catch (error) {
+    console.error("recordLoginAttempt", error);
   }
-
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return { attempted: true, reason: "missing-service-role-key" as const };
-  }
-
-  const adminClient = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-  );
-
-  const listed = await adminClient.auth.admin.listUsers({ page: 1, perPage: 1000 });
-  if (listed.error) {
-    return { attempted: true, reason: "list-users-failed" as const };
-  }
-  const existing = listed.data.users.find((user) => user.email?.toLowerCase() === normalizedEmail);
-
-  let userId = existing?.id;
-  if (!existing) {
-    const created = await adminClient.auth.admin.createUser({
-      email: normalizedEmail,
-      password,
-      email_confirm: true,
-      user_metadata: { role: "admin" },
-      app_metadata: { role: "admin", provider: "email", providers: ["email"] }
-    });
-    if (created.error) {
-      return { attempted: true, reason: "create-user-failed" as const };
-    }
-    userId = created.data.user?.id;
-  } else {
-    const updated = await adminClient.auth.admin.updateUserById(existing.id, {
-      password,
-      email_confirm: true,
-      user_metadata: { ...(existing.user_metadata ?? {}), role: "admin" },
-      app_metadata: { ...(existing.app_metadata ?? {}), role: "admin", provider: "email", providers: ["email"] }
-    });
-    if (updated.error) {
-      return { attempted: true, reason: "update-user-failed" as const };
-    }
-  }
-
-  if (!userId) return { attempted: true, reason: "missing-user-id" as const };
-
-  const role = await adminClient.from("roles").select("id").eq("name", "admin").maybeSingle();
-  const roleId = role.data?.id;
-  if (!roleId) return { attempted: true, reason: "admin-role-not-found" as const };
-
-  const upserted = await adminClient.from("users").upsert(
-    {
-      id: userId,
-      role_id: roleId,
-      full_name: "Natalia Agudelo",
-      updated_at: new Date().toISOString()
-    },
-    { onConflict: "id" }
-  );
-  if (upserted.error) {
-    return { attempted: true, reason: "upsert-profile-failed" as const };
-  }
-
-  return { attempted: true, reason: "ok" as const };
 }
 
 async function syncRoleMetadataAfterSignIn(user: { id: string; app_metadata?: Record<string, unknown> | null }) {
@@ -125,19 +67,10 @@ export async function POST(request: Request) {
   const parsed = loginSchema.safeParse(payload);
 
   if (!parsed.success) {
-    return NextResponse.json(
-      {
-        error: "Datos invalidos",
-        detail: parsed.error.issues.map((issue) => ({
-          path: issue.path.join("."),
-          message: issue.message
-        }))
-      },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "Datos invalidos" }, { status: 400 });
   }
 
-  const ip = request.headers.get("x-forwarded-for") ?? "unknown";
+  const ip = (request.headers.get("x-forwarded-for") ?? "unknown").split(",")[0].trim();
   const key = `${ip}:${parsed.data.email.toLowerCase()}`;
   const state = checkRateLimit(key);
 
@@ -177,71 +110,26 @@ export async function POST(request: Request) {
     }
   );
 
-  let signInResult = await supabase.auth.signInWithPassword(parsed.data);
-  let bootstrapResult: { attempted: boolean; reason: string } = {
-    attempted: false,
-    reason: "not-required"
-  };
-
-  if (signInResult.error && !isSupabaseInfrastructureError(signInResult.error)) {
-    bootstrapResult = await tryBootstrapAdminUser(parsed.data.email, parsed.data.password);
-    signInResult = await supabase.auth.signInWithPassword(parsed.data);
-  }
-
-  if (signInResult.error && isSupabaseInfrastructureError(signInResult.error)) {
-    const serverSupabase = await createServerSupabaseClient();
-    await serverSupabase.from("login_attempts").insert({
-      email: parsed.data.email.toLowerCase(),
-      ip,
-      success: false
-    });
-
-    return NextResponse.json(
-      {
-        error: "Servicio de autenticacion no disponible",
-        detail: {
-          provider: "supabase",
-          code: signInResult.error.code,
-          status: signInResult.error.status,
-          hint: "Revisa Supabase Auth y evita modificar tablas auth.* manualmente."
-        }
-      },
-      { status: 503 }
-    );
-  }
+  const signInResult = await supabase.auth.signInWithPassword(parsed.data);
 
   if (signInResult.error) {
-    const serverSupabase = await createServerSupabaseClient();
-    await serverSupabase.from("login_attempts").insert({
-      email: parsed.data.email.toLowerCase(),
-      ip,
-      success: false
-    });
-    const isAdminBootstrapAttempt = parsed.data.email.toLowerCase() === ADMIN_BOOTSTRAP_EMAIL;
-    return NextResponse.json(
-      {
-        error: "Credenciales invalidas",
-        detail: isAdminBootstrapAttempt
-          ? {
-              bootstrap: bootstrapResult.reason,
-              hint:
-                bootstrapResult.reason === "missing-service-role-key"
-                  ? "Configura SUPABASE_SERVICE_ROLE_KEY en Vercel y redeploy."
-                  : "Verifica que el proyecto de Supabase y las variables de entorno coincidan con produccion."
-            }
-          : undefined
-      },
-      { status: 401 }
-    );
+    await recordLoginAttempt(parsed.data.email, ip, false);
+
+    if (isSupabaseInfrastructureError(signInResult.error)) {
+      console.error("login: fallo de infraestructura de Supabase Auth", signInResult.error);
+      return NextResponse.json(
+        { error: "Servicio de autenticacion no disponible" },
+        { status: 503 }
+      );
+    }
+
+    // Respuesta identica para cualquier email: no revelar que cuentas existen
+    // ni cual es la del administrador.
+    return NextResponse.json({ error: "Credenciales invalidas" }, { status: 401 });
   }
 
   clearRateLimit(key);
-  const serverSupabase = await createServerSupabaseClient();
-  await serverSupabase.from("login_attempts").insert({
-    email: parsed.data.email.toLowerCase(),
-    ip,
-    success: true
-  });
+  await recordLoginAttempt(parsed.data.email, ip, true);
 
   if (signInResult.data.user) {
     await syncRoleMetadataAfterSignIn(signInResult.data.user);

@@ -1,5 +1,7 @@
--- Reset schema to rebuild from scratch (dangerous in shared envs)
-drop schema if exists public cascade;
+-- NO añadir aqui `drop schema public cascade`. Estuvo en este archivo y borraba
+-- catalogo, pedidos, perfiles y logs de auditoria si alguien reejecutaba la
+-- migracion para "reparar" algo. La creacion limpia de un proyecto nuevo
+-- pertenece a supabase/fresh_start_runbook.md, no a una migracion versionada.
 create schema if not exists public;
 
 -- Permisos básicos para roles de Supabase (anon / authenticated)

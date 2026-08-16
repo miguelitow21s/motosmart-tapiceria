@@ -40,7 +40,7 @@ export function SmartImage({
         sizes={sizes}
         priority={priority}
         loading={priority ? "eager" : "lazy"}
-        onLoadingComplete={() => setLoading(false)}
+        onLoad={() => setLoading(false)}
         onError={() => {
           setFailed(true);
           setLoading(false);
