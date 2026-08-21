@@ -1,11 +1,15 @@
-"use client";
-
 import type { CSSProperties } from "react";
 import { SectionContainer } from "@/components/shared/section-container";
 import { Button } from "@/components/ui/button";
+import { getSiteSettings } from "@/lib/settings";
 import Link from "next/link";
 
-export function Hero() {
+// Server Component: los textos vienen de /admin > "Textos y Config".
+// No lleva "use client": las animaciones data-animate* se resuelven por CSS
+// (app/globals.css), no por JS.
+export async function Hero() {
+  const settings = await getSiteSettings();
+
   return (
     <SectionContainer className="pt-16 md:pt-24">
       <div
@@ -17,19 +21,19 @@ export function Hero() {
           className="max-w-4xl font-display text-display leading-tight text-white"
           style={{ "--i": 0 } as CSSProperties}
         >
-          Tapiceria de moto premium a tu medida
+          {settings.hero_tagline}
         </h1>
         <p className="max-w-2xl text-neutral-300" style={{ "--i": 1 } as CSSProperties}>
-          Asientos hechos a mano, materiales de alto agarre y terminados con detalle profesional para que tu moto se vea y se sienta mejor.
+          {settings.hero_description}
         </p>
         <div
           className="flex flex-col flex-wrap items-center gap-3 sm:flex-row md:items-center"
           style={{ "--i": 2 } as CSSProperties}
         >
           <Button asChild size="lg" className="w-full sm:w-auto">
-            <Link href="/catalogo">Ver catalogo</Link>
+            <Link href="/catalogo">{settings.hero_cta_text}</Link>
           </Button>
-          <span className="text-sm text-neutral-400" style={{ "--i": 3 } as CSSProperties}>
+          <span className="text-sm text-neutral-300" style={{ "--i": 3 } as CSSProperties}>
             Envíos y asesoría a todo Colombia
           </span>
         </div>

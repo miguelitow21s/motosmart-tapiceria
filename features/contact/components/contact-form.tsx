@@ -17,7 +17,7 @@ export function ContactForm() {
       }}
     >
       <Input placeholder="Nombre" required />
-      <Input placeholder="Telefono" required />
+      <Input type="tel" inputMode="tel" placeholder="Telefono" required />
       <Textarea placeholder="Cuentanos que necesitas" required />
       <Button className="w-full">Enviar mensaje</Button>
       {sent ? <p className="text-sm text-green-300">Recibimos tu solicitud, te contactaremos pronto.</p> : null}

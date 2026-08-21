@@ -3,10 +3,12 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SmartImage } from "@/components/shared/smart-image";
 import { formatCOP, formatDateTimeShort, getPromotionMeta } from "@/lib/utils";
-import { siteConfig } from "@/config/site";
+import { getSiteSettings } from "@/lib/settings";
 import type { Design } from "@/types";
 
-export function DesignGrid({ designs }: { designs: Design[] }) {
+export async function DesignGrid({ designs }: { designs: Design[] }) {
+  const settings = await getSiteSettings();
+
   if (!designs.length) {
     return (
       <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-neutral-200">
@@ -49,7 +51,7 @@ export function DesignGrid({ designs }: { designs: Design[] }) {
 
           return (
         <Card key={design.id} className="overflow-hidden p-0" style={{ "--i": idx } as CSSProperties}>
-          <div className="relative h-52 w-full">
+          <div className="relative aspect-[4/3] w-full">
             {promotion.hasPromotion ? (
               <div className="absolute right-3 top-3 z-10 rounded-full border border-red-200/45 bg-red-600 px-2.5 py-1 text-xs font-semibold text-white shadow-lg">
                 -{promotion.percentOff}%
@@ -59,7 +61,7 @@ export function DesignGrid({ designs }: { designs: Design[] }) {
               src={design.image_url}
               alt={design.name}
               fill
-              sizes="(max-width: 768px) 100vw, 33vw"
+              sizes="(max-width: 639px) 100vw, (max-width: 1023px) 50vw, 33vw"
             />
           </div>
           <div className="space-y-2 p-5" data-animate-text>
@@ -92,7 +94,7 @@ export function DesignGrid({ designs }: { designs: Design[] }) {
             <div className="pt-2" style={{ "--i": 3 } as CSSProperties}>
               <Button asChild className="w-full bg-orange-500 hover:bg-orange-400">
                 <a
-                  href={`https://wa.me/${siteConfig.whatsappNumber}?text=${encodeURIComponent(
+                  href={`https://wa.me/${settings.whatsapp_number}?text=${encodeURIComponent(
                     [
                       "Hola MotoSmart, me interesa este diseño:",
                       `- Diseño: ${design.name}`,

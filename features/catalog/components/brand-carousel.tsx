@@ -26,7 +26,7 @@ export function BrandCarousel({ brands }: { brands: Brand[] }) {
           >
             {brand.logo_url ? (
               <div className="relative mb-3 h-28 w-full overflow-hidden rounded-xl border border-white/10">
-                <SmartImage src={brand.logo_url} alt={brand.name} fill sizes="(max-width: 768px) 100vw, 25vw" />
+                <SmartImage src={brand.logo_url} alt={brand.name} fill sizes="(max-width: 639px) 100vw, (max-width: 1023px) 50vw, 25vw" />
               </div>
             ) : null}
             <h3 className="font-display text-lg text-white">{brand.name}</h3>

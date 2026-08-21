@@ -6,3 +6,6 @@ out
 .vercel
 .DS_Store
 *.log
+
+# Artefacto de build de TypeScript: causaba fallos de build al quedar obsoleto
+tsconfig.tsbuildinfo

@@ -104,7 +104,7 @@ export function Navbar({ isAdmin = false, isAuthenticated = false }: { isAdmin?:
         </div>
         <button
           type="button"
-          className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/15 bg-white/5 md:hidden"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-white/15 bg-white/5 md:hidden"
           onClick={() => setOpen((prev) => !prev)}
           aria-label="Abrir menu"
         >
