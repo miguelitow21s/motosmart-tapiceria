@@ -156,10 +156,21 @@ alter table public.analytics_events enable row level security;
 alter table public.admin_activity_logs enable row level security;
 alter table public.login_attempts enable row level security;
 
+-- Nota (tras auditoria): las 16 `create policy` de abajo no tenian
+-- `drop policy if exists`, asi que reejecutar este archivo sentencia a
+-- sentencia (fuera del SQL Editor, p. ej. via CLI, donde no va todo en una
+-- sola transaccion) abortaba aqui con "policy already exists" - pero antes
+-- de abortar ya habria aplicado el `create or replace function` de arriba,
+-- que quedaba sin `security definer` y volvia a abrir la recursion 42P17
+-- que la 008 cerro. Se añade `drop policy if exists` a cada una y se alinea
+-- la funcion con su forma final (008/009) para que el orden de ejecucion
+-- ya no importe.
 create or replace function public.is_admin_or_editor()
 returns boolean
 language sql
 stable
+security definer
+set search_path = public, pg_temp
 as $$
   select exists (
     select 1
@@ -169,60 +180,85 @@ as $$
   );
 $$;
 
+drop policy if exists "public read brands" on public.brands;
 create policy "public read brands" on public.brands
 for select using (is_active = true or public.is_admin_or_editor());
 
+drop policy if exists "public read designs" on public.designs;
 create policy "public read designs" on public.designs
 for select using (is_active = true or public.is_admin_or_editor());
 
+drop policy if exists "public read products" on public.products;
 create policy "public read products" on public.products
 for select using (is_active = true or public.is_admin_or_editor());
 
+drop policy if exists "admin manage brands" on public.brands;
 create policy "admin manage brands" on public.brands
 for all using (public.is_admin_or_editor()) with check (public.is_admin_or_editor());
 
+drop policy if exists "admin manage designs" on public.designs;
 create policy "admin manage designs" on public.designs
 for all using (public.is_admin_or_editor()) with check (public.is_admin_or_editor());
 
+drop policy if exists "admin manage products" on public.products;
 create policy "admin manage products" on public.products
 for all using (public.is_admin_or_editor()) with check (public.is_admin_or_editor());
 
+drop policy if exists "admin manage images" on public.images;
 create policy "admin manage images" on public.images
 for all using (public.is_admin_or_editor()) with check (public.is_admin_or_editor());
 
+drop policy if exists "admin manage settings" on public.settings;
 create policy "admin manage settings" on public.settings
 for all using (public.is_admin_or_editor()) with check (public.is_admin_or_editor());
 
+-- Sobrescrita por la 011 (solo 3 flags publicos); se deja aqui la version
+-- original solo para que un fresh-install intermedio no quede sin policy.
+drop policy if exists "public read features" on public.features;
 create policy "public read features" on public.features
 for select using (true);
 
+drop policy if exists "admin manage features" on public.features;
 create policy "admin manage features" on public.features
 for all using (public.is_admin_or_editor()) with check (public.is_admin_or_editor());
 
+drop policy if exists "admin read analytics" on public.analytics_events;
 create policy "admin read analytics" on public.analytics_events
 for select using (public.is_admin_or_editor());
 
+-- Revocada por la 011 (anon ya no inserta analitica directo); se deja para
+-- que un fresh-install que aun no llegue a la 011 no rompa el endpoint.
+drop policy if exists "anon insert analytics" on public.analytics_events;
 create policy "anon insert analytics" on public.analytics_events
 for insert with check (true);
 
+drop policy if exists "admin read activity logs" on public.admin_activity_logs;
 create policy "admin read activity logs" on public.admin_activity_logs
 for select using (public.is_admin_or_editor());
 
+drop policy if exists "admin insert activity logs" on public.admin_activity_logs;
 create policy "admin insert activity logs" on public.admin_activity_logs
 for insert with check (public.is_admin_or_editor());
 
+drop policy if exists "admin read login attempts" on public.login_attempts;
 create policy "admin read login attempts" on public.login_attempts
 for select using (public.is_admin_or_editor());
 
+drop policy if exists "service insert login attempts" on public.login_attempts;
 create policy "service insert login attempts" on public.login_attempts
 for insert with check (true);
 
+drop policy if exists "users own profile" on public.users;
 create policy "users own profile" on public.users
 for select using (auth.uid() = id or public.is_admin_or_editor());
 
+-- Sobrescrita por la 011 (status forzado a 'pending'); se deja aqui para que
+-- un fresh-install intermedio no quede sin policy de insert.
+drop policy if exists "user create custom order" on public.custom_orders;
 create policy "user create custom order" on public.custom_orders
 for insert with check (auth.uid() = user_id or user_id is null);
 
+drop policy if exists "user read own custom orders" on public.custom_orders;
 create policy "user read own custom orders" on public.custom_orders
 for select using (auth.uid() = user_id or public.is_admin_or_editor());
 

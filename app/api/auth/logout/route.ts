@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
 import { assertCsrf } from "@/lib/security";
+import { createRouteHandlerSupabaseClient } from "@/lib/supabase/route-handler";
 
 export async function POST(request: Request) {
   try {
@@ -10,31 +10,7 @@ export async function POST(request: Request) {
   }
 
   const response = NextResponse.json({ ok: true });
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.headers
-            .get("cookie")
-            ?.split(";")
-            .map((entry) => entry.trim())
-            .filter(Boolean)
-            .map((entry) => {
-              const [name, ...rest] = entry.split("=");
-              return { name, value: rest.join("=") };
-            }) ?? [];
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            response.cookies.set(name, value, options);
-          });
-        }
-      }
-    }
-  );
+  const supabase = createRouteHandlerSupabaseClient(request, response);
 
   await supabase.auth.signOut();
   return response;

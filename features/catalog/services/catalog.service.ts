@@ -15,18 +15,23 @@ export async function getBrands(): Promise<Brand[]> {
   return data ?? [];
 }
 
-export async function getDesignsByBrandSlug(slug: string): Promise<Design[]> {
+export interface BrandDesigns {
+  brand: Pick<Brand, "id" | "name"> | null;
+  designs: Design[];
+}
+
+export async function getDesignsByBrandSlug(slug: string): Promise<BrandDesigns> {
   const supabase = await createServerSupabaseClient();
   const { data: brand, error: brandError } = await supabase
     .from("brands")
-    .select("id")
+    .select("id,name")
     .eq("slug", slug)
     .single();
   if (brandError) {
     console.error("getDesigns brand", brandError.message);
-    return [];
+    return { brand: null, designs: [] };
   }
-  if (!brand) return [];
+  if (!brand) return { brand: null, designs: [] };
 
   const { data, error } = await supabase
     .from("designs")
@@ -38,7 +43,7 @@ export async function getDesignsByBrandSlug(slug: string): Promise<Design[]> {
     .order("name", { ascending: true });
   if (error) {
     console.error("getDesigns designs", error.message);
-    return [];
+    return { brand, designs: [] };
   }
-  return data ?? [];
+  return { brand, designs: data ?? [] };
 }

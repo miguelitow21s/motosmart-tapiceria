@@ -7,9 +7,12 @@ export default function NotFound() {
     <SectionContainer className="py-24 text-center">
       <h1 className="font-display text-5xl text-white">404</h1>
       <p className="mt-3 text-neutral-300">No encontramos la pagina solicitada.</p>
-      <div className="mt-6">
+      <div className="mt-6 flex flex-wrap justify-center gap-3">
         <Button asChild>
           <Link href="/">Volver al inicio</Link>
+        </Button>
+        <Button asChild variant="secondary">
+          <Link href="/catalogo">Ver catálogo</Link>
         </Button>
       </div>
     </SectionContainer>

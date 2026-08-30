@@ -5,6 +5,7 @@ import { logAdminActivity } from "@/lib/admin-activity";
 import { assertCsrf } from "@/lib/security";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { invalidPayload, internalError } from "@/lib/api-response";
 
 const carouselUpdateSchema = z.object({
   ids: z.array(z.string().uuid()).max(12)
@@ -20,10 +21,7 @@ export async function GET() {
     .order("created_at", { ascending: false })
     .limit(12);
 
-  if (error) {
-    console.error("carousel GET", error.message);
-    return NextResponse.json({ error: "Error interno" }, { status: 500 });
-  }
+  if (error) return internalError("carousel GET", error);
 
   const slides = (data ?? []).map((item) => {
     const design = Array.isArray(item.designs) ? item.designs[0] : item.designs;
@@ -56,23 +54,17 @@ export async function POST(request: Request) {
   if (!canAccessAdmin(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const parsed = carouselUpdateSchema.safeParse(await request.json());
-  if (!parsed.success) return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+  if (!parsed.success) return invalidPayload(parsed.error);
 
   const supabase = createAdminSupabaseClient();
 
-  const { error: clearError } = await supabase
-    .from("images")
-    .update({ is_weekly_highlight: false })
-    .eq("is_weekly_highlight", true);
-  if (clearError) return NextResponse.json({ error: clearError.message }, { status: 500 });
-
-  if (parsed.data.ids.length > 0) {
-    const { error: setError } = await supabase
-      .from("images")
-      .update({ is_weekly_highlight: true })
-      .in("id", parsed.data.ids);
-    if (setError) return NextResponse.json({ error: setError.message }, { status: 500 });
-  }
+  // Antes eran dos UPDATE HTTP independientes (limpiar todo -> marcar los
+  // nuevos): si el segundo fallaba, el carrusel publico quedaba vacio sin
+  // que quedara claro que la operacion se hizo a medias. Ahora es una sola
+  // funcion SQL con las dos escrituras en la misma transaccion (ver
+  // migracion 011: public.set_weekly_highlights).
+  const { error } = await supabase.rpc("set_weekly_highlights", { p_ids: parsed.data.ids });
+  if (error) return internalError("carousel POST", error);
 
   await logAdminActivity({
     action: "update",
@@ -93,17 +85,9 @@ export async function DELETE(request: Request) {
   const { role } = await getCurrentUserRole();
   if (!canAccessAdmin(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  // Escritura de admin: mismo cliente que el POST. Con el cliente de usuario
-  // este UPDATE queda denegado por permisos.
   const supabase = createAdminSupabaseClient();
-  const { error } = await supabase
-    .from("images")
-    .update({ is_weekly_highlight: false })
-    .eq("is_weekly_highlight", true);
-  if (error) {
-    console.error("carousel DELETE", error.message);
-    return NextResponse.json({ error: "Error interno" }, { status: 500 });
-  }
+  const { error } = await supabase.rpc("set_weekly_highlights", { p_ids: [] });
+  if (error) return internalError("carousel DELETE", error);
 
   await logAdminActivity({
     action: "clear",

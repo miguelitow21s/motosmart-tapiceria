@@ -8,7 +8,7 @@ export function LogoGlow({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "animate-glow rounded-2xl border border-red-500/45 bg-black/60 px-3 py-2 shadow-[0_0_28px_rgba(239,68,68,0.18)]",
+        "logo-glow rounded-2xl border border-red-500/45 bg-black/60 px-3 py-2 shadow-[0_0_28px_rgba(239,68,68,0.18)]",
         className
       )}
     >

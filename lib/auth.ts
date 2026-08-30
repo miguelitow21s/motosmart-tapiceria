@@ -1,4 +1,5 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { parseRoleRow } from "@/lib/role";
 
 export async function getCurrentUserRole() {
   const supabase = await createServerSupabaseClient();
@@ -27,10 +28,17 @@ export async function getCurrentUserRole() {
     return { user, role: null };
   }
 
-  const role = (data as { roles?: { name?: string } | null } | null)?.roles?.name ?? null;
+  const role = parseRoleRow(data);
   return { user, role };
 }
 
 export function canAccessAdmin(role: string | null) {
   return role === "admin" || role === "editor";
+}
+
+// Distinto de canAccessAdmin a proposito: hay operaciones (borrar el log de
+// auditoria completo, purgas) que un editor no debe poder ejecutar aunque
+// pueda entrar al panel y gestionar catalogo.
+export function isAdmin(role: string | null) {
+  return role === "admin";
 }

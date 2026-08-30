@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { AnimatePresence, motion } from "motion/react";
 import { Menu, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -58,7 +57,7 @@ export function Navbar({ isAdmin = false, isAuthenticated = false }: { isAdmin?:
         <LogoGlow />
         <div className="hidden items-center gap-6 md:flex">
           {links.map((link) => (
-            <motion.div key={link.href} whileHover={{ y: -2 }}>
+            <div key={link.href} className="transition-transform duration-200 hover:-translate-y-0.5">
               <Link
                 className={cn(
                   "relative text-sm text-neutral-200 transition-colors duration-200 hover:text-white",
@@ -78,7 +77,7 @@ export function Navbar({ isAdmin = false, isAuthenticated = false }: { isAdmin?:
                   )}
                 />
               </Link>
-            </motion.div>
+            </div>
           ))}
         </div>
         <div className="hidden items-center gap-2 md:flex">
@@ -106,65 +105,66 @@ export function Navbar({ isAdmin = false, isAuthenticated = false }: { isAdmin?:
           type="button"
           className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-white/15 bg-white/5 md:hidden"
           onClick={() => setOpen((prev) => !prev)}
-          aria-label="Abrir menu"
+          aria-expanded={open}
+          aria-label={open ? "Cerrar menú" : "Abrir menú"}
         >
           {open ? <X className="h-5 w-5 text-white" /> : <Menu className="h-5 w-5 text-white" />}
         </button>
       </nav>
 
-      <AnimatePresence>
-        {open ? (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden border-t border-white/10 bg-black/90 md:hidden"
-          >
-            <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-4">
-              {links.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setOpen(false)}
-                  className={cn(
-                    "rounded-xl border border-transparent px-3 py-2 text-sm text-neutral-200 transition hover:border-white/15 hover:bg-white/5 hover:text-white",
-                    pathname === link.href && "border-red-300/30 bg-red-500/10 text-white"
-                  )}
-                >
-                  {link.label}
-                </Link>
-              ))}
-              {isAdmin ? (
-                <div className="mt-2 flex gap-2">
-                  <Button asChild size="sm" variant="secondary" className="flex-1">
-                    <Link href="/" onClick={() => setOpen(false)}>
-                      Ver tienda
-                    </Link>
-                  </Button>
-                  <div className="flex-1">
-                    <AdminSessionActions compact />
-                  </div>
-                </div>
-              ) : isAuthenticated ? (
-                <div className="mt-2 space-y-2">
-                  <Button asChild size="sm" variant="secondary" className="w-full">
-                    <Link href="/admin" onClick={() => setOpen(false)}>
-                      Panel Admin
-                    </Link>
-                  </Button>
+      <div
+        aria-hidden={!open}
+        inert={!open}
+        className={cn(
+          "grid overflow-hidden transition-[grid-template-rows] duration-300 ease-out md:hidden",
+          open ? "grid-rows-[1fr] border-t border-white/10 bg-black/90" : "grid-rows-[0fr]"
+        )}
+      >
+        <div className="overflow-hidden">
+          <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-4">
+            {links.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setOpen(false)}
+                className={cn(
+                  "rounded-xl border border-transparent px-3 py-2 text-sm text-neutral-200 transition hover:border-white/15 hover:bg-white/5 hover:text-white",
+                  pathname === link.href && "border-red-300/30 bg-red-500/10 text-white"
+                )}
+              >
+                {link.label}
+              </Link>
+            ))}
+            {isAdmin ? (
+              <div className="mt-2 flex gap-2">
+                <Button asChild size="sm" variant="secondary" className="flex-1">
+                  <Link href="/" onClick={() => setOpen(false)}>
+                    Ver tienda
+                  </Link>
+                </Button>
+                <div className="flex-1">
                   <AdminSessionActions compact />
                 </div>
-              ) : (
-                <Button asChild size="sm" className="mt-2">
-                  <Link href="/login" onClick={() => setOpen(false)}>
+              </div>
+            ) : isAuthenticated ? (
+              <div className="mt-2 space-y-2">
+                <Button asChild size="sm" variant="secondary" className="w-full">
+                  <Link href="/admin" onClick={() => setOpen(false)}>
                     Panel Admin
                   </Link>
                 </Button>
-              )}
-            </div>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
+                <AdminSessionActions compact />
+              </div>
+            ) : (
+              <Button asChild size="sm" className="mt-2">
+                <Link href="/login" onClick={() => setOpen(false)}>
+                  Panel Admin
+                </Link>
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
     </header>
   );
 }

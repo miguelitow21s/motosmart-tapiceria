@@ -31,7 +31,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Modal } from "@/components/ui/modal";
+import { Label } from "@/components/ui/label";
 import { cn, formatCOP, formatDateTimeShort, getPromotionMeta } from "@/lib/utils";
+import { getCsrfToken } from "@/lib/csrf-client";
 
 type Design = {
   id: string;
@@ -165,9 +167,9 @@ type DesignForm = {
 const TABS: Array<{ key: TabKey; label: string; icon: React.ComponentType<{ className?: string }> }> = [
   { key: "overview", label: "Inicio", icon: LayoutDashboard },
   { key: "carousel", label: "Carrusel Semanal", icon: Images },
-  { key: "catalog", label: "Catalogo de Diseños", icon: Tags },
+  { key: "catalog", label: "Catálogo de Diseños", icon: Tags },
   { key: "brands", label: "Marcas", icon: Store },
-  { key: "gallery", label: "Galeria de Fotos", icon: ImagePlus },
+  { key: "gallery", label: "Galería de Fotos", icon: ImagePlus },
   { key: "settings", label: "Textos y Config", icon: Settings2 },
   { key: "features", label: "Feature Flags", icon: Flag },
   { key: "activity", label: "Actividad", icon: Activity }
@@ -176,10 +178,10 @@ const TABS: Array<{ key: TabKey; label: string; icon: React.ComponentType<{ clas
 const SETTINGS_KEYS = [
   { key: "business_name", label: "Nombre del negocio" },
   { key: "hero_tagline", label: "Eslogan / tagline" },
-  { key: "hero_description", label: "Descripcion hero" },
-  { key: "hero_cta_text", label: "Texto boton principal" },
+  { key: "hero_description", label: "Descripción hero" },
+  { key: "hero_cta_text", label: "Texto botón principal" },
   { key: "about_description", label: "Texto Sobre Nosotros" },
-  { key: "whatsapp_number", label: "Numero WhatsApp" },
+  { key: "whatsapp_number", label: "Número WhatsApp" },
   { key: "whatsapp_default_message", label: "Mensaje predeterminado WhatsApp" },
   { key: "meta_title", label: "Meta title" },
   { key: "meta_description", label: "Meta description" }
@@ -245,13 +247,6 @@ function fromDatetimeLocal(value: string | null) {
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return null;
   return d.toISOString();
-}
-
-function getCsrfToken() {
-  const cookie = document.cookie;
-  const tokenA = cookie.match(/csrf-token=([^;]+)/)?.[1];
-  const tokenB = cookie.match(/csrf_token=([^;]+)/)?.[1];
-  return tokenA ?? tokenB ?? "";
 }
 
 function parseSettingValue(raw: unknown) {
@@ -592,7 +587,7 @@ export function AdminDashboardImpl() {
     try {
       const res = await fetch("/api/admin/images", { cache: "no-store" });
       const body = (await res.json()) as { data?: unknown[]; error?: string };
-      if (!res.ok) throw new Error(body.error ?? "No fue posible cargar imagenes");
+      if (!res.ok) throw new Error(body.error ?? "No fue posible cargar imágenes");
       setImages((body.data ?? []).map(mapImageFromApi));
     } catch (error) {
       notify("error", (error as Error).message);
@@ -909,27 +904,42 @@ export function AdminDashboardImpl() {
   async function saveSettingsForm() {
     const parsed = settingsFormSchema.safeParse(settingsForm);
     if (!parsed.success) {
-      notify("error", parsed.error.issues[0]?.message ?? "Settings invalidos");
+      notify("error", parsed.error.issues[0]?.message ?? "Configuración inválida");
       return;
     }
 
-    for (const entry of SETTINGS_KEYS) {
-      const value = settingsForm[entry.key] ?? "";
-      const res = await fetch("/api/admin/settings", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-csrf-token": getCsrfToken()
-        },
-        body: JSON.stringify({ key: entry.key, value: { text: value } })
-      });
-      if (!res.ok) {
-        notify("error", `No se pudo guardar ${entry.label}`);
-        return;
-      }
+    const results = await Promise.allSettled(
+      SETTINGS_KEYS.map(async (entry) => {
+        const value = settingsForm[entry.key] ?? "";
+        const res = await fetch("/api/admin/settings", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-csrf-token": getCsrfToken()
+          },
+          body: JSON.stringify({ key: entry.key, value: { text: value } })
+        });
+        if (!res.ok) throw new Error(entry.label);
+        return entry.label;
+      })
+    );
+
+    const failedLabels = results
+      .map((result, index) => (result.status === "rejected" ? SETTINGS_KEYS[index].label : null))
+      .filter((label): label is string => label !== null);
+    const savedCount = results.length - failedLabels.length;
+
+    if (failedLabels.length === 0) {
+      notify("success", "Configuración guardada");
+    } else if (savedCount === 0) {
+      notify("error", `No se pudo guardar ninguna configuración: ${failedLabels.join(", ")}`);
+    } else {
+      notify(
+        "error",
+        `Se guardaron ${savedCount} de ${results.length} campos. Fallaron: ${failedLabels.join(", ")}`
+      );
     }
 
-    notify("success", "Configuracion guardada");
     await loadSettings();
   }
 
@@ -1150,7 +1160,7 @@ export function AdminDashboardImpl() {
   async function uploadCarouselImage() {
     if (!carouselUpload) return;
     if (carouselImages.length >= 8) {
-      notify("error", "Maximo 8 fotos en carrusel");
+      notify("error", "Máximo 8 fotos en carrusel");
       return;
     }
     const data = new FormData();
@@ -1236,7 +1246,7 @@ export function AdminDashboardImpl() {
 
     setUploadQueue([]);
     await loadImages();
-    notify("success", "Carga multiple completada");
+    notify("success", "Carga múltiple completada");
   }
 
   function getBrandName(brandId: string | null) {
@@ -1309,30 +1319,35 @@ export function AdminDashboardImpl() {
   return (
     <div className="space-y-4 sm:space-y-6">
       <Card className="border-neutral-700 bg-neutral-900 p-3 sm:p-4">
-        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap sm:overflow-visible">
-          {TABS.map((tab) => {
-            const Icon = tab.icon;
-            return (
-              <Button
-                key={tab.key}
-                variant={activeTab === tab.key ? "default" : "secondary"}
-                size="sm"
-                className={cn(
-                  "shrink-0 whitespace-nowrap",
-                  activeTab === tab.key ? "bg-orange-500 hover:bg-orange-400" : ""
-                )}
-                onClick={() => setActiveTab(tab.key)}
-              >
-                <Icon className="mr-1.5 h-4 w-4" />
-                {tab.label}
-              </Button>
-            );
-          })}
+        <div className="relative">
+          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap sm:overflow-visible">
+            {TABS.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <Button
+                  key={tab.key}
+                  variant={activeTab === tab.key ? "default" : "secondary"}
+                  size="sm"
+                  className={cn(
+                    "shrink-0 whitespace-nowrap",
+                    activeTab === tab.key ? "bg-orange-500 hover:bg-orange-400" : ""
+                  )}
+                  onClick={() => setActiveTab(tab.key)}
+                >
+                  <Icon className="mr-1.5 h-4 w-4" />
+                  {tab.label}
+                </Button>
+              );
+            })}
+          </div>
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-neutral-900 to-transparent sm:hidden" />
         </div>
       </Card>
 
       {toast ? (
         <div
+          role={toast.type === "error" ? "alert" : "status"}
+          aria-live={toast.type === "error" ? "assertive" : "polite"}
           className={cn(
             "rounded-xl border px-4 py-3 text-sm",
             toast.type === "success"
@@ -1347,7 +1362,7 @@ export function AdminDashboardImpl() {
       {activeTab === "overview" ? (
         <div className="space-y-4">
           {loading.overview ? renderSkeleton(4) : null}
-          <div className="grid grid-cols-2 gap-4 xl:grid-cols-5">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
             <Card className="border-neutral-700 bg-neutral-900 p-4"><p className="text-xs text-neutral-400">Diseños activos</p><p className="font-display text-2xl text-white">{metrics.designsActive}</p></Card>
             <Card className="border-neutral-700 bg-neutral-900 p-4"><p className="text-xs text-neutral-400">Marcas</p><p className="font-display text-2xl text-white">{metrics.totalBrands}</p></Card>
             <Card className="border-neutral-700 bg-neutral-900 p-4"><p className="text-xs text-neutral-400">Fotos catálogo</p><p className="font-display text-2xl text-white">{metrics.totalImages}</p></Card>
@@ -1356,7 +1371,7 @@ export function AdminDashboardImpl() {
           </div>
 
           <Card className="border-neutral-700 bg-neutral-900 p-4">
-            <h3 className="mb-3 font-display text-lg text-white">Accesos rápidos</h3>
+            <h2 className="mb-3 font-display text-lg text-white">Accesos rápidos</h2>
             <div className="flex flex-wrap gap-2">
               <Button size="sm" variant="secondary" onClick={() => setActiveTab("carousel")}>Carrusel</Button>
               <Button size="sm" variant="secondary" onClick={() => setActiveTab("catalog")}>Diseños</Button>
@@ -1368,7 +1383,7 @@ export function AdminDashboardImpl() {
 
           <div className="grid gap-4 md:grid-cols-2">
             <Card className="border-neutral-700 bg-neutral-900 p-4">
-              <h3 className="mb-3 font-display text-lg text-white">Alertas</h3>
+              <h2 className="mb-3 font-display text-lg text-white">Alertas</h2>
               <div className="space-y-2 text-sm">
                 <p className="flex items-center gap-2 text-neutral-200"><AlertTriangle className="h-4 w-4 text-amber-300" /> Diseños sin imagen: {alerts.withoutImage}</p>
                 <p className="flex items-center gap-2 text-neutral-200"><AlertTriangle className="h-4 w-4 text-amber-300" /> Promociones vencidas: {alerts.expired}</p>
@@ -1376,7 +1391,7 @@ export function AdminDashboardImpl() {
               </div>
             </Card>
             <Card className="border-neutral-700 bg-neutral-900 p-4">
-              <h3 className="mb-3 font-display text-lg text-white">Última actividad</h3>
+              <h2 className="mb-3 font-display text-lg text-white">Última actividad</h2>
               <div className="space-y-2 text-sm">
                 {activity.slice(0, 5).map((item) => (
                   <div key={item.id} className="rounded-lg border border-neutral-700 p-2">
@@ -1393,7 +1408,7 @@ export function AdminDashboardImpl() {
       {activeTab === "carousel" ? (
         <Card className="space-y-4 border-neutral-700 bg-neutral-900 p-4">
           <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <h3 className="font-display text-lg text-white">Carrusel semanal</h3>
+            <h2 className="font-display text-lg text-white">Carrusel semanal</h2>
             <p className="text-sm text-neutral-400">{carouselImages.length}/8 fotos</p>
           </div>
 
@@ -1405,9 +1420,25 @@ export function AdminDashboardImpl() {
                 <img src={img.url} alt={img.alt ?? "carousel"} className="h-40 w-full rounded-lg object-cover" />
                 <div className="mt-2 flex items-center justify-between text-xs text-neutral-400">
                   <span>Orden #{index + 1}</span>
-                  <div className="flex gap-1">
-                    <Button size="sm" variant="secondary" onClick={() => void moveCarouselImage(img.id, "up")}><ArrowUp className="h-4 w-4" /></Button>
-                    <Button size="sm" variant="secondary" onClick={() => void moveCarouselImage(img.id, "down")}><ArrowDown className="h-4 w-4" /></Button>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="h-11 w-11 p-0"
+                      aria-label="Subir foto en el carrusel"
+                      onClick={() => void moveCarouselImage(img.id, "up")}
+                    >
+                      <ArrowUp className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="h-11 w-11 p-0"
+                      aria-label="Bajar foto en el carrusel"
+                      onClick={() => void moveCarouselImage(img.id, "down")}
+                    >
+                      <ArrowDown className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
                 <Input
@@ -1497,22 +1528,22 @@ export function AdminDashboardImpl() {
             <Button className="w-full sm:w-auto" variant="secondary" onClick={() => void loadDesigns()}><RefreshCw className="mr-1 h-4 w-4" />Recargar</Button>
           </div>
 
-          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+          <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
             <Input placeholder="Buscar diseño" value={catalogSearch} onChange={(e) => setCatalogSearch(e.target.value)} />
-            <select className="h-11 rounded-xl border border-neutral-700 bg-neutral-800 px-3 text-sm text-white" value={catalogBrandFilter} onChange={(e) => setCatalogBrandFilter(e.target.value)}>
+            <select className="h-11 rounded-xl border border-neutral-700 bg-neutral-800 px-3 text-base text-white" value={catalogBrandFilter} onChange={(e) => setCatalogBrandFilter(e.target.value)}>
               <option value="all">Todas las marcas</option>
               {brands.map((brand) => <option key={brand.id} value={brand.id}>{brand.name}</option>)}
             </select>
-            <select className="h-11 rounded-xl border border-neutral-700 bg-neutral-800 px-3 text-sm text-white" value={catalogStatusFilter} onChange={(e) => setCatalogStatusFilter(e.target.value as "all" | "active" | "inactive")}> 
+            <select className="h-11 rounded-xl border border-neutral-700 bg-neutral-800 px-3 text-base text-white" value={catalogStatusFilter} onChange={(e) => setCatalogStatusFilter(e.target.value as "all" | "active" | "inactive")}> 
               <option value="all">Todos estados</option>
               <option value="active">Activos</option>
               <option value="inactive">Inactivos</option>
             </select>
-            <select className="h-11 rounded-xl border border-neutral-700 bg-neutral-800 px-3 text-sm text-white" value={catalogPromoFilter} onChange={(e) => setCatalogPromoFilter(e.target.value as "all" | "promo")}> 
+            <select className="h-11 rounded-xl border border-neutral-700 bg-neutral-800 px-3 text-base text-white" value={catalogPromoFilter} onChange={(e) => setCatalogPromoFilter(e.target.value as "all" | "promo")}> 
               <option value="all">Todas promos</option>
               <option value="promo">Solo promo activa</option>
             </select>
-            <select className="h-11 rounded-xl border border-neutral-700 bg-neutral-800 px-3 text-sm text-white" value={catalogSortBy} onChange={(e) => setCatalogSortBy(e.target.value as "name" | "price" | "created")}> 
+            <select className="h-11 rounded-xl border border-neutral-700 bg-neutral-800 px-3 text-base text-white" value={catalogSortBy} onChange={(e) => setCatalogSortBy(e.target.value as "name" | "price" | "created")}> 
               <option value="name">Ordenar: nombre</option>
               <option value="price">Ordenar: precio</option>
               <option value="created">Ordenar: creación</option>
@@ -1529,7 +1560,7 @@ export function AdminDashboardImpl() {
                     <th className="px-2 py-2">Imagen</th>
                     <th className="px-2 py-2">Nombre</th>
                     <th className="px-2 py-2">Marca</th>
-                    <th className="px-2 py-2">Descripcion</th>
+                    <th className="px-2 py-2">Descripción</th>
                     <th className="px-2 py-2">Base</th>
                     <th className="px-2 py-2">Rebaja</th>
                     <th className="px-2 py-2">Etiqueta</th>
@@ -1603,11 +1634,21 @@ export function AdminDashboardImpl() {
                           </Button>
                         </td>
                         <td className="px-2 py-2">
-                          <div className="flex gap-1">
-                            <Button size="sm" variant="secondary" onClick={() => openEditDesignModal(design)}><Pencil className="h-4 w-4" /></Button>
+                          <div className="flex gap-2">
                             <Button
                               size="sm"
                               variant="secondary"
+                              className="h-11 w-11 p-0"
+                              aria-label={`Editar diseño ${design.name}`}
+                              onClick={() => openEditDesignModal(design)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              className="h-11 w-11 p-0"
+                              aria-label={`Eliminar diseño ${design.name}`}
                               onClick={() =>
                                 openConfirm("Eliminar diseño", "Se intentará eliminar este diseño.", async () => {
                                   const res = await fetch("/api/admin/designs", {
@@ -1682,10 +1723,20 @@ export function AdminDashboardImpl() {
                   <p className="text-xs text-neutral-400">/{brand.slug} | {brandCounts.get(brand.id) ?? 0} diseños</p>
                 </div>
                 <div className="flex gap-2 self-stretch sm:self-auto">
-                  <Button size="sm" variant="secondary" onClick={() => { setEditingBrand(brand); setBrandModalOpen(true); }}><Pencil className="h-4 w-4" /></Button>
                   <Button
                     size="sm"
                     variant="secondary"
+                    className="h-11 w-11 p-0"
+                    aria-label={`Editar marca ${brand.name}`}
+                    onClick={() => { setEditingBrand(brand); setBrandModalOpen(true); }}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="h-11 w-11 p-0"
+                    aria-label={`Eliminar marca ${brand.name}`}
                     onClick={() =>
                       openConfirm("Eliminar marca", "Si tiene diseños asociados, la operación puede fallar.", async () => {
                         if ((brandCounts.get(brand.id) ?? 0) > 0) {
@@ -1734,12 +1785,20 @@ export function AdminDashboardImpl() {
                     <Button size="sm" variant={product.is_active ? "default" : "secondary"} onClick={() => void toggleProduct(product)}>
                       {product.is_active ? "Activo" : "Inactivo"}
                     </Button>
-                    <Button size="sm" variant="secondary" onClick={() => openEditProductModal(product)}>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="h-11 w-11 p-0"
+                      aria-label={`Editar producto ${product.sku}`}
+                      onClick={() => openEditProductModal(product)}
+                    >
                       <Pencil className="h-4 w-4" />
                     </Button>
                     <Button
                       size="sm"
                       variant="secondary"
+                      className="h-11 w-11 p-0"
+                      aria-label={`Eliminar producto ${product.sku}`}
                       onClick={() =>
                         openConfirm("Eliminar producto", "Esta acción eliminará el producto de forma permanente.", async () => {
                           await deleteProduct(product.id);
@@ -1758,17 +1817,17 @@ export function AdminDashboardImpl() {
 
       {activeTab === "gallery" ? (
         <Card className="space-y-4 border-neutral-700 bg-neutral-900 p-4">
-          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-            <select className="h-11 rounded-xl border border-neutral-700 bg-neutral-800 px-3 text-sm text-white" value={galleryFilter} onChange={(e) => setGalleryFilter(e.target.value as "all" | "carousel" | "unlinked")}> 
+          <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
+            <select className="h-11 rounded-xl border border-neutral-700 bg-neutral-800 px-3 text-base text-white" value={galleryFilter} onChange={(e) => setGalleryFilter(e.target.value as "all" | "carousel" | "unlinked")}> 
               <option value="all">Todas</option>
               <option value="carousel">Solo carrusel</option>
               <option value="unlinked">Sin vincular</option>
             </select>
-            <select className="h-11 rounded-xl border border-neutral-700 bg-neutral-800 px-3 text-sm text-white" value={galleryBrandFilter} onChange={(e) => setGalleryBrandFilter(e.target.value)}>
+            <select className="h-11 rounded-xl border border-neutral-700 bg-neutral-800 px-3 text-base text-white" value={galleryBrandFilter} onChange={(e) => setGalleryBrandFilter(e.target.value)}>
               <option value="all">Todas marcas</option>
               {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
             </select>
-            <select className="h-11 rounded-xl border border-neutral-700 bg-neutral-800 px-3 text-sm text-white" value={galleryDesignFilter} onChange={(e) => setGalleryDesignFilter(e.target.value)}>
+            <select className="h-11 rounded-xl border border-neutral-700 bg-neutral-800 px-3 text-base text-white" value={galleryDesignFilter} onChange={(e) => setGalleryDesignFilter(e.target.value)}>
               <option value="all">Todos diseños</option>
               {designs.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
             </select>
@@ -1816,7 +1875,7 @@ export function AdminDashboardImpl() {
               <button type="button" key={img.id} className="w-full overflow-hidden rounded-xl border border-neutral-700 bg-neutral-950 p-2 text-left" onClick={() => setSelectedImage(img)}>
                 <img src={img.url} alt={img.alt ?? "imagen"} className="mb-2 h-auto w-full rounded" />
                 <p className="truncate text-xs text-neutral-300">{img.alt || "Sin alt"}</p>
-                <p className="text-[11px] text-neutral-500">{img.is_carousel ? "Carrusel" : "Catalogo"}</p>
+                <p className="text-[11px] text-neutral-500">{img.is_carousel ? "Carrusel" : "Catálogo"}</p>
               </button>
             ))}
           </div>
@@ -1828,11 +1887,21 @@ export function AdminDashboardImpl() {
           {loading.settings ? renderSkeleton(6) : null}
           {SETTINGS_KEYS.map((item) => (
             <div key={item.key} className="space-y-1">
-              <label className="text-xs text-neutral-400">{item.label}</label>
+              <Label htmlFor={`setting-${item.key}`} className="text-xs text-neutral-400">{item.label}</Label>
               {item.key.includes("description") || item.key.includes("message") ? (
-                <Textarea value={settingsForm[item.key] ?? ""} onChange={(e) => setSettingsForm((prev) => ({ ...prev, [item.key]: e.target.value }))} />
+                <Textarea
+                  id={`setting-${item.key}`}
+                  value={settingsForm[item.key] ?? ""}
+                  onChange={(e) => setSettingsForm((prev) => ({ ...prev, [item.key]: e.target.value }))}
+                />
               ) : (
-                <Input value={settingsForm[item.key] ?? ""} onChange={(e) => setSettingsForm((prev) => ({ ...prev, [item.key]: e.target.value }))} />
+                <Input
+                  id={`setting-${item.key}`}
+                  type={item.key === "whatsapp_number" ? "tel" : "text"}
+                  inputMode={item.key === "whatsapp_number" ? "tel" : undefined}
+                  value={settingsForm[item.key] ?? ""}
+                  onChange={(e) => setSettingsForm((prev) => ({ ...prev, [item.key]: e.target.value }))}
+                />
               )}
             </div>
           ))}
@@ -1861,7 +1930,7 @@ export function AdminDashboardImpl() {
       {activeTab === "activity" ? (
         <Card className="space-y-3 border-neutral-700 bg-neutral-900 p-4">
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-            <select className="h-11 rounded-xl border border-neutral-700 bg-neutral-800 px-3 text-sm text-white" value={activityFilter} onChange={(e) => { setActivityFilter(e.target.value); setActivityPage(1); }}>
+            <select className="h-11 rounded-xl border border-neutral-700 bg-neutral-800 px-3 text-base text-white" value={activityFilter} onChange={(e) => { setActivityFilter(e.target.value); setActivityPage(1); }}>
               <option value="all">Todas las acciones</option>
               {Array.from(new Set(activity.map((a) => a.action))).map((action) => <option key={action} value={action}>{action}</option>)}
             </select>
@@ -1925,17 +1994,41 @@ export function AdminDashboardImpl() {
 
       <Modal open={designModalOpen} onClose={() => setDesignModalOpen(false)} title={editingDesign.id ? "Editar diseño" : "Nuevo diseño"} className="max-w-3xl">
         <div className="grid gap-3 md:grid-cols-2">
-          <Input placeholder="Nombre" value={editingDesign.name} onChange={(e) => setEditingDesign((p) => ({ ...p, name: e.target.value, slug: toSlug(e.target.value) }))} />
-          <Input placeholder="Slug" value={editingDesign.slug} onChange={(e) => setEditingDesign((p) => ({ ...p, slug: e.target.value }))} />
-          <select className="h-11 rounded-xl border border-neutral-700 bg-neutral-800 px-3 text-sm text-white" value={editingDesign.brand_id} onChange={(e) => setEditingDesign((p) => ({ ...p, brand_id: e.target.value }))}>
-            <option value="">Marca</option>
-            {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-          </select>
-          <Input type="number" className="font-mono" placeholder="Precio base" value={editingDesign.base_price} onChange={(e) => setEditingDesign((p) => ({ ...p, base_price: Number(e.target.value || 0) }))} />
-          <Input type="number" className="font-mono" placeholder="Precio rebaja" value={editingDesign.discount_price ?? ""} onChange={(e) => setEditingDesign((p) => ({ ...p, discount_price: e.target.value ? Number(e.target.value) : null }))} />
-          <Input placeholder="Etiqueta promo" value={editingDesign.promotion_label} onChange={(e) => setEditingDesign((p) => ({ ...p, promotion_label: e.target.value }))} />
-          <Input type="datetime-local" value={editingDesign.promotion_starts_at ?? ""} onChange={(e) => setEditingDesign((p) => ({ ...p, promotion_starts_at: e.target.value || null }))} />
-          <Input type="datetime-local" value={editingDesign.promotion_ends_at ?? ""} onChange={(e) => setEditingDesign((p) => ({ ...p, promotion_ends_at: e.target.value || null }))} />
+          <div className="space-y-1">
+            <Label htmlFor="design-name">Nombre</Label>
+            <Input id="design-name" placeholder="Nombre" value={editingDesign.name} onChange={(e) => setEditingDesign((p) => ({ ...p, name: e.target.value, slug: toSlug(e.target.value) }))} />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="design-slug">Slug</Label>
+            <Input id="design-slug" placeholder="Slug" value={editingDesign.slug} onChange={(e) => setEditingDesign((p) => ({ ...p, slug: e.target.value }))} />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="design-brand">Marca</Label>
+            <select id="design-brand" className="h-11 w-full rounded-xl border border-neutral-700 bg-neutral-800 px-3 text-base text-white" value={editingDesign.brand_id} onChange={(e) => setEditingDesign((p) => ({ ...p, brand_id: e.target.value }))}>
+              <option value="">Marca</option>
+              {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+            </select>
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="design-base-price">Precio base</Label>
+            <Input id="design-base-price" type="number" className="font-mono" placeholder="Precio base" value={editingDesign.base_price} onChange={(e) => setEditingDesign((p) => ({ ...p, base_price: Number(e.target.value || 0) }))} />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="design-discount-price">Precio rebaja</Label>
+            <Input id="design-discount-price" type="number" className="font-mono" placeholder="Precio rebaja" value={editingDesign.discount_price ?? ""} onChange={(e) => setEditingDesign((p) => ({ ...p, discount_price: e.target.value ? Number(e.target.value) : null }))} />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="design-promo-label">Etiqueta promo</Label>
+            <Input id="design-promo-label" placeholder="Etiqueta promo" value={editingDesign.promotion_label} onChange={(e) => setEditingDesign((p) => ({ ...p, promotion_label: e.target.value }))} />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="design-promo-start">Inicio de promoción</Label>
+            <Input id="design-promo-start" type="datetime-local" value={editingDesign.promotion_starts_at ?? ""} onChange={(e) => setEditingDesign((p) => ({ ...p, promotion_starts_at: e.target.value || null }))} />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="design-promo-end">Fin de promoción</Label>
+            <Input id="design-promo-end" type="datetime-local" value={editingDesign.promotion_ends_at ?? ""} onChange={(e) => setEditingDesign((p) => ({ ...p, promotion_ends_at: e.target.value || null }))} />
+          </div>
           <div className="md:col-span-2 flex flex-wrap gap-2">
             <Button size="sm" variant="secondary" onClick={() => applyPromotionPreset(48)}>Flash 48h</Button>
             <Button size="sm" variant="secondary" onClick={() => applyPromotionPreset(24 * 7)}>Semana</Button>
@@ -1955,9 +2048,18 @@ export function AdminDashboardImpl() {
               return <p>Precio final {formatCOP(editingDesign.discount_price ?? 0)} | Antes {formatCOP(editingDesign.base_price)} | Ahorro {formatCOP(promo.savings)} ({promo.percentOff}% OFF)</p>;
             })()}
           </div>
-          <Textarea className="md:col-span-2" placeholder="Descripción corta" value={editingDesign.short_description} onChange={(e) => setEditingDesign((p) => ({ ...p, short_description: e.target.value }))} />
-          <Input className="md:col-span-2" placeholder="Imagen principal URL" value={editingDesign.image_url} onChange={(e) => setEditingDesign((p) => ({ ...p, image_url: e.target.value }))} />
-          <Input className="md:col-span-2" type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) void uploadImageForDesign(f); }} />
+          <div className="space-y-1 md:col-span-2">
+            <Label htmlFor="design-short-description">Descripción corta</Label>
+            <Textarea id="design-short-description" placeholder="Descripción corta" value={editingDesign.short_description} onChange={(e) => setEditingDesign((p) => ({ ...p, short_description: e.target.value }))} />
+          </div>
+          <div className="space-y-1 md:col-span-2">
+            <Label htmlFor="design-image-url">Imagen principal URL</Label>
+            <Input id="design-image-url" placeholder="Imagen principal URL" value={editingDesign.image_url} onChange={(e) => setEditingDesign((p) => ({ ...p, image_url: e.target.value }))} />
+          </div>
+          <div className="space-y-1 md:col-span-2">
+            <Label htmlFor="design-image-file">Subir imagen principal</Label>
+            <Input id="design-image-file" type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) void uploadImageForDesign(f); }} />
+          </div>
           <div className="md:col-span-2 flex flex-col gap-2 sm:flex-row">
             <Button className="bg-orange-500 hover:bg-orange-400" onClick={() => void saveDesignModal()}><Save className="mr-1 h-4 w-4" />Guardar</Button>
             <Button variant="secondary" onClick={() => setDesignModalOpen(false)}>Cancelar</Button>
@@ -1967,11 +2069,26 @@ export function AdminDashboardImpl() {
 
       <Modal open={brandModalOpen} onClose={() => setBrandModalOpen(false)} title={editingBrand.id ? "Editar marca" : "Nueva marca"}>
         <div className="space-y-3">
-          <Input placeholder="Nombre" value={editingBrand.name} onChange={(e) => setEditingBrand((p) => ({ ...p, name: e.target.value, slug: toSlug(e.target.value) }))} />
-          <Input placeholder="Slug" value={editingBrand.slug} onChange={(e) => setEditingBrand((p) => ({ ...p, slug: e.target.value }))} />
-          <Input placeholder="Imagen / logo URL" value={editingBrand.image_url ?? ""} onChange={(e) => setEditingBrand((p) => ({ ...p, image_url: e.target.value }))} />
-          <Textarea placeholder="Descripción" value={editingBrand.description ?? ""} onChange={(e) => setEditingBrand((p) => ({ ...p, description: e.target.value }))} />
-          <Input type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) void uploadBrandImage(f); }} />
+          <div className="space-y-1">
+            <Label htmlFor="brand-name">Nombre</Label>
+            <Input id="brand-name" placeholder="Nombre" value={editingBrand.name} onChange={(e) => setEditingBrand((p) => ({ ...p, name: e.target.value, slug: toSlug(e.target.value) }))} />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="brand-slug">Slug</Label>
+            <Input id="brand-slug" placeholder="Slug" value={editingBrand.slug} onChange={(e) => setEditingBrand((p) => ({ ...p, slug: e.target.value }))} />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="brand-image-url">Imagen / logo URL</Label>
+            <Input id="brand-image-url" placeholder="Imagen / logo URL" value={editingBrand.image_url ?? ""} onChange={(e) => setEditingBrand((p) => ({ ...p, image_url: e.target.value }))} />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="brand-description">Descripción</Label>
+            <Textarea id="brand-description" placeholder="Descripción" value={editingBrand.description ?? ""} onChange={(e) => setEditingBrand((p) => ({ ...p, description: e.target.value }))} />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="brand-image-file">Subir imagen / logo</Label>
+            <Input id="brand-image-file" type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) void uploadBrandImage(f); }} />
+          </div>
           <label className="inline-flex items-center gap-2 text-sm text-neutral-300"><input type="checkbox" checked={editingBrand.is_active ?? true} onChange={(e) => setEditingBrand((p) => ({ ...p, is_active: e.target.checked }))} />Activa</label>
           <div className="flex flex-col gap-2 sm:flex-row">
             <Button className="bg-orange-500 hover:bg-orange-400" onClick={() => void saveBrand()}><Save className="mr-1 h-4 w-4" />Guardar</Button>
@@ -1982,30 +2099,42 @@ export function AdminDashboardImpl() {
 
       <Modal open={productModalOpen} onClose={() => setProductModalOpen(false)} title={editingProduct.id ? "Editar producto" : "Nuevo producto"}>
         <div className="space-y-3">
-          <select
-            className="h-11 w-full rounded-xl border border-neutral-700 bg-neutral-800 px-3 text-sm text-white"
-            value={editingProduct.design_id}
-            onChange={(event) => setEditingProduct((prev) => ({ ...prev, design_id: event.target.value }))}
-          >
-            <option value="">Selecciona diseño</option>
-            {designs.map((design) => (
-              <option key={design.id} value={design.id}>
-                {design.name}
-              </option>
-            ))}
-          </select>
-          <Input
-            placeholder="SKU"
-            value={editingProduct.sku}
-            onChange={(event) => setEditingProduct((prev) => ({ ...prev, sku: event.target.value.toUpperCase() }))}
-          />
-          <Input
-            type="number"
-            min={0}
-            placeholder="Stock"
-            value={editingProduct.stock}
-            onChange={(event) => setEditingProduct((prev) => ({ ...prev, stock: Number(event.target.value || 0) }))}
-          />
+          <div className="space-y-1">
+            <Label htmlFor="product-design">Diseño</Label>
+            <select
+              id="product-design"
+              className="h-11 w-full rounded-xl border border-neutral-700 bg-neutral-800 px-3 text-base text-white"
+              value={editingProduct.design_id}
+              onChange={(event) => setEditingProduct((prev) => ({ ...prev, design_id: event.target.value }))}
+            >
+              <option value="">Selecciona diseño</option>
+              {designs.map((design) => (
+                <option key={design.id} value={design.id}>
+                  {design.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="product-sku">SKU</Label>
+            <Input
+              id="product-sku"
+              placeholder="SKU"
+              value={editingProduct.sku}
+              onChange={(event) => setEditingProduct((prev) => ({ ...prev, sku: event.target.value.toUpperCase() }))}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="product-stock">Stock</Label>
+            <Input
+              id="product-stock"
+              type="number"
+              min={0}
+              placeholder="Stock"
+              value={editingProduct.stock}
+              onChange={(event) => setEditingProduct((prev) => ({ ...prev, stock: Number(event.target.value || 0) }))}
+            />
+          </div>
           <label className="inline-flex items-center gap-2 text-sm text-neutral-300">
             <input
               type="checkbox"
@@ -2031,11 +2160,11 @@ export function AdminDashboardImpl() {
             <img src={selectedImage.url} alt={selectedImage.alt ?? "imagen"} className="h-56 w-full rounded-xl object-cover" />
             <Input value={selectedImage.alt ?? ""} onChange={(e) => setSelectedImage((prev) => (prev ? { ...prev, alt: e.target.value } : prev))} />
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              <select className="h-11 rounded-xl border border-neutral-700 bg-neutral-800 px-3 text-sm text-white" value={selectedImage.brand_id ?? ""} onChange={(e) => setSelectedImage((prev) => (prev ? { ...prev, brand_id: e.target.value || null } : prev))}>
+              <select className="h-11 rounded-xl border border-neutral-700 bg-neutral-800 px-3 text-base text-white" value={selectedImage.brand_id ?? ""} onChange={(e) => setSelectedImage((prev) => (prev ? { ...prev, brand_id: e.target.value || null } : prev))}>
                 <option value="">Sin marca</option>
                 {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
               </select>
-              <select className="h-11 rounded-xl border border-neutral-700 bg-neutral-800 px-3 text-sm text-white" value={selectedImage.design_id ?? ""} onChange={(e) => setSelectedImage((prev) => (prev ? { ...prev, design_id: e.target.value || null } : prev))}>
+              <select className="h-11 rounded-xl border border-neutral-700 bg-neutral-800 px-3 text-base text-white" value={selectedImage.design_id ?? ""} onChange={(e) => setSelectedImage((prev) => (prev ? { ...prev, design_id: e.target.value || null } : prev))}>
                 <option value="">Sin diseño</option>
                 {designs.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
               </select>
@@ -2043,6 +2172,7 @@ export function AdminDashboardImpl() {
             <label className="inline-flex items-center gap-2 text-sm text-neutral-300"><input type="checkbox" checked={selectedImage.is_carousel} onChange={(e) => setSelectedImage((prev) => (prev ? { ...prev, is_carousel: e.target.checked } : prev))} />Mostrar en carrusel</label>
             <Input value={selectedImage.url} readOnly />
             <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+              <Button variant="secondary" onClick={() => setSelectedImage(null)}><X className="mr-1 h-4 w-4" />Cerrar</Button>
               <Button variant="secondary" onClick={() => { void navigator.clipboard.writeText(selectedImage.url); notify("success", "URL copiada"); }}><Copy className="mr-1 h-4 w-4" />Copiar URL</Button>
               <Button className="bg-orange-500 hover:bg-orange-400" onClick={() => void patchImage(selectedImage.id, selectedImage)}><Save className="mr-1 h-4 w-4" />Guardar cambios</Button>
               <Button

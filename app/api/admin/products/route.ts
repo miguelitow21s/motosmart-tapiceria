@@ -4,6 +4,7 @@ import { canAccessAdmin, getCurrentUserRole } from "@/lib/auth";
 import { logAdminActivity } from "@/lib/admin-activity";
 import { assertCsrf } from "@/lib/security";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+import { invalidPayload, internalError } from "@/lib/api-response";
 
 const createProductSchema = z.object({
   design_id: z.string().uuid(),
@@ -49,9 +50,10 @@ export async function GET() {
   const { data, error } = await supabase
     .from("products")
     .select("id,design_id,sku,is_active,stock,designs(name)")
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(500);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return internalError("products GET", error);
   return NextResponse.json({ data });
 }
 
@@ -66,7 +68,7 @@ export async function PATCH(request: Request) {
   if (!canAccessAdmin(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const parsed = patchProductSchema.safeParse(await request.json());
-  if (!parsed.success) return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+  if (!parsed.success) return invalidPayload(parsed.error);
 
   const payload: {
     design_id?: string;
@@ -86,7 +88,7 @@ export async function PATCH(request: Request) {
     .from("products")
     .update(payload)
     .eq("id", parsed.data.id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return internalError("products PATCH", error);
 
   await logAdminActivity({
     action: "update",
@@ -109,7 +111,7 @@ export async function POST(request: Request) {
   if (!canAccessAdmin(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const parsed = createProductSchema.safeParse(await request.json());
-  if (!parsed.success) return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+  if (!parsed.success) return invalidPayload(parsed.error);
 
   const supabase = createAdminSupabaseClient();
   const payload = {
@@ -120,7 +122,7 @@ export async function POST(request: Request) {
   };
 
   const { error } = await supabase.from("products").insert(payload);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return internalError("products POST", error);
 
   await logAdminActivity({
     action: "create",
@@ -142,11 +144,11 @@ export async function DELETE(request: Request) {
   if (!canAccessAdmin(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const parsed = deleteSchema.safeParse(await request.json());
-  if (!parsed.success) return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+  if (!parsed.success) return invalidPayload(parsed.error);
 
   const supabase = createAdminSupabaseClient();
   const { error } = await supabase.from("products").delete().eq("id", parsed.data.id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return internalError("products DELETE", error);
 
   await logAdminActivity({
     action: "delete",

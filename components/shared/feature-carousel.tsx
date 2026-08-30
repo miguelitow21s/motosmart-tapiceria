@@ -39,6 +39,7 @@ const fallbackSlides: CarouselSlide[] = [
 export function FeatureCarousel() {
   const trackRef = useRef<HTMLDivElement>(null);
   const [slides, setSlides] = useState<CarouselSlide[]>(fallbackSlides);
+  const [isLoadingFallback, setIsLoadingFallback] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -50,6 +51,7 @@ export function FeatureCarousel() {
         const payload = (await response.json()) as { data?: CarouselSlide[] };
         if (!cancelled && payload.data?.length) {
           setSlides(payload.data);
+          setIsLoadingFallback(false);
         }
       } catch {
         // fallback local si falla la API
@@ -76,22 +78,22 @@ export function FeatureCarousel() {
           <p className="text-xs uppercase tracking-[0.2em] text-neutral-400">Detalle y acabado</p>
           <h3 className="font-display text-2xl text-white">Trabajos recientes</h3>
         </div>
-        <div className="hidden items-center gap-2 md:flex">
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => scrollBy(-1)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/15 bg-white/5 text-white transition hover:border-white/30 hover:bg-white/10"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-white/15 bg-white/5 text-white transition hover:border-white/30 hover:bg-white/10 md:h-10 md:w-10"
             aria-label="Anterior"
           >
-            <ChevronLeft className="h-5 w-5" />
+            <ChevronLeft className="h-4 w-4 md:h-5 md:w-5" />
           </button>
           <button
             type="button"
             onClick={() => scrollBy(1)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/15 bg-white/5 text-white transition hover:border-white/30 hover:bg-white/10"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-white/15 bg-white/5 text-white transition hover:border-white/30 hover:bg-white/10 md:h-10 md:w-10"
             aria-label="Siguiente"
           >
-            <ChevronRight className="h-5 w-5" />
+            <ChevronRight className="h-4 w-4 md:h-5 md:w-5" />
           </button>
         </div>
       </div>
@@ -107,7 +109,13 @@ export function FeatureCarousel() {
             style={{ "--i": idx } as React.CSSProperties}
           >
             <div className="relative h-44 w-full">
-              <SmartImage src={slide.image} alt={slide.alt} fill priority={idx === 0} />
+              <SmartImage
+                src={slide.image}
+                alt={slide.alt}
+                fill
+                sizes="288px"
+                priority={idx === 0 && !isLoadingFallback}
+              />
             </div>
             <div className="space-y-1 p-4" data-animate-text>
               <h4 className="font-display text-lg text-white" style={{ "--i": 0 } as React.CSSProperties}>

@@ -1,4 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Sora:wght@300;400;500;600;700&display=swap");
 @import "../styles/animations.css";
 
 @tailwind base;
@@ -44,7 +43,7 @@ body {
   @apply bg-background text-foreground antialiased;
   background-image: theme("backgroundImage.honeycomb");
   background-size: 40px 40px, 40px 40px, cover;
-  min-height: 100vh;
+  min-height: 100dvh;
   font-size: var(--font-size-base);
 }
 
@@ -64,7 +63,7 @@ h2,
 h3,
 h4 {
   letter-spacing: -0.02em;
-  font-family: "Orbitron", system-ui, sans-serif;
+  font-family: var(--font-display), system-ui, sans-serif;
 }
 
 p {
@@ -127,6 +126,38 @@ a:hover {
   opacity: 1;
 }
 
+/* Glow del logo: el box-shadow final ya esta pintado en el ::after y solo se
+   anima su opacidad (compositable) en vez de interpolar box-shadow entre dos
+   valores, que forzaria repintados continuos en el hilo principal. */
+.logo-glow {
+  position: relative;
+}
+
+.logo-glow::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 32px rgba(255, 30, 30, 0.75);
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .logo-glow::after {
+    animation: logo-glow-pulse 2.8s ease-in-out infinite alternate;
+  }
+}
+
+@keyframes logo-glow-pulse {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 [data-animate="fade-up"] {
   animation: fade-in-up var(--motion-slow) var(--ease-emphasized) both;
 }
@@ -147,6 +178,16 @@ a:hover {
 [data-animate-text] > * {
   animation: fade-in var(--motion-normal) var(--ease-smooth) both;
   animation-delay: calc(var(--i, 0) * 0.05s);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-animate="fade-up"],
+  [data-animate="fade-in"],
+  [data-animate="zoom-in"],
+  [data-animate-stagger] > *,
+  [data-animate-text] > * {
+    animation: none !important;
+  }
 }
 
 a svg,

@@ -59,7 +59,7 @@ export async function DesignGrid({ designs }: { designs: Design[] }) {
             ) : null}
             <SmartImage
               src={design.image_url}
-              alt={design.name}
+              alt={`Funda de asiento de moto ${design.name} - MotoSmart Medellín`}
               fill
               sizes="(max-width: 639px) 100vw, (max-width: 1023px) 50vw, 33vw"
             />
@@ -92,7 +92,10 @@ export async function DesignGrid({ designs }: { designs: Design[] }) {
               </div>
             )}
             <div className="pt-2" style={{ "--i": 3 } as CSSProperties}>
-              <Button asChild className="w-full bg-orange-500 hover:bg-orange-400">
+              {/* Antes bg-orange-500/hover:orange-400 con texto blanco: 2.80:1 en
+                  reposo, 2.26:1 en hover — muy por debajo de 4.5:1. orange-700/800
+                  dan ~5.2:1 y ~7.3:1 respectivamente. */}
+              <Button asChild className="w-full bg-orange-700 hover:bg-orange-800">
                 <a
                   href={`https://wa.me/${settings.whatsapp_number}?text=${encodeURIComponent(
                     [

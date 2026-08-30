@@ -1,6 +1,12 @@
+import type { Metadata } from "next";
 import { SectionContainer } from "@/components/shared/section-container";
 import { Card } from "@/components/ui/card";
 import { getSiteSettings } from "@/lib/settings";
+
+export const metadata: Metadata = {
+  title: "Sobre nosotros",
+  description: "Conoce a MotoSmart, tapicería para moto en Medellín, y por qué elegir nuestros diseños."
+};
 
 export default async function SobreNosotrosPage() {
   const settings = await getSiteSettings();

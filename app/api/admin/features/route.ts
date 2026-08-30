@@ -4,6 +4,7 @@ import { canAccessAdmin, getCurrentUserRole } from "@/lib/auth";
 import { logAdminActivity } from "@/lib/admin-activity";
 import { assertCsrf } from "@/lib/security";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+import { invalidPayload, internalError } from "@/lib/api-response";
 
 const featureSchema = z.object({
   name: z.string().min(2).max(120),
@@ -26,7 +27,7 @@ export async function GET() {
 
   const supabase = createAdminSupabaseClient();
   const { data, error } = await supabase.from("features").select("name,enabled").order("name");
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return internalError("features GET", error);
   return NextResponse.json({ data });
 }
 
@@ -41,14 +42,14 @@ export async function PATCH(request: Request) {
   if (!canAccessAdmin(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const parsed = featureSchema.safeParse(await request.json());
-  if (!parsed.success) return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+  if (!parsed.success) return invalidPayload(parsed.error);
 
   const supabase = createAdminSupabaseClient();
   const { error } = await supabase
     .from("features")
     .update({ enabled: parsed.data.enabled, updated_at: new Date().toISOString() })
     .eq("name", parsed.data.name);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return internalError("features PATCH", error);
 
   await logAdminActivity({
     action: "toggle_feature",
@@ -71,7 +72,7 @@ export async function POST(request: Request) {
   if (!canAccessAdmin(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const parsed = createFeatureSchema.safeParse(await request.json());
-  if (!parsed.success) return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+  if (!parsed.success) return invalidPayload(parsed.error);
 
   const key = (parsed.data.key ?? parsed.data.name ?? "").trim();
   if (!key) return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
@@ -80,7 +81,7 @@ export async function POST(request: Request) {
   const { error } = await supabase
     .from("features")
     .upsert({ name: key, enabled: parsed.data.enabled, updated_at: new Date().toISOString() }, { onConflict: "name" });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return internalError("features POST", error);
 
   await logAdminActivity({
     action: "create_or_update",

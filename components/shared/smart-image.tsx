@@ -19,7 +19,7 @@ export function SmartImage({
   alt,
   fill = false,
   className,
-  fallbackSrc = "https://images.unsplash.com/photo-1583121274602-3e2820c69888?auto=format&fit=crop&w=1200&q=80",
+  fallbackSrc = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjgwMCI+PHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iODAwIiBmaWxsPSIjMGEwYTBhIi8+PC9zdmc+",
   sizes,
   priority
 }: SmartImageProps) {

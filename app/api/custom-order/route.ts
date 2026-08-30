@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { assertCsrf, customOrderSchema, sanitizeText } from "@/lib/security";
+import { internalError } from "@/lib/api-response";
 
 export async function POST(request: Request) {
   try {
@@ -34,9 +35,7 @@ export async function POST(request: Request) {
     status: "pending"
   });
 
-  if (error) {
-    return NextResponse.json({ error: "No fue posible guardar" }, { status: 500 });
-  }
+  if (error) return internalError("custom-order POST", error);
 
   return NextResponse.json({ ok: true }, { status: 201 });
 }

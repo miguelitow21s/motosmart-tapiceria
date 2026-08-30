@@ -4,6 +4,7 @@ import { canAccessAdmin, getCurrentUserRole } from "@/lib/auth";
 import { logAdminActivity } from "@/lib/admin-activity";
 import { assertCsrf, sanitizeText } from "@/lib/security";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+import { invalidPayload, internalError } from "@/lib/api-response";
 
 const designSchema = z.object({
   id: z.string().uuid().optional(),
@@ -78,6 +79,13 @@ const deleteDesignSchema = z.object({
   id: z.string().uuid()
 });
 
+function getStoragePathFromPublicUrl(url: string) {
+  const marker = "/storage/v1/object/public/catalog/";
+  const idx = url.indexOf(marker);
+  if (idx === -1) return null;
+  return url.slice(idx + marker.length);
+}
+
 export async function GET() {
   const { role } = await getCurrentUserRole();
   if (!canAccessAdmin(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -85,10 +93,13 @@ export async function GET() {
   const supabase = createAdminSupabaseClient();
   const { data, error } = await supabase
     .from("designs")
-    .select("*, brands(name)")
-    .order("created_at", { ascending: false });
+    .select(
+      "id,brand_id,name,slug,short_description,image_url,base_price,discount_price,promotion_label,promotion_active,promotion_starts_at,promotion_ends_at,is_active,created_at,brands(name)"
+    )
+    .order("created_at", { ascending: false })
+    .limit(500);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return internalError("designs GET", error);
   return NextResponse.json({ data });
 }
 
@@ -103,23 +114,12 @@ export async function POST(request: Request) {
   if (!canAccessAdmin(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const parsed = designSchema.safeParse(await request.json());
-  if (!parsed.success) {
-    return NextResponse.json(
-      {
-        error: "Invalid payload",
-        detail: parsed.error.issues.map((issue) => ({
-          path: issue.path.join("."),
-          message: issue.message
-        }))
-      },
-      { status: 400 }
-    );
-  }
+  if (!parsed.success) return invalidPayload(parsed.error);
 
   const supabase = createAdminSupabaseClient();
   const payload = normalizePromotionPayload(parsed.data);
   const { error } = await supabase.from("designs").insert(payload);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return internalError("designs POST", error);
   await logAdminActivity({
     action: "create",
     entity: "design",
@@ -141,32 +141,10 @@ export async function PATCH(request: Request) {
 
   const payload = await request.json();
   const parsedId = z.object({ id: z.string().uuid() }).safeParse(payload);
-  if (!parsedId.success) {
-    return NextResponse.json(
-      {
-        error: "Invalid payload",
-        detail: parsedId.error.issues.map((issue) => ({
-          path: issue.path.join("."),
-          message: issue.message
-        }))
-      },
-      { status: 400 }
-    );
-  }
+  if (!parsedId.success) return invalidPayload(parsedId.error);
 
   const parsed = designSchema.safeParse(payload);
-  if (!parsed.success) {
-    return NextResponse.json(
-      {
-        error: "Invalid payload",
-        detail: parsed.error.issues.map((issue) => ({
-          path: issue.path.join("."),
-          message: issue.message
-        }))
-      },
-      { status: 400 }
-    );
-  }
+  if (!parsed.success) return invalidPayload(parsed.error);
 
   const supabase = createAdminSupabaseClient();
   const id = parsedId.data.id;
@@ -180,7 +158,7 @@ export async function PATCH(request: Request) {
     })
     .eq("id", id);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return internalError("designs PATCH", error);
   await logAdminActivity({
     action: "update",
     entity: "design",
@@ -206,17 +184,34 @@ export async function DELETE(request: Request) {
   if (!canAccessAdmin(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const parsed = deleteDesignSchema.safeParse(await request.json());
-  if (!parsed.success) return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+  if (!parsed.success) return invalidPayload(parsed.error);
 
   const supabase = createAdminSupabaseClient();
+
+  // Las fotos de este diseño se borran en cascada en la base de datos
+  // (images.design_id on delete cascade), pero eso no toca Storage: sin
+  // recoger las rutas antes, el archivo real queda huerfano para siempre.
+  const { data: relatedImages } = await supabase
+    .from("images")
+    .select("storage_path")
+    .eq("design_id", parsed.data.id);
+
   const { error } = await supabase.from("designs").delete().eq("id", parsed.data.id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return internalError("designs DELETE", error);
+
+  const paths = (relatedImages ?? [])
+    .map((img) => getStoragePathFromPublicUrl(img.storage_path))
+    .filter((p): p is string => Boolean(p));
+  if (paths.length > 0) {
+    const { error: rmError } = await supabase.storage.from("catalog").remove(paths);
+    if (rmError) console.error("designs DELETE storage (huerfanos):", paths, rmError.message);
+  }
 
   await logAdminActivity({
     action: "delete",
     entity: "design",
     entityId: parsed.data.id,
-    detail: { hardDelete: true }
+    detail: { hardDelete: true, removedImages: paths.length }
   });
 
   return NextResponse.json({ ok: true });

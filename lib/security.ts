@@ -15,14 +15,13 @@ export const loginSchema = z.object({
   password: z.string().trim().min(1).max(72)
 });
 
+// Antes escapaba entidades HTML aqui (en la entrada). Eso no protege de nada
+// que React no proteja ya al renderizar texto (escapa en la salida por
+// defecto), y en cambio corrompia los datos guardados: un nombre como
+// "Bajaj & TVS" se guardaba como "Bajaj &amp; TVS" y se re-escapaba en cada
+// edicion posterior. Ahora solo normaliza espacios.
 export function sanitizeText(value: string) {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/\"/g, "&quot;")
-    .replace(/'/g, "&#039;")
-    .trim();
+  return value.trim().replace(/\s+/g, " ");
 }
 
 export function assertCsrf(request: Request) {

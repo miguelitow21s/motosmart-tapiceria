@@ -12,8 +12,8 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["Sora", "system-ui", "sans-serif"],
-        display: ["Orbitron", "system-ui", "sans-serif"]
+        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "system-ui", "sans-serif"]
       },
       fontSize: {
         sm: ["var(--font-size-sm)", { lineHeight: "1.5" }],
@@ -47,14 +47,9 @@ const config: Config = {
           "radial-gradient(circle at 25% 25%, rgba(255,255,255,0.04) 2px, transparent 2px), radial-gradient(circle at 75% 75%, rgba(255,255,255,0.03) 2px, transparent 2px), linear-gradient(135deg, rgba(255,30,30,0.12), rgba(5,5,5,0.95))"
       },
       animation: {
-        glow: "glow 2.8s ease-in-out infinite alternate",
         float: "float 6s ease-in-out infinite"
       },
       keyframes: {
-        glow: {
-          from: { boxShadow: "0 0 16px rgba(255,30,30,0.2)" },
-          to: { boxShadow: "0 0 32px rgba(255,30,30,0.75)" }
-        },
         float: {
           "0%,100%": { transform: "translateY(0px)" },
           "50%": { transform: "translateY(-8px)" }
@@ -62,6 +57,7 @@ const config: Config = {
       }
     }
   },
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- tailwindcss-animate no expone ESM
   plugins: [require("tailwindcss-animate")]
 };
 

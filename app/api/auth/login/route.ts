@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-import { createServerClient } from "@supabase/ssr";
-import { checkRateLimit, clearRateLimit } from "@/lib/rate-limit";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { assertCsrf, loginSchema } from "@/lib/security";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+import { createRouteHandlerSupabaseClient } from "@/lib/supabase/route-handler";
+import { parseRoleRow } from "@/lib/role";
 
 // NO añadir aqui credenciales de bootstrap ni rutas de recuperacion de admin.
 // El alta de administradores se hace desde el Dashboard de Supabase
@@ -27,12 +27,7 @@ async function recordLoginAttempt(email: string, ip: string, success: boolean) {
 }
 
 async function syncRoleMetadataAfterSignIn(user: { id: string; app_metadata?: Record<string, unknown> | null }) {
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return;
-
-  const adminClient = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-  );
+  const adminClient = createAdminSupabaseClient();
 
   const profile = await adminClient
     .from("users")
@@ -40,7 +35,7 @@ async function syncRoleMetadataAfterSignIn(user: { id: string; app_metadata?: Re
     .eq("id", user.id)
     .maybeSingle();
 
-  const dbRole = (profile.data as { roles?: { name?: string } | null } | null)?.roles?.name;
+  const dbRole = parseRoleRow(profile.data);
   if (!dbRole) return;
 
   const currentRole = typeof user.app_metadata?.role === "string" ? user.app_metadata.role : undefined;
@@ -71,8 +66,7 @@ export async function POST(request: Request) {
   }
 
   const ip = (request.headers.get("x-forwarded-for") ?? "unknown").split(",")[0].trim();
-  const key = `${ip}:${parsed.data.email.toLowerCase()}`;
-  const state = checkRateLimit(key);
+  const state = await checkRateLimit(parsed.data.email);
 
   if (!state.allowed) {
     return NextResponse.json(
@@ -85,30 +79,7 @@ export async function POST(request: Request) {
   }
 
   const response = NextResponse.json({ ok: true });
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.headers
-            .get("cookie")
-            ?.split(";")
-            .map((entry) => entry.trim())
-            .filter(Boolean)
-            .map((entry) => {
-              const [name, ...rest] = entry.split("=");
-              return { name, value: rest.join("=") };
-            }) ?? [];
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            response.cookies.set(name, value, options);
-          });
-        }
-      }
-    }
-  );
+  const supabase = createRouteHandlerSupabaseClient(request, response);
 
   const signInResult = await supabase.auth.signInWithPassword(parsed.data);
 
@@ -128,7 +99,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Credenciales invalidas" }, { status: 401 });
   }
 
-  clearRateLimit(key);
   await recordLoginAttempt(parsed.data.email, ip, true);
 
   if (signInResult.data.user) {

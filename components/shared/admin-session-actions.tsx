@@ -3,14 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-
-function getCsrfToken() {
-  return document.cookie
-    .split(";")
-    .map((entry) => entry.trim())
-    .find((entry) => entry.startsWith("csrf-token="))
-    ?.split("=")[1];
-}
+import { getCsrfToken } from "@/lib/csrf-client";
 
 export function AdminSessionActions({ compact = false }: { compact?: boolean }) {
   const router = useRouter();
@@ -22,7 +15,7 @@ export function AdminSessionActions({ compact = false }: { compact?: boolean }) 
       await fetch("/api/auth/logout", {
         method: "POST",
         headers: {
-          "x-csrf-token": getCsrfToken() ?? ""
+          "x-csrf-token": getCsrfToken()
         }
       });
     } finally {
@@ -34,7 +27,7 @@ export function AdminSessionActions({ compact = false }: { compact?: boolean }) 
 
   return (
     <Button variant="secondary" size={compact ? "sm" : "default"} isLoading={loading} onClick={signOut}>
-      Cerrar sesion
+      Cerrar sesión
     </Button>
   );
 }

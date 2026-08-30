@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { getCsrfToken } from "@/lib/csrf-client";
 
 export function LoginForm() {
   const router = useRouter();
@@ -18,24 +20,18 @@ export function LoginForm() {
     setLoading(true);
     setError("");
 
-    const csrf = document.cookie
-      .split(";")
-      .map((entry) => entry.trim())
-      .find((entry) => entry.startsWith("csrf-token="))
-      ?.split("=")[1];
-
     const res = await fetch("/api/auth/login", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-csrf-token": csrf ?? ""
+        "x-csrf-token": getCsrfToken()
       },
       body: JSON.stringify({ email, password })
     });
 
     if (!res.ok) {
       const payload = (await res.json()) as { error?: string; retryAfterMs?: number };
-      setError(payload.error ?? "No fue posible iniciar sesion");
+      setError(payload.error ?? "No fue posible iniciar sesión");
       setRetryAfter(payload.retryAfterMs ?? null);
       setLoading(false);
       return;
@@ -47,16 +43,40 @@ export function LoginForm() {
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
-      <Input type="email" placeholder="correo@ejemplo.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
-      <Input type="password" placeholder="Contrasena" value={password} onChange={(e) => setPassword(e.target.value)} required />
-      {error ? <p className="text-sm text-red-300">{error}</p> : null}
+      <div className="space-y-1.5">
+        <Label htmlFor="login-email">Correo</Label>
+        <Input
+          id="login-email"
+          type="email"
+          placeholder="correo@ejemplo.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="login-password">Contraseña</Label>
+        <Input
+          id="login-password"
+          type="password"
+          placeholder="Contraseña"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
+      </div>
+      {error ? (
+        <p role="alert" className="text-sm text-red-300">
+          {error}
+        </p>
+      ) : null}
       {retryAfter ? (
         <p className="text-xs text-neutral-400">
           Reintenta en aproximadamente {Math.ceil(retryAfter / 60000)} minuto(s).
         </p>
       ) : null}
       <Button disabled={loading} className="w-full" type="submit">
-        {loading ? "Ingresando..." : "Iniciar sesion"}
+        {loading ? "Ingresando..." : "Iniciar sesión"}
       </Button>
     </form>
   );

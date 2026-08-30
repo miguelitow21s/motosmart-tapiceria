@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { parseRoleRow } from "@/lib/role";
 
 function generateCsrfToken() {
   return crypto.randomUUID().replace(/-/g, "");
@@ -68,7 +69,7 @@ export async function middleware(request: NextRequest) {
       return withSessionCookies(NextResponse.redirect(new URL("/", request.url)));
     }
 
-    const role = (profile as { roles?: { name?: string } | null } | null)?.roles?.name ?? null;
+    const role = parseRoleRow(profile);
 
     if (role !== "admin" && role !== "editor") {
       return withSessionCookies(NextResponse.redirect(new URL("/", request.url)));

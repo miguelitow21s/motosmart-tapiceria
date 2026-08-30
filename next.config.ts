@@ -1,10 +1,17 @@
 import type { NextConfig } from "next";
 
+// 'unsafe-eval' solo hace falta en modo dev (React Refresh); en produccion
+// Next 15 no lo necesita. 'unsafe-inline' en script-src se queda por ahora:
+// migrar a CSP por nonce requiere tocar el middleware y probarlo en vivo,
+// ademas hoy no hay ningun sink de XSS conocido que lo explote (verificado:
+// cero dangerouslySetInnerHTML/eval en el repo). Candidato a follow-up.
 const csp = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "font-src 'self' https://fonts.gstatic.com data:",
+  `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === "production" ? "" : " 'unsafe-eval'"}`,
+  // Ya no se cargan fuentes desde fonts.googleapis.com/fonts.gstatic.com:
+  // se autohospedan via next/font (app/layout.tsx) desde el propio origen.
+  "style-src 'self' 'unsafe-inline'",
+  "font-src 'self' data:",
   "img-src 'self' data: blob: https://*.supabase.co https:",
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
   "frame-ancestors 'none'",

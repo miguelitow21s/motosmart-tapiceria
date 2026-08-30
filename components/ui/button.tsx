@@ -10,8 +10,12 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
+        // Antes bg-primary (#ff1e1e) con texto blanco: 3.84:1, por debajo
+        // del 4.5:1 minimo de WCAG AA para texto de 14px. #CC0000 mantiene
+        // el rojo de marca y da ~5.9:1; el hover oscurece en vez de aclarar
+        // (~7.2:1) para no volver a caer por debajo en ese estado.
         default:
-          "bg-primary text-primary-foreground shadow-[0_0_20px_rgba(255,30,30,0.35)] hover:scale-[1.02] hover:bg-[#ff3b3b]",
+          "bg-[#CC0000] text-primary-foreground shadow-[0_0_20px_rgba(255,30,30,0.35)] hover:scale-[1.02] hover:bg-[#B30000]",
         secondary:
           "border border-white/20 bg-white/5 text-white hover:bg-white/10"
       },
@@ -33,44 +37,54 @@ export interface ButtonProps
     VariantProps<typeof buttonVariants> {
   asChild?: boolean;
   isLoading?: boolean;
+  ref?: React.Ref<HTMLButtonElement>;
 }
 
-const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, isLoading = false, children, onPointerDown, ...props }, ref) => {
-    const Comp = asChild ? Slot : "button";
-    const handlePointerDown = (event: React.PointerEvent<HTMLElement>) => {
-      onPointerDown?.(event as unknown as React.PointerEvent<HTMLButtonElement>);
-      const target = event.currentTarget as HTMLElement;
-      const rect = target.getBoundingClientRect();
-      target.style.setProperty("--ripple-x", `${event.clientX - rect.left}px`);
-      target.style.setProperty("--ripple-y", `${event.clientY - rect.top}px`);
-    };
+// React 19 ya no requiere forwardRef: ref se recibe como una prop normal.
+function Button({
+  className,
+  variant,
+  size,
+  asChild = false,
+  isLoading = false,
+  children,
+  onPointerDown,
+  ref,
+  ...props
+}: ButtonProps) {
+  const Comp = asChild ? Slot : "button";
+  const handlePointerDown = (event: React.PointerEvent<HTMLElement>) => {
+    onPointerDown?.(event as unknown as React.PointerEvent<HTMLButtonElement>);
+    const target = event.currentTarget as HTMLElement;
+    const rect = target.getBoundingClientRect();
+    target.style.setProperty("--ripple-x", `${event.clientX - rect.left}px`);
+    target.style.setProperty("--ripple-y", `${event.clientY - rect.top}px`);
+  };
 
-    return (
-      <Comp
-        className={cn(
-          buttonVariants({ variant, size }),
-          "btn-ripple relative overflow-hidden active:scale-[0.98]",
-          className
-        )}
-        ref={ref}
-        aria-busy={isLoading}
-        disabled={props.disabled || isLoading}
-        onPointerDown={handlePointerDown}
-        {...props}
-      >
-        {isLoading ? (
-          <span className="inline-flex items-center gap-2">
-            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-            Cargando...
-          </span>
-        ) : (
-          children
-        )}
-      </Comp>
-    );
-  }
-);
+  return (
+    <Comp
+      className={cn(
+        buttonVariants({ variant, size }),
+        "btn-ripple relative overflow-hidden active:scale-[0.98]",
+        className
+      )}
+      ref={ref}
+      aria-busy={isLoading}
+      disabled={props.disabled || isLoading}
+      onPointerDown={handlePointerDown}
+      {...props}
+    >
+      {isLoading ? (
+        <span className="inline-flex items-center gap-2">
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+          Cargando...
+        </span>
+      ) : (
+        children
+      )}
+    </Comp>
+  );
+}
 Button.displayName = "Button";
 
 export { Button, buttonVariants };
