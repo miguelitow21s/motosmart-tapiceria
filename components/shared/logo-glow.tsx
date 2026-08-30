@@ -1,10 +1,7 @@
 import Image from "next/image";
-import logoMotosmart from "@/styles/Logo/logo_motosmart.svg";
 import { cn } from "@/lib/utils";
 
 export function LogoGlow({ className }: { className?: string }) {
-  const logoSrc = typeof logoMotosmart === "string" ? logoMotosmart : logoMotosmart.src;
-
   return (
     <div
       className={cn(
@@ -13,13 +10,12 @@ export function LogoGlow({ className }: { className?: string }) {
       )}
     >
       <Image
-        src={logoSrc}
+        src="/logo-motosmart.png"
         alt="MotoSmart Tapiceria"
-        width={236}
-        height={136}
-        className="h-10 w-auto brightness-0 invert md:h-11"
+        width={946}
+        height={446}
+        className="h-10 w-auto md:h-11"
         priority
-        unoptimized
       />
     </div>
   );
