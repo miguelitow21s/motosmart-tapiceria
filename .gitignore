@@ -9,3 +9,7 @@ out
 
 # Artefacto de build de TypeScript: causaba fallos de build al quedar obsoleto
 tsconfig.tsbuildinfo
+
+# Cache local del CLI de Supabase (project ref, urls de conexion sin credenciales,
+# versiones de servicios): se regenera con `supabase link`, no es codigo del proyecto.
+supabase/.temp
