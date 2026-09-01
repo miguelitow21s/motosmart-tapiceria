@@ -25,6 +25,16 @@ export interface Design {
   promotion_ends_at: string | null;
 }
 
+export interface RiderPhoto {
+  id: string;
+  storage_path: string;
+  rider_name: string;
+  moto_info: string;
+  is_active: boolean;
+  display_order: number;
+  created_at: string;
+}
+
 export interface CustomOrderPayload {
   brand: string;
   design: string;

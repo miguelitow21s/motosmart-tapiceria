@@ -23,6 +23,7 @@ import {
   Tags,
   Trash2,
   Upload,
+  Users,
   X
 } from "lucide-react";
 import { z } from "zod";
@@ -34,6 +35,7 @@ import { Modal } from "@/components/ui/modal";
 import { Label } from "@/components/ui/label";
 import { cn, formatCOP, formatDateTimeShort, getPromotionMeta } from "@/lib/utils";
 import { getCsrfToken } from "@/lib/csrf-client";
+import { RiderPhotosTab } from "@/features/admin/components/rider-photos-tab";
 
 type Design = {
   id: string;
@@ -114,6 +116,7 @@ type TabKey =
   | "catalog"
   | "brands"
   | "gallery"
+  | "riders"
   | "settings"
   | "features"
   | "activity";
@@ -170,6 +173,7 @@ const TABS: Array<{ key: TabKey; label: string; icon: React.ComponentType<{ clas
   { key: "catalog", label: "Catálogo de Diseños", icon: Tags },
   { key: "brands", label: "Marcas", icon: Store },
   { key: "gallery", label: "Galería de Fotos", icon: ImagePlus },
+  { key: "riders", label: "Pilotos", icon: Users },
   { key: "settings", label: "Textos y Config", icon: Settings2 },
   { key: "features", label: "Feature Flags", icon: Flag },
   { key: "activity", label: "Actividad", icon: Activity }
@@ -324,6 +328,7 @@ export function AdminDashboardImpl() {
     catalog: false,
     brands: false,
     gallery: false,
+    riders: false,
     settings: false,
     features: false,
     activity: false
@@ -525,6 +530,10 @@ export function AdminDashboardImpl() {
     }
     if (tab === "gallery") {
       await Promise.all([loadImages(), loadBrands(), loadDesigns()]);
+      return;
+    }
+    if (tab === "riders") {
+      // RiderPhotosTab gestiona su propia carga de datos de forma autonoma.
       return;
     }
     if (tab === "settings") {
@@ -1991,6 +2000,8 @@ export function AdminDashboardImpl() {
           </div>
         </Card>
       ) : null}
+
+      {activeTab === "riders" ? <RiderPhotosTab notify={notify} /> : null}
 
       <Modal open={designModalOpen} onClose={() => setDesignModalOpen(false)} title={editingDesign.id ? "Editar diseño" : "Nuevo diseño"} className="max-w-3xl">
         <div className="grid gap-3 md:grid-cols-2">

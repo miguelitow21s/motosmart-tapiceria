@@ -4,7 +4,8 @@ type FeatureName =
   | "catalog_enabled"
   | "customizer_enabled"
   | "checkout_enabled"
-  | "admin_uploads_enabled";
+  | "admin_uploads_enabled"
+  | "riders_enabled";
 
 export async function isFeatureEnabled(name: FeatureName) {
   const supabase = await createServerSupabaseClient();
