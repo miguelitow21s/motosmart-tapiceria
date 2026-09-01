@@ -310,8 +310,25 @@ function mapImageFromApi(raw: unknown): AdminImage {
   };
 }
 
+// Los enlaces del navbar en modo admin usan anclas (/admin#brands, etc.)
+// para saltar directo a una pestaña. El dashboard es una SPA por estado
+// (activeTab), no por scroll a un id real, asi que hay que traducir el
+// hash a una pestaña a mano.
+const HASH_TO_TAB: Record<string, TabKey> = {
+  brands: "brands",
+  designs: "catalog",
+  media: "gallery",
+  riders: "riders",
+  features: "features"
+};
+
+function tabFromHash(): TabKey {
+  if (typeof window === "undefined") return "overview";
+  return HASH_TO_TAB[window.location.hash.replace("#", "")] ?? "overview";
+}
+
 export function AdminDashboardImpl() {
-  const [activeTab, setActiveTab] = useState<TabKey>("overview");
+  const [activeTab, setActiveTab] = useState<TabKey>(tabFromHash);
   const [toast, setToast] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const [designs, setDesigns] = useState<Design[]>([]);
@@ -493,6 +510,14 @@ export function AdminDashboardImpl() {
       setCatalogView("grid");
     }
     void bootstrap();
+  }, []);
+
+  useEffect(() => {
+    function onHashChange() {
+      setActiveTab(tabFromHash());
+    }
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
   }, []);
 
   useEffect(() => {

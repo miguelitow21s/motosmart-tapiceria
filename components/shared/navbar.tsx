@@ -23,6 +23,7 @@ const adminLinks = [
   { href: "/admin#brands", label: "Marcas" },
   { href: "/admin#designs", label: "Precios y Diseños" },
   { href: "/admin#media", label: "Fotos" },
+  { href: "/admin#riders", label: "Pilotos" },
   { href: "/admin#features", label: "Modulos" }
 ];
 
