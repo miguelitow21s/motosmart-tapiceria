@@ -3,16 +3,50 @@ import { SectionContainer } from "@/components/shared/section-container";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FeatureCarousel } from "@/components/shared/feature-carousel";
+import { BrandCarousel } from "@/features/catalog/components/brand-carousel";
+import { DesignGrid } from "@/features/catalog/components/design-grid";
+import { getBrands, getFeaturedDesigns } from "@/features/catalog/services/catalog.service";
 import { isFeatureEnabled } from "@/lib/feature-flags";
 import { Package, ShieldCheck, Sparkles } from "lucide-react";
 import type { CSSProperties } from "react";
 import Link from "next/link";
 
 export default async function HomePage() {
-  const checkoutEnabled = await isFeatureEnabled("checkout_enabled");
+  const [checkoutEnabled, brands, featuredDesigns] = await Promise.all([
+    isFeatureEnabled("checkout_enabled"),
+    getBrands(),
+    getFeaturedDesigns()
+  ]);
+
   return (
     <>
       <Hero />
+
+      <SectionContainer className="py-8">
+        <h2 className="font-display text-2xl text-white sm:text-3xl">Elige tu marca</h2>
+        <p className="mt-2 text-neutral-300">Entra directo al catálogo de tu moto.</p>
+        <div className="mt-6">
+          <BrandCarousel brands={brands} />
+        </div>
+      </SectionContainer>
+
+      {featuredDesigns.length ? (
+        <SectionContainer className="py-8">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="font-display text-2xl text-white sm:text-3xl">Nuestras sillas</h2>
+              <p className="mt-2 text-neutral-300">Precio y diseño real. Toca una y cotiza por WhatsApp al instante.</p>
+            </div>
+            <Button asChild variant="secondary" className="w-full sm:w-auto">
+              <Link href="/catalogo">Ver catálogo completo</Link>
+            </Button>
+          </div>
+          <div className="mt-6">
+            <DesignGrid designs={featuredDesigns} />
+          </div>
+        </SectionContainer>
+      ) : null}
+
       <SectionContainer>
         <FeatureCarousel />
       </SectionContainer>
