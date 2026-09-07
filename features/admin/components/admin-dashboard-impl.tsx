@@ -360,9 +360,13 @@ export function AdminDashboardImpl() {
 
   const [designModalOpen, setDesignModalOpen] = useState(false);
   const [editingDesign, setEditingDesign] = useState<DesignForm>(EMPTY_DESIGN_FORM);
+  // Sube en segundo plano al elegir el archivo; sin este flag, "Guardar" podia
+  // dispararse antes de que la subida terminara y persistia la foto vieja.
+  const [uploadingDesignImage, setUploadingDesignImage] = useState(false);
 
   const [brandModalOpen, setBrandModalOpen] = useState(false);
   const [editingBrand, setEditingBrand] = useState<Brand>({ id: "", name: "", slug: "", image_url: null, description: "", is_active: true });
+  const [uploadingBrandImage, setUploadingBrandImage] = useState(false);
   const [brandSearch, setBrandSearch] = useState("");
 
   const [productModalOpen, setProductModalOpen] = useState(false);
@@ -841,6 +845,10 @@ export function AdminDashboardImpl() {
   }
 
   async function saveDesignModal() {
+    if (uploadingDesignImage) {
+      notify("error", "Espera a que termine de subir la imagen antes de guardar");
+      return;
+    }
     const isEdit = Boolean(editingDesign.id);
     const payload = {
       ...(editingDesign.id ? { id: editingDesign.id } : {}),
@@ -879,28 +887,33 @@ export function AdminDashboardImpl() {
   }
 
   async function uploadImageForDesign(file: File) {
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("folder", "designs");
-    formData.append("alt", editingDesign.name || "Diseño");
-    formData.append("alt_text", editingDesign.name || "Diseño");
-    formData.append("is_carousel", "false");
-    formData.append("is_weekly_highlight", "false");
-    if (editingDesign.id) formData.append("design_id", editingDesign.id);
-    if (editingDesign.brand_id) formData.append("brand_id", editingDesign.brand_id);
+    setUploadingDesignImage(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("folder", "designs");
+      formData.append("alt", editingDesign.name || "Diseño");
+      formData.append("alt_text", editingDesign.name || "Diseño");
+      formData.append("is_carousel", "false");
+      formData.append("is_weekly_highlight", "false");
+      if (editingDesign.id) formData.append("design_id", editingDesign.id);
+      if (editingDesign.brand_id) formData.append("brand_id", editingDesign.brand_id);
 
-    const res = await fetch("/api/admin/images", {
-      method: "POST",
-      headers: { "x-csrf-token": getCsrfToken() },
-      body: formData
-    });
-    const body = (await res.json()) as { error?: string; url?: string };
-    if (!res.ok || !body.url) {
-      notify("error", body.error ?? "No se pudo subir imagen");
-      return;
+      const res = await fetch("/api/admin/images", {
+        method: "POST",
+        headers: { "x-csrf-token": getCsrfToken() },
+        body: formData
+      });
+      const body = (await res.json()) as { error?: string; url?: string };
+      if (!res.ok || !body.url) {
+        notify("error", body.error ?? "No se pudo subir imagen");
+        return;
+      }
+      setEditingDesign((prev) => ({ ...prev, image_url: body.url ?? prev.image_url }));
+      notify("success", "Imagen principal cargada");
+    } finally {
+      setUploadingDesignImage(false);
     }
-    setEditingDesign((prev) => ({ ...prev, image_url: body.url ?? prev.image_url }));
-    notify("success", "Imagen principal cargada");
   }
 
   function applyPromotionPreset(hours: number) {
@@ -1066,6 +1079,10 @@ export function AdminDashboardImpl() {
   }
 
   async function saveBrand() {
+    if (uploadingBrandImage) {
+      notify("error", "Espera a que termine de subir la imagen antes de guardar");
+      return;
+    }
     const isEdit = Boolean(editingBrand.id);
     const payload = {
       ...(isEdit ? { id: editingBrand.id } : {}),
@@ -1093,27 +1110,32 @@ export function AdminDashboardImpl() {
   }
 
   async function uploadBrandImage(file: File) {
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("folder", "brands");
-    formData.append("alt", editingBrand.name || "Marca");
-    formData.append("alt_text", editingBrand.name || "Marca");
-    formData.append("is_carousel", "false");
-    formData.append("is_weekly_highlight", "false");
-    if (editingBrand.id) formData.append("brand_id", editingBrand.id);
+    setUploadingBrandImage(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("folder", "brands");
+      formData.append("alt", editingBrand.name || "Marca");
+      formData.append("alt_text", editingBrand.name || "Marca");
+      formData.append("is_carousel", "false");
+      formData.append("is_weekly_highlight", "false");
+      if (editingBrand.id) formData.append("brand_id", editingBrand.id);
 
-    const res = await fetch("/api/admin/images", {
-      method: "POST",
-      headers: { "x-csrf-token": getCsrfToken() },
-      body: formData
-    });
-    const body = (await res.json()) as { url?: string; error?: string };
-    if (!res.ok || !body.url) {
-      notify("error", body.error ?? "No se pudo subir imagen de marca");
-      return;
+      const res = await fetch("/api/admin/images", {
+        method: "POST",
+        headers: { "x-csrf-token": getCsrfToken() },
+        body: formData
+      });
+      const body = (await res.json()) as { url?: string; error?: string };
+      if (!res.ok || !body.url) {
+        notify("error", body.error ?? "No se pudo subir imagen de marca");
+        return;
+      }
+      setEditingBrand((prev) => ({ ...prev, image_url: body.url }));
+      notify("success", "Imagen de marca actualizada");
+    } finally {
+      setUploadingBrandImage(false);
     }
-    setEditingBrand((prev) => ({ ...prev, image_url: body.url }));
-    notify("success", "Imagen de marca actualizada");
   }
 
   async function pushCarouselOrder(next: AdminImage[]) {
@@ -1451,7 +1473,7 @@ export function AdminDashboardImpl() {
           <div className="grid gap-3 md:grid-cols-2">
             {carouselImages.map((img, index) => (
               <div key={img.id} className="rounded-xl border border-neutral-700 bg-neutral-950 p-3">
-                <img src={img.url} alt={img.alt ?? "carousel"} className="h-40 w-full rounded-lg object-cover" />
+                <img src={img.url} alt={img.alt ?? "carousel"} className="h-40 w-full rounded-lg bg-neutral-950 object-contain" />
                 <div className="mt-2 flex items-center justify-between text-xs text-neutral-400">
                   <span>Orden #{index + 1}</span>
                   <div className="flex gap-2">
@@ -1529,7 +1551,7 @@ export function AdminDashboardImpl() {
             />
             {carouselUpload ? (
               <div className="mt-3 space-y-2">
-                <img src={carouselUpload.preview} alt="preview" className="h-40 w-full rounded-lg object-cover" />
+                <img src={carouselUpload.preview} alt="preview" className="h-40 w-full rounded-lg bg-neutral-950 object-contain" />
                 <Input value={carouselUpload.alt} onChange={(e) => setCarouselUpload((prev) => (prev ? { ...prev, alt: e.target.value } : prev))} />
                 <div className="flex flex-col gap-2 sm:flex-row">
                   <Button className="bg-orange-500 hover:bg-orange-400" onClick={() => void uploadCarouselImage()}>Confirmar subida</Button>
@@ -1610,7 +1632,7 @@ export function AdminDashboardImpl() {
                       <tr key={design.id} className="border-t border-neutral-800">
                         <td className="px-2 py-2">
                           <button type="button" onClick={() => openEditDesignModal(design)}>
-                            <img src={design.image_url ?? "https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=400&q=80"} alt={design.name} className="h-12 w-16 rounded object-cover" />
+                            <img src={design.image_url || "/logo-motosmart.png"} alt={design.name} className="h-12 w-16 rounded bg-neutral-950 object-contain" />
                           </button>
                         </td>
                         <td className="px-2 py-2">
@@ -1718,7 +1740,7 @@ export function AdminDashboardImpl() {
                 const promo = getPromotionMeta(design.base_price, design.discount_price, design.promotion_active, design.promotion_starts_at, design.promotion_ends_at);
                 return (
                   <div key={design.id} className="rounded-xl border border-neutral-700 bg-neutral-950 p-3">
-                    <img src={design.image_url ?? "https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=400&q=80"} alt={design.name} className="h-40 w-full rounded-lg object-cover" />
+                    <img src={design.image_url || "/logo-motosmart.png"} alt={design.name} className="h-40 w-full rounded-lg bg-neutral-950 object-contain" />
                     <p className="mt-2 font-display text-lg text-white">{design.name}</p>
                     <p className="text-xs text-neutral-400">{getBrandName(design.brand_id)}</p>
                     <p className="text-sm text-neutral-300">{design.short_description}</p>
@@ -1874,7 +1896,7 @@ export function AdminDashboardImpl() {
               <div className="space-y-3">
                 {uploadQueue.map((item) => (
                   <div key={item.id} className="grid gap-2 rounded-xl border border-neutral-700 p-2 md:grid-cols-[100px_1fr]">
-                    <img src={item.preview} alt="preview" className="h-24 w-full rounded object-cover" />
+                    <img src={item.preview} alt="preview" className="h-24 w-full rounded bg-neutral-950 object-contain" />
                     <div className="space-y-2">
                       <Input value={item.alt} onChange={(e) => setUploadQueue((prev) => prev.map((u) => (u.id === item.id ? { ...u, alt: e.target.value } : u)))} />
                       <div className="grid gap-2 md:grid-cols-3">
@@ -2094,10 +2116,25 @@ export function AdminDashboardImpl() {
           </div>
           <div className="space-y-1 md:col-span-2">
             <Label htmlFor="design-image-file">Subir imagen principal</Label>
-            <Input id="design-image-file" type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) void uploadImageForDesign(f); }} />
+            <Input
+              id="design-image-file"
+              type="file"
+              accept="image/*"
+              disabled={uploadingDesignImage}
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) void uploadImageForDesign(f); }}
+            />
+            {uploadingDesignImage ? (
+              <p role="status" className="text-sm text-amber-300">Subiendo imagen, espera antes de guardar...</p>
+            ) : null}
           </div>
           <div className="md:col-span-2 flex flex-col gap-2 sm:flex-row">
-            <Button className="bg-orange-500 hover:bg-orange-400" onClick={() => void saveDesignModal()}><Save className="mr-1 h-4 w-4" />Guardar</Button>
+            <Button
+              className="bg-orange-500 hover:bg-orange-400"
+              disabled={uploadingDesignImage}
+              onClick={() => void saveDesignModal()}
+            >
+              <Save className="mr-1 h-4 w-4" />{uploadingDesignImage ? "Subiendo imagen..." : "Guardar"}
+            </Button>
             <Button variant="secondary" onClick={() => setDesignModalOpen(false)}>Cancelar</Button>
           </div>
         </div>
@@ -2123,11 +2160,26 @@ export function AdminDashboardImpl() {
           </div>
           <div className="space-y-1">
             <Label htmlFor="brand-image-file">Subir imagen / logo</Label>
-            <Input id="brand-image-file" type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) void uploadBrandImage(f); }} />
+            <Input
+              id="brand-image-file"
+              type="file"
+              accept="image/*"
+              disabled={uploadingBrandImage}
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) void uploadBrandImage(f); }}
+            />
+            {uploadingBrandImage ? (
+              <p role="status" className="text-sm text-amber-300">Subiendo imagen, espera antes de guardar...</p>
+            ) : null}
           </div>
           <label className="inline-flex items-center gap-2 text-sm text-neutral-300"><input type="checkbox" checked={editingBrand.is_active ?? true} onChange={(e) => setEditingBrand((p) => ({ ...p, is_active: e.target.checked }))} />Activa</label>
           <div className="flex flex-col gap-2 sm:flex-row">
-            <Button className="bg-orange-500 hover:bg-orange-400" onClick={() => void saveBrand()}><Save className="mr-1 h-4 w-4" />Guardar</Button>
+            <Button
+              className="bg-orange-500 hover:bg-orange-400"
+              disabled={uploadingBrandImage}
+              onClick={() => void saveBrand()}
+            >
+              <Save className="mr-1 h-4 w-4" />{uploadingBrandImage ? "Subiendo imagen..." : "Guardar"}
+            </Button>
             <Button variant="secondary" onClick={() => setBrandModalOpen(false)}>Cancelar</Button>
           </div>
         </div>
@@ -2193,7 +2245,7 @@ export function AdminDashboardImpl() {
       <Modal open={Boolean(selectedImage)} onClose={() => setSelectedImage(null)} title="Detalle de imagen">
         {selectedImage ? (
           <div className="space-y-3">
-            <img src={selectedImage.url} alt={selectedImage.alt ?? "imagen"} className="h-56 w-full rounded-xl object-cover" />
+            <img src={selectedImage.url} alt={selectedImage.alt ?? "imagen"} className="h-56 w-full rounded-xl bg-neutral-950 object-contain" />
             <Input value={selectedImage.alt ?? ""} onChange={(e) => setSelectedImage((prev) => (prev ? { ...prev, alt: e.target.value } : prev))} />
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               <select className="h-11 rounded-xl border border-neutral-700 bg-neutral-800 px-3 text-base text-white" value={selectedImage.brand_id ?? ""} onChange={(e) => setSelectedImage((prev) => (prev ? { ...prev, brand_id: e.target.value || null } : prev))}>

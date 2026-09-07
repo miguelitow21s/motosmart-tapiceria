@@ -12,6 +12,10 @@ type SmartImageProps = {
   fallbackSrc?: string;
   sizes?: string;
   priority?: boolean;
+  /** "contain" (default) muestra la foto completa sin recortarla, dejando
+   * franjas del fondo del marco si la proporcion no coincide con el
+   * contenedor. "cover" llena el marco recortando lo que sobre. */
+  fit?: "contain" | "cover";
 };
 
 export function SmartImage({
@@ -21,20 +25,22 @@ export function SmartImage({
   className,
   fallbackSrc = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjgwMCI+PHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iODAwIiBmaWxsPSIjMGEwYTBhIi8+PC9zdmc+",
   sizes,
-  priority
+  priority,
+  fit = "contain"
 }: SmartImageProps) {
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
 
   return (
-    <div className={cn("relative h-full w-full overflow-hidden", className)}>
+    <div className={cn("relative h-full w-full overflow-hidden bg-neutral-950", className)}>
       {loading ? <div className="absolute inset-0 animate-pulse bg-white/10" /> : null}
       <Image
         src={failed ? fallbackSrc : src}
         alt={alt}
         fill={fill}
         className={cn(
-          "object-cover transition duration-500",
+          "transition duration-500",
+          fit === "contain" ? "object-contain" : "object-cover",
           loading ? "scale-105 blur-sm opacity-0" : "scale-100 blur-0 opacity-100"
         )}
         sizes={sizes}
@@ -46,7 +52,9 @@ export function SmartImage({
           setLoading(false);
         }}
       />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent" />
+      {fit === "cover" ? (
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent" />
+      ) : null}
     </div>
   );
 }

@@ -154,7 +154,7 @@ export function RiderPhotosTab({ notify }: { notify: (type: "success" | "error",
       <div className="grid gap-3 md:grid-cols-2">
         {photos.map((photo, index) => (
           <div key={photo.id} className="rounded-xl border border-neutral-700 bg-neutral-950 p-3">
-            <img src={photo.storage_path} alt={photo.rider_name} className="h-40 w-full rounded-lg object-cover" />
+            <img src={photo.storage_path} alt={photo.rider_name} className="h-40 w-full rounded-lg bg-neutral-950 object-contain" />
             <div className="mt-2 flex items-center justify-between text-xs text-neutral-400">
               <span>Orden #{index + 1}{photo.is_active ? "" : " · oculta"}</span>
               <div className="flex gap-2">
@@ -220,7 +220,7 @@ export function RiderPhotosTab({ notify }: { notify: (type: "success" | "error",
         <h4 className="mb-3 text-sm text-white">Agregar foto de piloto</h4>
         <div className="space-y-3">
           <Input type="file" accept="image/*" aria-label="Elegir foto de piloto" onChange={(e) => handleFileSelected(e.target.files)} />
-          {preview ? <img src={preview} alt="Vista previa" className="h-40 w-full rounded-lg object-cover" /> : null}
+          {preview ? <img src={preview} alt="Vista previa" className="h-40 w-full rounded-lg bg-neutral-950 object-contain" /> : null}
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1">
               <Label htmlFor="new-rider-name">Nombre del piloto</Label>
