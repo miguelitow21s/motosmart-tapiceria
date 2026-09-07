@@ -1,11 +1,14 @@
 import Image from "next/image";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 export function LogoGlow({ className }: { className?: string }) {
   return (
-    <div
+    <Link
+      href="/"
+      aria-label="Ir al inicio"
       className={cn(
-        "logo-glow rounded-2xl border border-red-500/45 bg-black/60 px-3 py-2 shadow-[0_0_28px_rgba(239,68,68,0.18)]",
+        "logo-glow inline-block rounded-2xl border border-red-500/45 bg-black/60 px-3 py-2 shadow-[0_0_28px_rgba(239,68,68,0.18)]",
         className
       )}
     >
@@ -17,6 +20,6 @@ export function LogoGlow({ className }: { className?: string }) {
         className="h-10 w-auto md:h-11"
         priority
       />
-    </div>
+    </Link>
   );
 }
