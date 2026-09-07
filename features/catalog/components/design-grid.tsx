@@ -51,7 +51,10 @@ export async function DesignGrid({ designs }: { designs: Design[] }) {
 
           return (
         <Card key={design.id} className="overflow-hidden p-0" style={{ "--i": idx } as CSSProperties}>
-          <div className="relative aspect-[4/3] w-full">
+          {/* Las fotos reales de sillas son verticales (moto/asiento de pie); un
+              marco horizontal (4/3) dejaba franjas negras a los lados con
+              object-contain. 3/4 vertical hace que la foto llene el ancho. */}
+          <div className="relative aspect-[3/4] w-full">
             {promotion.hasPromotion ? (
               <div className="absolute right-3 top-3 z-10 rounded-full border border-red-200/45 bg-red-600 px-2.5 py-1 text-xs font-semibold text-white shadow-lg">
                 -{promotion.percentOff}%
