@@ -108,7 +108,9 @@ export function FeatureCarousel() {
             className="group relative w-72 flex-shrink-0 snap-start overflow-hidden rounded-2xl border border-white/10 bg-black/50"
             style={{ "--i": idx } as React.CSSProperties}
           >
-            <div className="relative h-44 w-full">
+            {/* Las fotos reales son verticales; un marco horizontal fijo (h-44)
+                dejaba franjas negras a los lados con object-contain. */}
+            <div className="relative aspect-[3/4] w-full">
               <SmartImage
                 src={slide.image}
                 alt={slide.alt}
