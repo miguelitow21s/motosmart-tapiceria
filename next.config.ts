@@ -12,10 +12,11 @@ const csp = [
   `script-src 'self' 'unsafe-inline' https://vercel.live${process.env.NODE_ENV === "production" ? "" : " 'unsafe-eval'"}`,
   // Ya no se cargan fuentes desde fonts.googleapis.com/fonts.gstatic.com:
   // se autohospedan via next/font (app/layout.tsx) desde el propio origen.
-  "style-src 'self' 'unsafe-inline'",
-  "font-src 'self' data:",
+  "style-src 'self' 'unsafe-inline' https://vercel.live",
+  "font-src 'self' data: https://vercel.live https://assets.vercel.com",
   "img-src 'self' data: blob: https://*.supabase.co https:",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://vercel.live wss://ws-us3.pusher.com",
+  "frame-src 'self' https://vercel.live",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'"
