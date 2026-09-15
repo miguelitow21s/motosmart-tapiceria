@@ -7,7 +7,9 @@ import type { NextConfig } from "next";
 // cero dangerouslySetInnerHTML/eval en el repo). Candidato a follow-up.
 const csp = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === "production" ? "" : " 'unsafe-eval'"}`,
+  // Vercel inyecta este script oficial para su Toolbar/Feedback. Se permite
+  // exclusivamente ese origen, sin convertir la directiva en un comodin.
+  `script-src 'self' 'unsafe-inline' https://vercel.live${process.env.NODE_ENV === "production" ? "" : " 'unsafe-eval'"}`,
   // Ya no se cargan fuentes desde fonts.googleapis.com/fonts.gstatic.com:
   // se autohospedan via next/font (app/layout.tsx) desde el propio origen.
   "style-src 'self' 'unsafe-inline'",
