@@ -6,45 +6,47 @@ import { assertCsrf, sanitizeText } from "@/lib/security";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { invalidPayload, internalError } from "@/lib/api-response";
 
+// Postgres/PostgREST devuelve timestamptz como "2026-09-29T20:00:00+00:00".
+// z.string().datetime() sin offset solo acepta "...Z", asi que cualquier
+// edicion rapida (precio, descripcion, activo, promo) de un diseño que ya
+// tuviera fechas de promocion se rechazaba con "Invalid payload".
+const isoDateTime = z.string().datetime({ offset: true, message: "Fecha de promocion invalida" });
+
 const designSchema = z.object({
   id: z.string().uuid().optional(),
-  brand_id: z.string().uuid(),
-  name: z.string().min(2).max(60),
-  slug: z.string().min(2).max(60).regex(/^[a-z0-9-]+$/),
-  short_description: z.string().max(180).default(""),
-  image_url: z.string().url(),
-  base_price: z.number().int().nonnegative(),
-  discount_price: z.number().positive().nullable().optional(),
-  promotion_label: z.string().max(60).default(""),
+  brand_id: z.string({ required_error: "Elige una marca" }).uuid("Elige una marca"),
+  name: z.string().trim().min(2, "El nombre debe tener al menos 2 caracteres").max(60, "El nombre admite maximo 60 caracteres"),
+  slug: z
+    .string()
+    .min(2, "El slug debe tener al menos 2 caracteres")
+    .max(60, "El slug admite maximo 60 caracteres")
+    .regex(/^[a-z0-9-]+$/, "El slug solo puede tener minusculas, numeros y guiones"),
+  short_description: z.string().max(180, "La descripcion corta admite maximo 180 caracteres").default(""),
+  image_url: z.string({ required_error: "Sube una foto principal" }).url("Sube una foto principal o pega una URL valida"),
+  base_price: z
+    .number({ invalid_type_error: "Escribe el precio base" })
+    .int("El precio base debe ser en pesos enteros, sin decimales")
+    .nonnegative("El precio base no puede ser negativo"),
+  discount_price: z
+    .number({ invalid_type_error: "Escribe el precio de rebaja" })
+    .int("El precio de rebaja debe ser en pesos enteros, sin decimales")
+    .positive("El precio de rebaja debe ser mayor que 0")
+    .nullable()
+    .optional(),
+  promotion_label: z.string().max(60, "La etiqueta de promocion admite maximo 60 caracteres").default(""),
   promotion_active: z.boolean().default(false),
-  promotion_starts_at: z.string().datetime().nullable().optional(),
-  promotion_ends_at: z.string().datetime().nullable().optional(),
+  promotion_starts_at: isoDateTime.nullable().optional(),
+  promotion_ends_at: isoDateTime.nullable().optional(),
   is_active: z.boolean().default(true)
 }).superRefine((value, ctx) => {
-  if (!value.promotion_active) return;
-
-  if (typeof value.discount_price !== "number") {
+  // Aplica con la promo encendida o apagada: la rebaja se conserva aunque la
+  // promo este apagada (ver normalizePromotionPayload) y la BD la exige menor
+  // al precio base siempre (designs_discount_lt_base_check).
+  if (typeof value.discount_price === "number" && value.discount_price >= value.base_price) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ["discount_price"],
-      message: "Debes definir precio de descuento cuando la promocion esta activa"
-    });
-    return;
-  }
-
-  if (value.discount_price >= value.base_price) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["discount_price"],
-      message: "El descuento debe ser menor al precio base"
-    });
-  }
-
-  if (value.promotion_label.trim().length < 3) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["promotion_label"],
-      message: "La etiqueta de promocion debe tener al menos 3 caracteres"
+      message: "El precio de rebaja debe ser menor al precio base"
     });
   }
 
@@ -59,20 +61,59 @@ const designSchema = z.object({
       });
     }
   }
+
+  if (!value.promotion_active) return;
+
+  if (typeof value.discount_price !== "number") {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["discount_price"],
+      message: "Debes definir precio de descuento cuando la promocion esta activa"
+    });
+  }
+
+  if (value.promotion_label.trim().length < 3) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["promotion_label"],
+      message: "La etiqueta de promocion debe tener al menos 3 caracteres"
+    });
+  }
 });
 
+// Antes, con la promo apagada se borraban en silencio la rebaja, la etiqueta
+// y las fechas: la administradora escribia la rebaja, guardaba, y al activar
+// la promo despues ya no existia. Ahora se conservan; la web publica solo las
+// muestra cuando la promo esta activa y dentro de fechas (getPromotionMeta).
 function normalizePromotionPayload(payload: z.infer<typeof designSchema>) {
-  const active = payload.promotion_active;
-
   return {
     ...payload,
     name: sanitizeText(payload.name),
     short_description: sanitizeText(payload.short_description),
-    promotion_label: active ? sanitizeText(payload.promotion_label) : "",
-    discount_price: active ? payload.discount_price ?? null : null,
-    promotion_starts_at: active ? payload.promotion_starts_at ?? null : null,
-    promotion_ends_at: active ? payload.promotion_ends_at ?? null : null
+    promotion_label: sanitizeText(payload.promotion_label),
+    discount_price: payload.discount_price ?? null,
+    promotion_starts_at: payload.promotion_starts_at ?? null,
+    promotion_ends_at: payload.promotion_ends_at ?? null
   };
+}
+
+const DUPLICATE_DESIGN_MESSAGE = "Ya existe un diseño con ese nombre (slug) en esta marca. Usa otro nombre.";
+
+// La foto se sube antes de guardar el diseño (al crear uno nuevo aun no hay
+// id), asi que la fila de la galeria queda "Sin vincular". Al guardar se
+// vincula la foto que quedo como principal.
+async function linkMainImage(
+  supabase: ReturnType<typeof createAdminSupabaseClient>,
+  designId: string,
+  brandId: string,
+  imageUrl: string
+) {
+  const { error } = await supabase
+    .from("images")
+    .update({ design_id: designId, brand_id: brandId })
+    .eq("storage_path", imageUrl)
+    .is("design_id", null);
+  if (error) console.error("designs linkMainImage", error.message);
 }
 
 const deleteDesignSchema = z.object({
@@ -118,15 +159,18 @@ export async function POST(request: Request) {
 
   const supabase = createAdminSupabaseClient();
   const payload = normalizePromotionPayload(parsed.data);
-  const { error } = await supabase.from("designs").insert(payload);
+  const { data: created, error } = await supabase.from("designs").insert(payload).select("id").single();
+  if (error?.code === "23505") return NextResponse.json({ error: DUPLICATE_DESIGN_MESSAGE }, { status: 409 });
   if (error) return internalError("designs POST", error);
+  await linkMainImage(supabase, created.id, payload.brand_id, payload.image_url);
   await logAdminActivity({
     action: "create",
     entity: "design",
+    entityId: created.id,
     detail: { slug: payload.slug, brand_id: payload.brand_id }
   });
 
-  return NextResponse.json({ ok: true }, { status: 201 });
+  return NextResponse.json({ ok: true, id: created.id }, { status: 201 });
 }
 
 export async function PATCH(request: Request) {
@@ -158,7 +202,9 @@ export async function PATCH(request: Request) {
     })
     .eq("id", id);
 
+  if (error?.code === "23505") return NextResponse.json({ error: DUPLICATE_DESIGN_MESSAGE }, { status: 409 });
   if (error) return internalError("designs PATCH", error);
+  await linkMainImage(supabase, id, normalized.brand_id, normalized.image_url);
   await logAdminActivity({
     action: "update",
     entity: "design",

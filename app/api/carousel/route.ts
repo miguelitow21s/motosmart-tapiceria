@@ -6,6 +6,9 @@ import { assertCsrf } from "@/lib/security";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { invalidPayload, internalError } from "@/lib/api-response";
+import { parseCarouselOrder, sortByCarouselOrder } from "@/lib/carousel-order";
+
+const MAX_PUBLIC_SLIDES = 12;
 
 const carouselUpdateSchema = z.object({
   ids: z.array(z.string().uuid()).max(12)
@@ -14,16 +17,25 @@ const carouselUpdateSchema = z.object({
 export async function GET() {
   // Endpoint publico: cliente anon sujeto a RLS, nunca service_role.
   const supabase = await createServerSupabaseClient();
-  const { data, error } = await supabase
-    .from("images")
-    .select("id,storage_path,alt_text,created_at,designs(name,short_description),brands(name)")
-    .eq("is_weekly_highlight", true)
-    .order("created_at", { ascending: false })
-    .limit(12);
+  const [{ data, error }, { data: orderSetting, error: orderError }] = await Promise.all([
+    supabase
+      .from("images")
+      .select("id,storage_path,alt_text,created_at,designs(name,short_description),brands(name)")
+      .eq("is_weekly_highlight", true)
+      .order("created_at", { ascending: false })
+      .limit(50),
+    supabase.from("settings").select("value").eq("key", "carousel_order").maybeSingle()
+  ]);
 
   if (error) return internalError("carousel GET", error);
+  // Sin el orden guardado se cae al orden por fecha: nunca vaciar el carrusel por esto.
+  if (orderError) console.error("carousel GET order", orderError.message);
 
-  const slides = (data ?? []).map((item) => {
+  // Mismo orden que ve la administradora en el panel (antes se ignoraba y
+  // reordenar no cambiaba nada en la web).
+  const ordered = sortByCarouselOrder(data ?? [], parseCarouselOrder(orderSetting?.value)).slice(0, MAX_PUBLIC_SLIDES);
+
+  const slides = ordered.map((item) => {
     const design = Array.isArray(item.designs) ? item.designs[0] : item.designs;
     const brand = Array.isArray(item.brands) ? item.brands[0] : item.brands;
     const title = design?.name || item.alt_text || "Trabajo reciente";

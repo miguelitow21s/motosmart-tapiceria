@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
   AlertTriangle,
@@ -35,6 +35,9 @@ import { Modal } from "@/components/ui/modal";
 import { Label } from "@/components/ui/label";
 import { cn, formatCOP, formatDateTimeShort, getPromotionMeta } from "@/lib/utils";
 import { getCsrfToken } from "@/lib/csrf-client";
+import { readApiError } from "@/lib/api-error-client";
+import { parseCarouselOrder, sortByCarouselOrder } from "@/lib/carousel-order";
+import { prepareImageForUpload } from "@/lib/prepare-image";
 import { RiderPhotosTab } from "@/features/admin/components/rider-photos-tab";
 
 type Design = {
@@ -141,7 +144,9 @@ type UploadDraft = {
   brand_id: string;
   design_id: string;
   is_carousel: boolean;
-  folder: "carousel" | "designs" | "brands";
+  // Reemplaza la foto principal del diseño elegido (lo que se ve en el
+  // catalogo). Vincular a secas solo organiza la galeria.
+  set_as_design_image: boolean;
 };
 
 type ConfirmState = {
@@ -363,6 +368,9 @@ export function AdminDashboardImpl() {
   // Sube en segundo plano al elegir el archivo; sin este flag, "Guardar" podia
   // dispararse antes de que la subida terminara y persistia la foto vieja.
   const [uploadingDesignImage, setUploadingDesignImage] = useState(false);
+  // Foto principal al abrir el modal: si cambia y se cierra sin "Guardar", la
+  // web sigue mostrando la anterior. Se avisa en vez de perderla en silencio.
+  const [designImageOnOpen, setDesignImageOnOpen] = useState("");
 
   const [brandModalOpen, setBrandModalOpen] = useState(false);
   const [editingBrand, setEditingBrand] = useState<Brand>({ id: "", name: "", slug: "", image_url: null, description: "", is_active: true });
@@ -392,6 +400,11 @@ export function AdminDashboardImpl() {
   const [carouselDropActive, setCarouselDropActive] = useState(false);
 
   const [settingsForm, setSettingsForm] = useState<Record<string, string>>({});
+  // Al entrar a "Textos y Config" se recargan los settings; si la respuesta
+  // llegaba despues de empezar a escribir, pisaba lo escrito y "Guardar"
+  // guardaba los textos viejos. Los campos editados y aun sin guardar se
+  // conservan; el resto se actualiza con lo que diga el servidor.
+  const editedSettingKeysRef = useRef(new Set<string>());
   const [activityFilter, setActivityFilter] = useState("all");
   const [activityPage, setActivityPage] = useState(1);
 
@@ -405,20 +418,15 @@ export function AdminDashboardImpl() {
     return count;
   }, [designs]);
 
-  const carouselImages = useMemo(() => {
-    const onlyCarousel = images.filter((img) => img.is_carousel);
-    const orderMap = new Map(carouselOrder.map((id, index) => [id, index]));
-    return [...onlyCarousel]
-      .sort((a, b) => {
-        const idxA = orderMap.get(a.id);
-        const idxB = orderMap.get(b.id);
-        if (idxA != null && idxB != null) return idxA - idxB;
-        if (idxA != null) return -1;
-        if (idxB != null) return 1;
-        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-      })
-      .map((item, index) => ({ ...item, carousel_order: index + 1 }));
-  }, [images, carouselOrder]);
+  // Misma regla de orden que /api/carousel: lo que se ve aqui es lo que ve el publico.
+  const carouselImages = useMemo(
+    () =>
+      sortByCarouselOrder(
+        images.filter((img) => img.is_carousel),
+        carouselOrder
+      ).map((item, index) => ({ ...item, carousel_order: index + 1 })),
+    [images, carouselOrder]
+  );
 
   const filteredDesigns = useMemo(() => {
     let list = [...designs];
@@ -649,17 +657,17 @@ export function AdminDashboardImpl() {
       }));
       setSettings(mapped);
 
-      const next: Record<string, string> = {};
-      SETTINGS_KEYS.forEach(({ key }) => {
-        next[key] = mapped.find((s) => s.key === key)?.value ?? "";
+      setSettingsForm((prev) => {
+        const next: Record<string, string> = {};
+        SETTINGS_KEYS.forEach(({ key }) => {
+          next[key] = editedSettingKeysRef.current.has(key)
+            ? prev[key] ?? ""
+            : mapped.find((s) => s.key === key)?.value ?? "";
+        });
+        return next;
       });
-      setSettingsForm(next);
 
-      const carouselOrderRaw = body.data?.find((s) => s.key === "carousel_order")?.value;
-      if (carouselOrderRaw && typeof carouselOrderRaw === "object") {
-        const ids = (carouselOrderRaw as { ids?: unknown }).ids;
-        if (Array.isArray(ids)) setCarouselOrder(ids.map((x) => String(x)));
-      }
+      setCarouselOrder(parseCarouselOrder(body.data?.find((s) => s.key === "carousel_order")?.value));
     } catch (error) {
       notify("error", (error as Error).message);
     } finally {
@@ -780,9 +788,8 @@ export function AdminDashboardImpl() {
     });
 
     if (!res.ok) {
-      const body = (await res.json()) as { error?: string };
       setDesigns(previous);
-      notify("error", body.error ?? "No se pudo guardar diseño");
+      notify("error", await readApiError(res, "No se pudo guardar el diseño"));
       return;
     }
     notify("success", "Diseño actualizado");
@@ -801,28 +808,49 @@ export function AdminDashboardImpl() {
   async function commitInline() {
     if (!editingField) return;
     const design = designsById.get(editingField.id);
-    if (!design) return;
-
     const field = editingField.field;
     const value = inlineValue.trim();
+    // Se cierra la edicion antes de guardar: Enter y luego el blur del mismo
+    // campo disparaban dos guardados iguales.
+    cancelInline();
+    if (!design) return;
+
     let changes: Partial<Design> = {};
 
     if (field === "name") changes = { name: value, slug: toSlug(value) };
     if (field === "short_description") changes = { short_description: value };
-    if (field === "base_price") changes = { base_price: Number(value || 0) };
-    if (field === "discount_price") changes = { discount_price: value ? Number(value) : null };
+    if (field === "base_price" || field === "discount_price") {
+      const amount = value ? Number(value) : null;
+      if (amount !== null && (!Number.isFinite(amount) || amount < 0)) {
+        notify("error", "Escribe el precio en pesos, solo números");
+        return;
+      }
+      changes = field === "base_price" ? { base_price: amount ?? 0 } : { discount_price: amount };
+    }
     if (field === "promotion_label") changes = { promotion_label: value };
 
     if (Object.keys(changes).length > 0) {
       await patchDesignOptimistic(design.id, changes);
     }
-
-    cancelInline();
   }
 
   function openNewDesignModal() {
     setEditingDesign(EMPTY_DESIGN_FORM);
+    setDesignImageOnOpen("");
     setDesignModalOpen(true);
+  }
+
+  function requestCloseDesignModal() {
+    const photoChanged = editingDesign.image_url !== designImageOnOpen;
+    if (
+      photoChanged &&
+      !window.confirm(
+        "Cambiaste la foto principal pero no has guardado el diseño. Si cierras ahora, la web seguirá mostrando la foto anterior. ¿Cerrar sin guardar?"
+      )
+    ) {
+      return;
+    }
+    setDesignModalOpen(false);
   }
 
   function openEditDesignModal(design: Design) {
@@ -841,6 +869,7 @@ export function AdminDashboardImpl() {
       promotion_ends_at: toDatetimeLocal(design.promotion_ends_at),
       is_active: design.is_active
     });
+    setDesignImageOnOpen(design.image_url ?? "");
     setDesignModalOpen(true);
   }
 
@@ -875,26 +904,22 @@ export function AdminDashboardImpl() {
       body: JSON.stringify(payload)
     });
 
-    const body = (await res.json()) as { error?: string };
     if (!res.ok) {
-      notify("error", body.error ?? "No se pudo guardar diseño");
+      notify("error", await readApiError(res, "No se pudo guardar el diseño"));
       return;
     }
 
     notify("success", isEdit ? "Diseño actualizado" : "Diseño creado");
     setDesignModalOpen(false);
-    await Promise.all([loadDesigns(), loadActivity()]);
+    await Promise.all([loadDesigns(), loadImages(), loadActivity()]);
   }
 
   async function uploadImageForDesign(file: File) {
     setUploadingDesignImage(true);
     try {
       const formData = new FormData();
-      formData.append("file", file);
-      formData.append("folder", "designs");
-      formData.append("alt", editingDesign.name || "Diseño");
+      formData.append("file", await prepareImageForUpload(file));
       formData.append("alt_text", editingDesign.name || "Diseño");
-      formData.append("is_carousel", "false");
       formData.append("is_weekly_highlight", "false");
       if (editingDesign.id) formData.append("design_id", editingDesign.id);
       if (editingDesign.brand_id) formData.append("brand_id", editingDesign.brand_id);
@@ -904,13 +929,21 @@ export function AdminDashboardImpl() {
         headers: { "x-csrf-token": getCsrfToken() },
         body: formData
       });
-      const body = (await res.json()) as { error?: string; url?: string };
-      if (!res.ok || !body.url) {
-        notify("error", body.error ?? "No se pudo subir imagen");
+      if (!res.ok) {
+        notify("error", await readApiError(res, "No se pudo subir la foto"));
+        return;
+      }
+      const body = (await res.json()) as { url?: string };
+      if (!body.url) {
+        notify("error", "No se pudo subir la foto");
         return;
       }
       setEditingDesign((prev) => ({ ...prev, image_url: body.url ?? prev.image_url }));
-      notify("success", "Imagen principal cargada");
+      // La foto ya esta en la galeria, pero el diseño sigue con la anterior
+      // hasta que se guarde: decirlo explicitamente.
+      notify("success", "Foto subida. Pulsa «Guardar» para publicarla en la web.");
+    } catch {
+      notify("error", "No se pudo subir la foto. Revisa tu conexión e intenta de nuevo.");
     } finally {
       setUploadingDesignImage(false);
     }
@@ -948,6 +981,11 @@ export function AdminDashboardImpl() {
     notify("success", "Feature actualizada");
   }
 
+  function updateSettingField(key: string, value: string) {
+    editedSettingKeysRef.current.add(key);
+    setSettingsForm((prev) => ({ ...prev, [key]: value }));
+  }
+
   async function saveSettingsForm() {
     const parsed = settingsFormSchema.safeParse(settingsForm);
     if (!parsed.success) {
@@ -977,6 +1015,7 @@ export function AdminDashboardImpl() {
     const savedCount = results.length - failedLabels.length;
 
     if (failedLabels.length === 0) {
+      editedSettingKeysRef.current.clear();
       notify("success", "Configuración guardada");
     } else if (savedCount === 0) {
       notify("error", `No se pudo guardar ninguna configuración: ${failedLabels.join(", ")}`);
@@ -1089,7 +1128,7 @@ export function AdminDashboardImpl() {
       name: editingBrand.name,
       slug: editingBrand.slug || toSlug(editingBrand.name),
       description: editingBrand.description ?? "",
-      logo_url: editingBrand.image_url ?? null,
+      logo_url: editingBrand.image_url?.trim() || null,
       is_active: editingBrand.is_active ?? true
     };
     const res = await fetch("/api/admin/brands", {
@@ -1101,23 +1140,20 @@ export function AdminDashboardImpl() {
       body: JSON.stringify(payload)
     });
     if (!res.ok) {
-      notify("error", "No se pudo guardar marca");
+      notify("error", await readApiError(res, "No se pudo guardar la marca"));
       return;
     }
     notify("success", isEdit ? "Marca actualizada" : "Marca creada");
     setBrandModalOpen(false);
-    await Promise.all([loadBrands(), loadActivity()]);
+    await Promise.all([loadBrands(), loadImages(), loadActivity()]);
   }
 
   async function uploadBrandImage(file: File) {
     setUploadingBrandImage(true);
     try {
       const formData = new FormData();
-      formData.append("file", file);
-      formData.append("folder", "brands");
-      formData.append("alt", editingBrand.name || "Marca");
+      formData.append("file", await prepareImageForUpload(file));
       formData.append("alt_text", editingBrand.name || "Marca");
-      formData.append("is_carousel", "false");
       formData.append("is_weekly_highlight", "false");
       if (editingBrand.id) formData.append("brand_id", editingBrand.id);
 
@@ -1126,13 +1162,19 @@ export function AdminDashboardImpl() {
         headers: { "x-csrf-token": getCsrfToken() },
         body: formData
       });
-      const body = (await res.json()) as { url?: string; error?: string };
-      if (!res.ok || !body.url) {
-        notify("error", body.error ?? "No se pudo subir imagen de marca");
+      if (!res.ok) {
+        notify("error", await readApiError(res, "No se pudo subir el logo"));
+        return;
+      }
+      const body = (await res.json()) as { url?: string };
+      if (!body.url) {
+        notify("error", "No se pudo subir el logo");
         return;
       }
       setEditingBrand((prev) => ({ ...prev, image_url: body.url }));
-      notify("success", "Imagen de marca actualizada");
+      notify("success", "Logo subido. Pulsa «Guardar» para publicarlo en la web.");
+    } catch {
+      notify("error", "No se pudo subir el logo. Revisa tu conexión e intenta de nuevo.");
     } finally {
       setUploadingBrandImage(false);
     }
@@ -1140,8 +1182,9 @@ export function AdminDashboardImpl() {
 
   async function pushCarouselOrder(next: AdminImage[]) {
     const ids = next.map((img) => img.id);
+    const previous = carouselOrder;
     setCarouselOrder(ids);
-    await fetch("/api/admin/settings", {
+    const res = await fetch("/api/admin/settings", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -1149,6 +1192,12 @@ export function AdminDashboardImpl() {
       },
       body: JSON.stringify({ key: "carousel_order", value: { ids } })
     });
+    if (!res.ok) {
+      setCarouselOrder(previous);
+      notify("error", await readApiError(res, "No se pudo guardar el orden del carrusel"));
+      return false;
+    }
+    return true;
   }
 
   async function moveCarouselImage(id: string, direction: "up" | "down") {
@@ -1161,17 +1210,16 @@ export function AdminDashboardImpl() {
     const temp = copy[index];
     copy[index] = copy[target];
     copy[target] = temp;
-    await pushCarouselOrder(copy);
-    notify("success", "Orden del carrusel actualizado");
+    if (await pushCarouselOrder(copy)) notify("success", "Orden del carrusel actualizado");
   }
 
-  async function patchImage(imageId: string, changes: Partial<AdminImage>) {
+  async function patchImage(imageId: string, changes: Partial<AdminImage>, successText = "Imagen actualizada") {
     const prev = [...images];
     setImages((list) => list.map((img) => (img.id === imageId ? { ...img, ...changes } : img)));
 
     const body = {
       id: imageId,
-      alt_text: changes.alt,
+      alt_text: changes.alt ?? undefined,
       brand_id: changes.brand_id,
       design_id: changes.design_id,
       is_weekly_highlight: changes.is_carousel
@@ -1188,10 +1236,47 @@ export function AdminDashboardImpl() {
 
     if (!res.ok) {
       setImages(prev);
-      notify("error", "No se pudo actualizar imagen");
+      notify("error", await readApiError(res, "No se pudo actualizar la foto"));
+      return false;
+    }
+    notify("success", successText);
+    return true;
+  }
+
+  // Saca la foto del carrusel publico sin borrarla (puede ser, por ejemplo, la
+  // foto principal de un diseño). Antes la unica opcion era "Eliminar".
+  async function removeFromCarousel(image: AdminImage) {
+    await patchImage(image.id, { is_carousel: false }, "Foto quitada del carrusel (sigue en la galería)");
+  }
+
+  // Pone la foto elegida como foto principal (la que se ve en el catalogo) del
+  // diseño con el que queda vinculada.
+  async function setImageAsDesignPhoto(image: AdminImage) {
+    if (!image.design_id) {
+      notify("error", "Elige primero el diseño en «Diseño vinculado»");
       return;
     }
-    notify("success", "Imagen actualizada");
+    const res = await fetch("/api/admin/images", {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        "x-csrf-token": getCsrfToken()
+      },
+      body: JSON.stringify({
+        id: image.id,
+        alt_text: image.alt ?? undefined,
+        brand_id: image.brand_id,
+        design_id: image.design_id,
+        is_weekly_highlight: image.is_carousel,
+        set_as_design_image: true
+      })
+    });
+    if (!res.ok) {
+      notify("error", await readApiError(res, "No se pudo poner como foto principal"));
+      return;
+    }
+    notify("success", `Ahora es la foto principal de «${getDesignName(image.design_id)}»`);
+    await Promise.all([loadImages(), loadDesigns()]);
   }
 
   async function deleteImage(image: AdminImage) {
@@ -1203,14 +1288,15 @@ export function AdminDashboardImpl() {
         "Content-Type": "application/json",
         "x-csrf-token": getCsrfToken()
       },
-      body: JSON.stringify({ id: image.id, storage_path: image.url })
+      body: JSON.stringify({ id: image.id })
     });
     if (!res.ok) {
       setImages(prev);
-      notify("error", "No se pudo eliminar imagen");
-      return;
+      notify("error", await readApiError(res, "No se pudo eliminar la foto"));
+      return false;
     }
     notify("success", "Imagen eliminada");
+    return true;
   }
 
   async function uploadCarouselImage() {
@@ -1219,22 +1305,25 @@ export function AdminDashboardImpl() {
       notify("error", "Máximo 8 fotos en carrusel");
       return;
     }
-    const data = new FormData();
-    data.append("file", carouselUpload.file);
-    data.append("folder", "carousel");
-    data.append("alt", carouselUpload.alt);
-    data.append("alt_text", carouselUpload.alt);
-    data.append("is_carousel", "true");
-    data.append("is_weekly_highlight", "true");
+    let res: Response;
+    try {
+      const data = new FormData();
+      data.append("file", await prepareImageForUpload(carouselUpload.file));
+      data.append("alt_text", carouselUpload.alt);
+      data.append("is_weekly_highlight", "true");
 
-    const res = await fetch("/api/admin/images", {
-      method: "POST",
-      headers: { "x-csrf-token": getCsrfToken() },
-      body: data
-    });
+      res = await fetch("/api/admin/images", {
+        method: "POST",
+        headers: { "x-csrf-token": getCsrfToken() },
+        body: data
+      });
+    } catch {
+      notify("error", "No se pudo subir la foto. Revisa tu conexión e intenta de nuevo.");
+      return;
+    }
 
     if (!res.ok) {
-      notify("error", "No se pudo subir imagen al carrusel");
+      notify("error", await readApiError(res, "No se pudo subir la foto al carrusel"));
       return;
     }
 
@@ -1254,9 +1343,14 @@ export function AdminDashboardImpl() {
         body: JSON.stringify({ id: image.id, is_weekly_highlight: false })
       })
     );
-    await Promise.all(jobs);
-    setCarouselOrder([]);
-    notify("success", "Carrusel limpiado");
+    const results = await Promise.allSettled(jobs);
+    const failed = results.filter((r) => r.status === "rejected" || !r.value.ok).length;
+    if (failed > 0) {
+      notify("error", `No se pudieron quitar ${failed} de ${results.length} fotos del carrusel. Intenta de nuevo.`);
+    } else {
+      setCarouselOrder([]);
+      notify("success", "Carrusel limpiado (las fotos siguen en la galería)");
+    }
     await loadImages();
   }
 
@@ -1270,38 +1364,57 @@ export function AdminDashboardImpl() {
       brand_id: "",
       design_id: "",
       is_carousel: false,
-      folder: "designs"
+      set_as_design_image: false
     }));
     setUploadQueue((prev) => [...prev, ...next]);
   }
 
+  function updateQueueItem(id: string, changes: Partial<UploadDraft>) {
+    setUploadQueue((prev) => prev.map((item) => (item.id === id ? { ...item, ...changes } : item)));
+  }
+
   async function uploadQueueAll() {
     if (!uploadQueue.length) return;
-    for (const item of uploadQueue) {
-      const data = new FormData();
-      data.append("file", item.file);
-      data.append("folder", item.folder);
-      data.append("alt", item.alt);
-      data.append("alt_text", item.alt);
-      data.append("is_carousel", String(item.is_carousel));
-      data.append("is_weekly_highlight", String(item.is_carousel));
-      if (item.brand_id) data.append("brand_id", item.brand_id);
-      if (item.design_id) data.append("design_id", item.design_id);
+    let changedDesignPhoto = false;
 
-      const res = await fetch("/api/admin/images", {
-        method: "POST",
-        headers: { "x-csrf-token": getCsrfToken() },
-        body: data
-      });
-
-      if (!res.ok) {
-        notify("error", `Error subiendo ${item.file.name}`);
-        return;
-      }
+    async function stopWithError(fileName: string, reason: string) {
+      notify("error", `Error subiendo ${fileName}: ${reason}`);
+      await Promise.all([loadImages(), changedDesignPhoto ? loadDesigns() : Promise.resolve()]);
     }
 
-    setUploadQueue([]);
-    await loadImages();
+    for (const item of uploadQueue) {
+      const setAsDesignImage = item.set_as_design_image && Boolean(item.design_id);
+      let res: Response;
+      try {
+        const data = new FormData();
+        data.append("file", await prepareImageForUpload(item.file));
+        data.append("alt_text", item.alt);
+        data.append("is_weekly_highlight", String(item.is_carousel));
+        data.append("set_as_design_image", String(setAsDesignImage));
+        if (item.brand_id) data.append("brand_id", item.brand_id);
+        if (item.design_id) data.append("design_id", item.design_id);
+
+        res = await fetch("/api/admin/images", {
+          method: "POST",
+          headers: { "x-csrf-token": getCsrfToken() },
+          body: data
+        });
+      } catch {
+        await stopWithError(item.file.name, "revisa tu conexión e intenta de nuevo");
+        return;
+      }
+
+      if (!res.ok) {
+        await stopWithError(item.file.name, await readApiError(res, "intenta de nuevo"));
+        return;
+      }
+      if (setAsDesignImage) changedDesignPhoto = true;
+      // Fuera de la cola en cuanto sube: si una posterior falla, "Subir todo"
+      // no vuelve a subir (duplicar) las que ya estaban arriba.
+      setUploadQueue((prev) => prev.filter((queued) => queued.id !== item.id));
+    }
+
+    await Promise.all([loadImages(), changedDesignPhoto ? loadDesigns() : Promise.resolve()]);
     notify("success", "Carga múltiple completada");
   }
 
@@ -1368,7 +1481,7 @@ export function AdminDashboardImpl() {
       brand_id: "",
       design_id: "",
       is_carousel: true,
-      folder: "carousel"
+      set_as_design_image: false
     });
   }
 
@@ -1470,9 +1583,9 @@ export function AdminDashboardImpl() {
 
           {loading.carousel ? renderSkeleton(4) : null}
 
-          <div className="grid gap-3 md:grid-cols-2">
+          <ul aria-label="Fotos del carrusel" className="grid gap-3 md:grid-cols-2">
             {carouselImages.map((img, index) => (
-              <div key={img.id} className="rounded-xl border border-neutral-700 bg-neutral-950 p-3">
+              <li key={img.id} className="rounded-xl border border-neutral-700 bg-neutral-950 p-3">
                 <img src={img.url} alt={img.alt ?? "carousel"} className="h-40 w-full rounded-lg bg-neutral-950 object-contain" />
                 <div className="mt-2 flex items-center justify-between text-xs text-neutral-400">
                   <span>Orden #{index + 1}</span>
@@ -1499,26 +1612,34 @@ export function AdminDashboardImpl() {
                 </div>
                 <Input
                   className="mt-2"
+                  aria-label={`Texto de la foto #${index + 1}`}
                   value={img.alt ?? ""}
                   onChange={(e) => setImages((prev) => prev.map((x) => (x.id === img.id ? { ...x, alt: e.target.value } : x)))}
                   onBlur={() => void patchImage(img.id, { alt: images.find((x) => x.id === img.id)?.alt ?? "" })}
                 />
                 <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                  <Button variant="secondary" size="sm" onClick={() => void removeFromCarousel(img)}>
+                    <X className="mr-1 h-4 w-4" /> Quitar del carrusel
+                  </Button>
                   <Button
                     variant="secondary"
                     size="sm"
                     onClick={() =>
-                      openConfirm("Eliminar foto", "Esta acción eliminará la foto del carrusel.", async () => {
-                        await deleteImage(img);
-                      })
+                      openConfirm(
+                        "Eliminar foto",
+                        "La foto se borrará para siempre (del carrusel y de la galería). Si solo quieres que no salga en la web, usa «Quitar del carrusel».",
+                        async () => {
+                          await deleteImage(img);
+                        }
+                      )
                     }
                   >
                     <Trash2 className="mr-1 h-4 w-4" /> Eliminar
                   </Button>
                 </div>
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
 
           <Card className="border-neutral-700 bg-neutral-950 p-4">
             <h4 className="mb-2 text-sm text-white">Subir nueva foto</h4>
@@ -1545,14 +1666,20 @@ export function AdminDashboardImpl() {
             <Input
               type="file"
               accept="image/*"
+              aria-label="Elegir foto para el carrusel"
               onChange={(e) => {
                 handleCarouselDrop(e.target.files);
+                e.target.value = "";
               }}
             />
             {carouselUpload ? (
               <div className="mt-3 space-y-2">
-                <img src={carouselUpload.preview} alt="preview" className="h-40 w-full rounded-lg bg-neutral-950 object-contain" />
-                <Input value={carouselUpload.alt} onChange={(e) => setCarouselUpload((prev) => (prev ? { ...prev, alt: e.target.value } : prev))} />
+                <img src={carouselUpload.preview} alt="Vista previa de la foto nueva" className="h-40 w-full rounded-lg bg-neutral-950 object-contain" />
+                <Input
+                  aria-label="Texto de la foto nueva"
+                  value={carouselUpload.alt}
+                  onChange={(e) => setCarouselUpload((prev) => (prev ? { ...prev, alt: e.target.value } : prev))}
+                />
                 <div className="flex flex-col gap-2 sm:flex-row">
                   <Button className="bg-orange-500 hover:bg-orange-400" onClick={() => void uploadCarouselImage()}>Confirmar subida</Button>
                   <Button variant="secondary" onClick={() => setCarouselUpload(null)}><X className="mr-1 h-4 w-4" />Cancelar</Button>
@@ -1565,7 +1692,7 @@ export function AdminDashboardImpl() {
             <Button
               variant="secondary"
               onClick={() =>
-                openConfirm("Limpiar carrusel", "Quitarás todas las fotos del carrusel.", async () => {
+                openConfirm("Limpiar carrusel", "Quitarás todas las fotos del carrusel. No se borran: siguen en la galería.", async () => {
                   await clearCarousel();
                 })
               }
@@ -1746,7 +1873,7 @@ export function AdminDashboardImpl() {
                     <p className="text-sm text-neutral-300">{design.short_description}</p>
                     <p className="mt-2 font-mono text-orange-300">{promo.hasPromotion && design.discount_price ? formatCOP(design.discount_price) : formatCOP(design.base_price)}</p>
                     {promo.hasPromotion ? <p className="text-xs text-emerald-300">{promo.percentOff}% OFF | ahorro {formatCOP(promo.savings)}</p> : null}
-                    <Button className="mt-2" variant="secondary" onClick={() => openEditDesignModal(design)}>Editar</Button>
+                    <Button className="mt-2" variant="secondary" aria-label={`Editar diseño ${design.name}`} onClick={() => openEditDesignModal(design)}>Editar</Button>
                   </div>
                 );
               })}
@@ -1887,7 +2014,16 @@ export function AdminDashboardImpl() {
               <option value="all">Todos diseños</option>
               {designs.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
             </select>
-            <Input type="file" multiple accept="image/*" onChange={(e) => onFilesSelected(e.target.files)} />
+            <Input
+              type="file"
+              multiple
+              accept="image/*"
+              aria-label="Elegir fotos para la galería"
+              onChange={(e) => {
+                onFilesSelected(e.target.files);
+                e.target.value = "";
+              }}
+            />
           </div>
 
           {uploadQueue.length ? (
@@ -1895,24 +2031,60 @@ export function AdminDashboardImpl() {
               <h4 className="mb-2 text-sm text-white">Carga múltiple ({uploadQueue.length})</h4>
               <div className="space-y-3">
                 {uploadQueue.map((item) => (
-                  <div key={item.id} className="grid gap-2 rounded-xl border border-neutral-700 p-2 md:grid-cols-[100px_1fr]">
-                    <img src={item.preview} alt="preview" className="h-24 w-full rounded bg-neutral-950 object-contain" />
+                  <div
+                    key={item.id}
+                    role="group"
+                    aria-label={`Foto ${item.file.name}`}
+                    className="grid gap-2 rounded-xl border border-neutral-700 p-2 md:grid-cols-[100px_1fr]"
+                  >
+                    <img src={item.preview} alt="" className="h-24 w-full rounded bg-neutral-950 object-contain" />
                     <div className="space-y-2">
-                      <Input value={item.alt} onChange={(e) => setUploadQueue((prev) => prev.map((u) => (u.id === item.id ? { ...u, alt: e.target.value } : u)))} />
-                      <div className="grid gap-2 md:grid-cols-3">
-                        <select className="h-10 rounded-xl border border-neutral-700 bg-neutral-800 px-2 text-white" value={item.brand_id} onChange={(e) => setUploadQueue((prev) => prev.map((u) => (u.id === item.id ? { ...u, brand_id: e.target.value } : u)))}>
+                      <Input aria-label="Texto de la foto" value={item.alt} onChange={(e) => updateQueueItem(item.id, { alt: e.target.value })} />
+                      <div className="grid gap-2 md:grid-cols-2">
+                        <select
+                          aria-label="Marca de la foto"
+                          className="h-10 rounded-xl border border-neutral-700 bg-neutral-800 px-2 text-white"
+                          value={item.brand_id}
+                          onChange={(e) => updateQueueItem(item.id, { brand_id: e.target.value })}
+                        >
                           <option value="">Marca</option>
                           {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
                         </select>
-                        <select className="h-10 rounded-xl border border-neutral-700 bg-neutral-800 px-2 text-white" value={item.design_id} onChange={(e) => setUploadQueue((prev) => prev.map((u) => (u.id === item.id ? { ...u, design_id: e.target.value } : u)))}>
+                        <select
+                          aria-label="Diseño de la foto"
+                          className="h-10 rounded-xl border border-neutral-700 bg-neutral-800 px-2 text-white"
+                          value={item.design_id}
+                          onChange={(e) => {
+                            const designId = e.target.value;
+                            updateQueueItem(item.id, {
+                              design_id: designId,
+                              brand_id: item.brand_id || designsById.get(designId)?.brand_id || "",
+                              set_as_design_image: designId ? item.set_as_design_image : false
+                            });
+                          }}
+                        >
                           <option value="">Diseño</option>
                           {designs.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
                         </select>
-                        <select className="h-10 rounded-xl border border-neutral-700 bg-neutral-800 px-2 text-white" value={item.folder} onChange={(e) => setUploadQueue((prev) => prev.map((u) => (u.id === item.id ? { ...u, folder: e.target.value as "carousel" | "designs" | "brands" } : u)))}>
-                          <option value="designs">designs/</option>
-                          <option value="brands">brands/</option>
-                          <option value="carousel">carousel/</option>
-                        </select>
+                      </div>
+                      <div className="flex flex-col gap-2 text-sm text-neutral-300 sm:flex-row sm:flex-wrap sm:gap-4">
+                        <label className="inline-flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={item.set_as_design_image}
+                            disabled={!item.design_id}
+                            onChange={(e) => updateQueueItem(item.id, { set_as_design_image: e.target.checked })}
+                          />
+                          Usar como foto principal del diseño
+                        </label>
+                        <label className="inline-flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={item.is_carousel}
+                            onChange={(e) => updateQueueItem(item.id, { is_carousel: e.target.checked })}
+                          />
+                          Mostrar en el carrusel
+                        </label>
                       </div>
                     </div>
                   </div>
@@ -1948,7 +2120,7 @@ export function AdminDashboardImpl() {
                 <Textarea
                   id={`setting-${item.key}`}
                   value={settingsForm[item.key] ?? ""}
-                  onChange={(e) => setSettingsForm((prev) => ({ ...prev, [item.key]: e.target.value }))}
+                  onChange={(e) => updateSettingField(item.key, e.target.value)}
                 />
               ) : (
                 <Input
@@ -1956,7 +2128,7 @@ export function AdminDashboardImpl() {
                   type={item.key === "whatsapp_number" ? "tel" : "text"}
                   inputMode={item.key === "whatsapp_number" ? "tel" : undefined}
                   value={settingsForm[item.key] ?? ""}
-                  onChange={(e) => setSettingsForm((prev) => ({ ...prev, [item.key]: e.target.value }))}
+                  onChange={(e) => updateSettingField(item.key, e.target.value)}
                 />
               )}
             </div>
@@ -2050,7 +2222,7 @@ export function AdminDashboardImpl() {
 
       {activeTab === "riders" ? <RiderPhotosTab notify={notify} /> : null}
 
-      <Modal open={designModalOpen} onClose={() => setDesignModalOpen(false)} title={editingDesign.id ? "Editar diseño" : "Nuevo diseño"} className="max-w-3xl">
+      <Modal open={designModalOpen} onClose={requestCloseDesignModal} title={editingDesign.id ? "Editar diseño" : "Nuevo diseño"} className="max-w-3xl">
         <div className="grid gap-3 md:grid-cols-2">
           <div className="space-y-1">
             <Label htmlFor="design-name">Nombre</Label>
@@ -2110,6 +2282,18 @@ export function AdminDashboardImpl() {
             <Label htmlFor="design-short-description">Descripción corta</Label>
             <Textarea id="design-short-description" placeholder="Descripción corta" value={editingDesign.short_description} onChange={(e) => setEditingDesign((p) => ({ ...p, short_description: e.target.value }))} />
           </div>
+          {editingDesign.image_url ? (
+            <div className="md:col-span-2">
+              <img
+                src={editingDesign.image_url}
+                alt="Vista previa de la foto principal"
+                className="h-48 w-full rounded-lg bg-neutral-950 object-contain"
+              />
+              {editingDesign.image_url !== designImageOnOpen ? (
+                <p className="mt-1 text-sm text-amber-300">Foto nueva sin guardar: pulsa «Guardar» para publicarla en la web.</p>
+              ) : null}
+            </div>
+          ) : null}
           <div className="space-y-1 md:col-span-2">
             <Label htmlFor="design-image-url">Imagen principal URL</Label>
             <Input id="design-image-url" placeholder="Imagen principal URL" value={editingDesign.image_url} onChange={(e) => setEditingDesign((p) => ({ ...p, image_url: e.target.value }))} />
@@ -2121,7 +2305,7 @@ export function AdminDashboardImpl() {
               type="file"
               accept="image/*"
               disabled={uploadingDesignImage}
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) void uploadImageForDesign(f); }}
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) void uploadImageForDesign(f); e.target.value = ""; }}
             />
             {uploadingDesignImage ? (
               <p role="status" className="text-sm text-amber-300">Subiendo imagen, espera antes de guardar...</p>
@@ -2135,7 +2319,7 @@ export function AdminDashboardImpl() {
             >
               <Save className="mr-1 h-4 w-4" />{uploadingDesignImage ? "Subiendo imagen..." : "Guardar"}
             </Button>
-            <Button variant="secondary" onClick={() => setDesignModalOpen(false)}>Cancelar</Button>
+            <Button variant="secondary" onClick={requestCloseDesignModal}>Cancelar</Button>
           </div>
         </div>
       </Modal>
@@ -2150,6 +2334,13 @@ export function AdminDashboardImpl() {
             <Label htmlFor="brand-slug">Slug</Label>
             <Input id="brand-slug" placeholder="Slug" value={editingBrand.slug} onChange={(e) => setEditingBrand((p) => ({ ...p, slug: e.target.value }))} />
           </div>
+          {editingBrand.image_url ? (
+            <img
+              src={editingBrand.image_url}
+              alt="Vista previa del logo"
+              className="h-32 w-full rounded-lg bg-neutral-950 object-contain"
+            />
+          ) : null}
           <div className="space-y-1">
             <Label htmlFor="brand-image-url">Imagen / logo URL</Label>
             <Input id="brand-image-url" placeholder="Imagen / logo URL" value={editingBrand.image_url ?? ""} onChange={(e) => setEditingBrand((p) => ({ ...p, image_url: e.target.value }))} />
@@ -2165,7 +2356,7 @@ export function AdminDashboardImpl() {
               type="file"
               accept="image/*"
               disabled={uploadingBrandImage}
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) void uploadBrandImage(f); }}
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) void uploadBrandImage(f); e.target.value = ""; }}
             />
             {uploadingBrandImage ? (
               <p role="status" className="text-sm text-amber-300">Subiendo imagen, espera antes de guardar...</p>
@@ -2246,17 +2437,34 @@ export function AdminDashboardImpl() {
         {selectedImage ? (
           <div className="space-y-3">
             <img src={selectedImage.url} alt={selectedImage.alt ?? "imagen"} className="h-56 w-full rounded-xl bg-neutral-950 object-contain" />
-            <Input value={selectedImage.alt ?? ""} onChange={(e) => setSelectedImage((prev) => (prev ? { ...prev, alt: e.target.value } : prev))} />
+            <Input aria-label="Texto de la foto" value={selectedImage.alt ?? ""} onChange={(e) => setSelectedImage((prev) => (prev ? { ...prev, alt: e.target.value } : prev))} />
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              <select className="h-11 rounded-xl border border-neutral-700 bg-neutral-800 px-3 text-base text-white" value={selectedImage.brand_id ?? ""} onChange={(e) => setSelectedImage((prev) => (prev ? { ...prev, brand_id: e.target.value || null } : prev))}>
+              <select aria-label="Marca vinculada" className="h-11 rounded-xl border border-neutral-700 bg-neutral-800 px-3 text-base text-white" value={selectedImage.brand_id ?? ""} onChange={(e) => setSelectedImage((prev) => (prev ? { ...prev, brand_id: e.target.value || null } : prev))}>
                 <option value="">Sin marca</option>
                 {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
               </select>
-              <select className="h-11 rounded-xl border border-neutral-700 bg-neutral-800 px-3 text-base text-white" value={selectedImage.design_id ?? ""} onChange={(e) => setSelectedImage((prev) => (prev ? { ...prev, design_id: e.target.value || null } : prev))}>
+              <select
+                aria-label="Diseño vinculado"
+                className="h-11 rounded-xl border border-neutral-700 bg-neutral-800 px-3 text-base text-white"
+                value={selectedImage.design_id ?? ""}
+                onChange={(e) => {
+                  const designId = e.target.value || null;
+                  setSelectedImage((prev) =>
+                    prev ? { ...prev, design_id: designId, brand_id: prev.brand_id ?? (designId ? designsById.get(designId)?.brand_id ?? null : null) } : prev
+                  );
+                }}
+              >
                 <option value="">Sin diseño</option>
                 {designs.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
               </select>
             </div>
+            <Button
+              variant="secondary"
+              disabled={!selectedImage.design_id}
+              onClick={() => void setImageAsDesignPhoto(selectedImage)}
+            >
+              <ImagePlus className="mr-1 h-4 w-4" />Usar como foto principal del diseño
+            </Button>
             <label className="inline-flex items-center gap-2 text-sm text-neutral-300"><input type="checkbox" checked={selectedImage.is_carousel} onChange={(e) => setSelectedImage((prev) => (prev ? { ...prev, is_carousel: e.target.checked } : prev))} />Mostrar en carrusel</label>
             <Input value={selectedImage.url} readOnly />
             <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
@@ -2267,8 +2475,7 @@ export function AdminDashboardImpl() {
                 variant="secondary"
                 onClick={() =>
                   openConfirm("Eliminar imagen", "Esta acción es irreversible.", async () => {
-                    await deleteImage(selectedImage);
-                    setSelectedImage(null);
+                    if (await deleteImage(selectedImage)) setSelectedImage(null);
                   })
                 }
               >

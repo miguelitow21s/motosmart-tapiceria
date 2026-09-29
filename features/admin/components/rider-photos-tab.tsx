@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getCsrfToken } from "@/lib/csrf-client";
+import { readApiError } from "@/lib/api-error-client";
+import { prepareImageForUpload } from "@/lib/prepare-image";
 
 type RiderPhoto = {
   id: string;
@@ -73,7 +75,7 @@ export function RiderPhotosTab({ notify }: { notify: (type: "success" | "error",
     setUploading(true);
     try {
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", await prepareImageForUpload(file));
       formData.append("rider_name", riderName.trim());
       formData.append("moto_info", motoInfo.trim());
 
@@ -82,9 +84,8 @@ export function RiderPhotosTab({ notify }: { notify: (type: "success" | "error",
         headers: { "x-csrf-token": getCsrfToken() },
         body: formData
       });
-      const body = (await res.json()) as { error?: string };
       if (!res.ok) {
-        notify("error", body.error ?? "No se pudo subir la foto");
+        notify("error", await readApiError(res, "No se pudo subir la foto"));
         return;
       }
 
@@ -94,6 +95,8 @@ export function RiderPhotosTab({ notify }: { notify: (type: "success" | "error",
       setMotoInfo("");
       await loadPhotos();
       notify("success", "Foto de piloto agregada");
+    } catch {
+      notify("error", "No se pudo subir la foto. Revisa tu conexión e intenta de nuevo.");
     } finally {
       setUploading(false);
     }
