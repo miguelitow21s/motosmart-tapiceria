@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getCsrfToken } from "@/lib/csrf-client";
+import { readApiError } from "@/lib/api-error-client";
+import { prepareImageForUpload } from "@/lib/prepare-image";
 
 type RiderPhoto = {
   id: string;
@@ -28,14 +30,20 @@ function mapPhoto(raw: {
   return raw;
 }
 
-export function RiderPhotosTab({ notify }: { notify: (type: "success" | "error", text: string) => void }) {
+export function RiderPhotosTab({
+  notify,
+  runBusy
+}: {
+  notify: (type: "success" | "error", text: string) => void;
+  // Pantalla de espera compartida del panel (bloquea doble clic mientras sube).
+  runBusy: (text: string, task: () => Promise<unknown>) => Promise<void>;
+}) {
   const [photos, setPhotos] = useState<RiderPhoto[]>([]);
   const [loading, setLoading] = useState(true);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [riderName, setRiderName] = useState("");
   const [motoInfo, setMotoInfo] = useState("");
-  const [uploading, setUploading] = useState(false);
 
   async function loadPhotos() {
     setLoading(true);
@@ -70,10 +78,9 @@ export function RiderPhotosTab({ notify }: { notify: (type: "success" | "error",
       return;
     }
 
-    setUploading(true);
     try {
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", await prepareImageForUpload(file));
       formData.append("rider_name", riderName.trim());
       formData.append("moto_info", motoInfo.trim());
 
@@ -82,9 +89,8 @@ export function RiderPhotosTab({ notify }: { notify: (type: "success" | "error",
         headers: { "x-csrf-token": getCsrfToken() },
         body: formData
       });
-      const body = (await res.json()) as { error?: string };
       if (!res.ok) {
-        notify("error", body.error ?? "No se pudo subir la foto");
+        notify("error", await readApiError(res, "No se pudo subir la foto"));
         return;
       }
 
@@ -94,8 +100,8 @@ export function RiderPhotosTab({ notify }: { notify: (type: "success" | "error",
       setMotoInfo("");
       await loadPhotos();
       notify("success", "Foto de piloto agregada");
-    } finally {
-      setUploading(false);
+    } catch {
+      notify("error", "No se pudo subir la foto. Revisa tu conexión e intenta de nuevo.");
     }
   }
 
@@ -231,8 +237,8 @@ export function RiderPhotosTab({ notify }: { notify: (type: "success" | "error",
               <Input id="new-moto-info" placeholder="Ej. Yamaha MT-03" value={motoInfo} onChange={(e) => setMotoInfo(e.target.value)} />
             </div>
           </div>
-          <Button className="bg-orange-700 hover:bg-orange-800" disabled={!file || uploading} onClick={() => void handleUpload()}>
-            <Upload className="mr-1 h-4 w-4" /> {uploading ? "Subiendo..." : "Subir foto"}
+          <Button className="bg-orange-700 hover:bg-orange-800" disabled={!file} onClick={() => void runBusy("Subiendo foto del piloto…", handleUpload)}>
+            <Upload className="mr-1 h-4 w-4" /> Subir foto
           </Button>
         </div>
       </Card>

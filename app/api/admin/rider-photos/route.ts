@@ -72,7 +72,7 @@ export async function POST(request: Request) {
   }
 
   const ext = ALLOWED_IMAGE_TYPES[file.type];
-  if (!ext) return NextResponse.json({ error: "Tipo de archivo no permitido" }, { status: 415 });
+  if (!ext) return NextResponse.json({ error: "Formato de foto no permitido. Usa JPG, PNG, WEBP o AVIF." }, { status: 415 });
   if (file.size > MAX_UPLOAD_BYTES) {
     return NextResponse.json({ error: "Maximo 8 MB por imagen" }, { status: 413 });
   }
