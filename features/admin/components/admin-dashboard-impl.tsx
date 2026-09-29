@@ -32,6 +32,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Modal } from "@/components/ui/modal";
+import { BusyOverlay } from "@/components/ui/busy-overlay";
 import { Label } from "@/components/ui/label";
 import { cn, formatCOP, formatDateTimeShort, getPromotionMeta } from "@/lib/utils";
 import { getCsrfToken } from "@/lib/csrf-client";
@@ -335,6 +336,11 @@ function tabFromHash(): TabKey {
 export function AdminDashboardImpl() {
   const [activeTab, setActiveTab] = useState<TabKey>(tabFromHash);
   const [toast, setToast] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  // Texto de la pantalla de espera (null = no hay nada en curso). El ref evita
+  // el doble clic: dos clics seguidos llegan antes de que React pinte la
+  // pantalla, y con solo el estado ambos verian "libre" y guardarian dos veces.
+  const [busyText, setBusyText] = useState<string | null>(null);
+  const busyRef = useRef(false);
 
   const [designs, setDesigns] = useState<Design[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
@@ -365,16 +371,12 @@ export function AdminDashboardImpl() {
 
   const [designModalOpen, setDesignModalOpen] = useState(false);
   const [editingDesign, setEditingDesign] = useState<DesignForm>(EMPTY_DESIGN_FORM);
-  // Sube en segundo plano al elegir el archivo; sin este flag, "Guardar" podia
-  // dispararse antes de que la subida terminara y persistia la foto vieja.
-  const [uploadingDesignImage, setUploadingDesignImage] = useState(false);
   // Foto principal al abrir el modal: si cambia y se cierra sin "Guardar", la
   // web sigue mostrando la anterior. Se avisa en vez de perderla en silencio.
   const [designImageOnOpen, setDesignImageOnOpen] = useState("");
 
   const [brandModalOpen, setBrandModalOpen] = useState(false);
   const [editingBrand, setEditingBrand] = useState<Brand>({ id: "", name: "", slug: "", image_url: null, description: "", is_active: true });
-  const [uploadingBrandImage, setUploadingBrandImage] = useState(false);
   const [brandSearch, setBrandSearch] = useState("");
 
   const [productModalOpen, setProductModalOpen] = useState(false);
@@ -536,6 +538,14 @@ export function AdminDashboardImpl() {
     void loadByTab(activeTab);
   }, [activeTab]);
 
+  // El aviso flota encima de todo (tambien de los modales) y se va solo; los
+  // errores duran mas para que dé tiempo a leerlos.
+  useEffect(() => {
+    if (!toast) return;
+    const timer = window.setTimeout(() => setToast(null), toast.type === "success" ? 4000 : 10000);
+    return () => window.clearTimeout(timer);
+  }, [toast]);
+
   async function bootstrap() {
     await Promise.all([
       loadDesigns(),
@@ -592,6 +602,26 @@ export function AdminDashboardImpl() {
 
   function notify(type: "success" | "error", text: string) {
     setToast({ type, text });
+  }
+
+  // Todo guardado o subida pasa por aqui: muestra la pantalla de espera y, si
+  // ya hay algo en curso, ignora el clic en vez de repetir la operacion.
+  async function runBusy(text: string, task: () => Promise<unknown>) {
+    if (busyRef.current) return;
+    busyRef.current = true;
+    setBusyText(text);
+    try {
+      await task();
+    } finally {
+      busyRef.current = false;
+      setBusyText(null);
+    }
+  }
+
+  function closeUnlessBusy(close: () => void) {
+    return () => {
+      if (!busyRef.current) close();
+    };
   }
 
   async function loadDesigns() {
@@ -841,6 +871,7 @@ export function AdminDashboardImpl() {
   }
 
   function requestCloseDesignModal() {
+    if (busyRef.current) return;
     const photoChanged = editingDesign.image_url !== designImageOnOpen;
     if (
       photoChanged &&
@@ -874,10 +905,6 @@ export function AdminDashboardImpl() {
   }
 
   async function saveDesignModal() {
-    if (uploadingDesignImage) {
-      notify("error", "Espera a que termine de subir la imagen antes de guardar");
-      return;
-    }
     const isEdit = Boolean(editingDesign.id);
     const payload = {
       ...(editingDesign.id ? { id: editingDesign.id } : {}),
@@ -915,7 +942,6 @@ export function AdminDashboardImpl() {
   }
 
   async function uploadImageForDesign(file: File) {
-    setUploadingDesignImage(true);
     try {
       const formData = new FormData();
       formData.append("file", await prepareImageForUpload(file));
@@ -944,8 +970,6 @@ export function AdminDashboardImpl() {
       notify("success", "Foto subida. Pulsa «Guardar» para publicarla en la web.");
     } catch {
       notify("error", "No se pudo subir la foto. Revisa tu conexión e intenta de nuevo.");
-    } finally {
-      setUploadingDesignImage(false);
     }
   }
 
@@ -1118,10 +1142,6 @@ export function AdminDashboardImpl() {
   }
 
   async function saveBrand() {
-    if (uploadingBrandImage) {
-      notify("error", "Espera a que termine de subir la imagen antes de guardar");
-      return;
-    }
     const isEdit = Boolean(editingBrand.id);
     const payload = {
       ...(isEdit ? { id: editingBrand.id } : {}),
@@ -1149,7 +1169,6 @@ export function AdminDashboardImpl() {
   }
 
   async function uploadBrandImage(file: File) {
-    setUploadingBrandImage(true);
     try {
       const formData = new FormData();
       formData.append("file", await prepareImageForUpload(file));
@@ -1175,8 +1194,6 @@ export function AdminDashboardImpl() {
       notify("success", "Logo subido. Pulsa «Guardar» para publicarlo en la web.");
     } catch {
       notify("error", "No se pudo subir el logo. Revisa tu conexión e intenta de nuevo.");
-    } finally {
-      setUploadingBrandImage(false);
     }
   }
 
@@ -1382,7 +1399,8 @@ export function AdminDashboardImpl() {
       await Promise.all([loadImages(), changedDesignPhoto ? loadDesigns() : Promise.resolve()]);
     }
 
-    for (const item of uploadQueue) {
+    for (const [index, item] of uploadQueue.entries()) {
+      if (uploadQueue.length > 1) setBusyText(`Subiendo foto ${index + 1} de ${uploadQueue.length}…`);
       const setAsDesignImage = item.set_as_design_image && Boolean(item.design_id);
       let res: Response;
       try {
@@ -1513,18 +1531,29 @@ export function AdminDashboardImpl() {
         </div>
       </Card>
 
+      {/* Antes iba dentro de la pagina, arriba del todo: con un modal abierto
+          quedaba tapado, y con la pagina desplazada quedaba fuera de la
+          pantalla, asi que nunca se veia si algo se habia guardado o fallado. */}
       {toast ? (
         <div
           role={toast.type === "error" ? "alert" : "status"}
           aria-live={toast.type === "error" ? "assertive" : "polite"}
           className={cn(
-            "rounded-xl border px-4 py-3 text-sm",
+            "fixed inset-x-3 top-4 z-[100] mx-auto flex max-w-lg items-start gap-3 rounded-xl border px-4 py-3 text-sm shadow-card backdrop-blur-sm",
             toast.type === "success"
-              ? "border-emerald-400/40 bg-emerald-500/10 text-emerald-200"
-              : "border-red-400/40 bg-red-500/10 text-red-200"
+              ? "border-emerald-400/40 bg-emerald-950/95 text-emerald-100"
+              : "border-red-400/40 bg-red-950/95 text-red-100"
           )}
         >
-          {toast.text}
+          <p className="flex-1">{toast.text}</p>
+          <button
+            type="button"
+            aria-label="Cerrar aviso"
+            className="-m-2 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg opacity-80 hover:opacity-100"
+            onClick={() => setToast(null)}
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
       ) : null}
 
@@ -1681,7 +1710,7 @@ export function AdminDashboardImpl() {
                   onChange={(e) => setCarouselUpload((prev) => (prev ? { ...prev, alt: e.target.value } : prev))}
                 />
                 <div className="flex flex-col gap-2 sm:flex-row">
-                  <Button className="bg-orange-500 hover:bg-orange-400" onClick={() => void uploadCarouselImage()}>Confirmar subida</Button>
+                  <Button className="bg-orange-500 hover:bg-orange-400" disabled={busyText !== null} onClick={() => void runBusy("Subiendo foto al carrusel…", uploadCarouselImage)}>Confirmar subida</Button>
                   <Button variant="secondary" onClick={() => setCarouselUpload(null)}><X className="mr-1 h-4 w-4" />Cancelar</Button>
                 </div>
               </div>
@@ -2091,7 +2120,7 @@ export function AdminDashboardImpl() {
                 ))}
               </div>
               <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-                <Button className="bg-orange-500 hover:bg-orange-400" onClick={() => void uploadQueueAll()}><Upload className="mr-1 h-4 w-4" />Subir todo</Button>
+                <Button className="bg-orange-500 hover:bg-orange-400" disabled={busyText !== null} onClick={() => void runBusy("Subiendo fotos…", uploadQueueAll)}><Upload className="mr-1 h-4 w-4" />Subir todo</Button>
                 <Button variant="secondary" onClick={() => setUploadQueue([])}>Limpiar cola</Button>
               </div>
             </Card>
@@ -2133,7 +2162,7 @@ export function AdminDashboardImpl() {
               )}
             </div>
           ))}
-          <Button className="w-full bg-orange-500 hover:bg-orange-400 sm:w-auto" onClick={() => void saveSettingsForm()}><Save className="mr-1 h-4 w-4" />Guardar cambios</Button>
+          <Button className="w-full bg-orange-500 hover:bg-orange-400 sm:w-auto" disabled={busyText !== null} onClick={() => void runBusy("Guardando textos…", saveSettingsForm)}><Save className="mr-1 h-4 w-4" />Guardar cambios</Button>
         </Card>
       ) : null}
 
@@ -2220,7 +2249,7 @@ export function AdminDashboardImpl() {
         </Card>
       ) : null}
 
-      {activeTab === "riders" ? <RiderPhotosTab notify={notify} /> : null}
+      {activeTab === "riders" ? <RiderPhotosTab notify={notify} runBusy={runBusy} /> : null}
 
       <Modal open={designModalOpen} onClose={requestCloseDesignModal} title={editingDesign.id ? "Editar diseño" : "Nuevo diseño"} className="max-w-3xl">
         <div className="grid gap-3 md:grid-cols-2">
@@ -2304,27 +2333,27 @@ export function AdminDashboardImpl() {
               id="design-image-file"
               type="file"
               accept="image/*"
-              disabled={uploadingDesignImage}
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) void uploadImageForDesign(f); e.target.value = ""; }}
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void runBusy("Subiendo foto…", () => uploadImageForDesign(f));
+                e.target.value = "";
+              }}
             />
-            {uploadingDesignImage ? (
-              <p role="status" className="text-sm text-amber-300">Subiendo imagen, espera antes de guardar...</p>
-            ) : null}
           </div>
           <div className="md:col-span-2 flex flex-col gap-2 sm:flex-row">
             <Button
               className="bg-orange-500 hover:bg-orange-400"
-              disabled={uploadingDesignImage}
-              onClick={() => void saveDesignModal()}
+              disabled={busyText !== null}
+              onClick={() => void runBusy(editingDesign.id ? "Guardando diseño…" : "Creando diseño…", saveDesignModal)}
             >
-              <Save className="mr-1 h-4 w-4" />{uploadingDesignImage ? "Subiendo imagen..." : "Guardar"}
+              <Save className="mr-1 h-4 w-4" />Guardar
             </Button>
             <Button variant="secondary" onClick={requestCloseDesignModal}>Cancelar</Button>
           </div>
         </div>
       </Modal>
 
-      <Modal open={brandModalOpen} onClose={() => setBrandModalOpen(false)} title={editingBrand.id ? "Editar marca" : "Nueva marca"}>
+      <Modal open={brandModalOpen} onClose={closeUnlessBusy(() => setBrandModalOpen(false))} title={editingBrand.id ? "Editar marca" : "Nueva marca"}>
         <div className="space-y-3">
           <div className="space-y-1">
             <Label htmlFor="brand-name">Nombre</Label>
@@ -2355,28 +2384,28 @@ export function AdminDashboardImpl() {
               id="brand-image-file"
               type="file"
               accept="image/*"
-              disabled={uploadingBrandImage}
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) void uploadBrandImage(f); e.target.value = ""; }}
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void runBusy("Subiendo logo…", () => uploadBrandImage(f));
+                e.target.value = "";
+              }}
             />
-            {uploadingBrandImage ? (
-              <p role="status" className="text-sm text-amber-300">Subiendo imagen, espera antes de guardar...</p>
-            ) : null}
           </div>
           <label className="inline-flex items-center gap-2 text-sm text-neutral-300"><input type="checkbox" checked={editingBrand.is_active ?? true} onChange={(e) => setEditingBrand((p) => ({ ...p, is_active: e.target.checked }))} />Activa</label>
           <div className="flex flex-col gap-2 sm:flex-row">
             <Button
               className="bg-orange-500 hover:bg-orange-400"
-              disabled={uploadingBrandImage}
-              onClick={() => void saveBrand()}
+              disabled={busyText !== null}
+              onClick={() => void runBusy(editingBrand.id ? "Guardando marca…" : "Creando marca…", saveBrand)}
             >
-              <Save className="mr-1 h-4 w-4" />{uploadingBrandImage ? "Subiendo imagen..." : "Guardar"}
+              <Save className="mr-1 h-4 w-4" />Guardar
             </Button>
             <Button variant="secondary" onClick={() => setBrandModalOpen(false)}>Cancelar</Button>
           </div>
         </div>
       </Modal>
 
-      <Modal open={productModalOpen} onClose={() => setProductModalOpen(false)} title={editingProduct.id ? "Editar producto" : "Nuevo producto"}>
+      <Modal open={productModalOpen} onClose={closeUnlessBusy(() => setProductModalOpen(false))} title={editingProduct.id ? "Editar producto" : "Nuevo producto"}>
         <div className="space-y-3">
           <div className="space-y-1">
             <Label htmlFor="product-design">Diseño</Label>
@@ -2423,7 +2452,7 @@ export function AdminDashboardImpl() {
             Activo
           </label>
           <div className="flex flex-col gap-2 sm:flex-row">
-            <Button className="bg-orange-500 hover:bg-orange-400" onClick={() => void saveProduct()}>
+            <Button className="bg-orange-500 hover:bg-orange-400" disabled={busyText !== null} onClick={() => void runBusy("Guardando producto…", saveProduct)}>
               <Save className="mr-1 h-4 w-4" /> Guardar
             </Button>
             <Button variant="secondary" onClick={() => setProductModalOpen(false)}>
@@ -2433,7 +2462,7 @@ export function AdminDashboardImpl() {
         </div>
       </Modal>
 
-      <Modal open={Boolean(selectedImage)} onClose={() => setSelectedImage(null)} title="Detalle de imagen">
+      <Modal open={Boolean(selectedImage)} onClose={closeUnlessBusy(() => setSelectedImage(null))} title="Detalle de imagen">
         {selectedImage ? (
           <div className="space-y-3">
             <img src={selectedImage.url} alt={selectedImage.alt ?? "imagen"} className="h-56 w-full rounded-xl bg-neutral-950 object-contain" />
@@ -2461,7 +2490,7 @@ export function AdminDashboardImpl() {
             <Button
               variant="secondary"
               disabled={!selectedImage.design_id}
-              onClick={() => void setImageAsDesignPhoto(selectedImage)}
+              onClick={() => void runBusy("Cambiando la foto principal…", () => setImageAsDesignPhoto(selectedImage))}
             >
               <ImagePlus className="mr-1 h-4 w-4" />Usar como foto principal del diseño
             </Button>
@@ -2470,7 +2499,17 @@ export function AdminDashboardImpl() {
             <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
               <Button variant="secondary" onClick={() => setSelectedImage(null)}><X className="mr-1 h-4 w-4" />Cerrar</Button>
               <Button variant="secondary" onClick={() => { void navigator.clipboard.writeText(selectedImage.url); notify("success", "URL copiada"); }}><Copy className="mr-1 h-4 w-4" />Copiar URL</Button>
-              <Button className="bg-orange-500 hover:bg-orange-400" onClick={() => void patchImage(selectedImage.id, selectedImage)}><Save className="mr-1 h-4 w-4" />Guardar cambios</Button>
+              <Button
+                className="bg-orange-500 hover:bg-orange-400"
+                disabled={busyText !== null}
+                onClick={() =>
+                  void runBusy("Guardando foto…", async () => {
+                    if (await patchImage(selectedImage.id, selectedImage)) setSelectedImage(null);
+                  })
+                }
+              >
+                <Save className="mr-1 h-4 w-4" />Guardar cambios
+              </Button>
               <Button
                 variant="secondary"
                 onClick={() =>
@@ -2487,13 +2526,15 @@ export function AdminDashboardImpl() {
         ) : null}
       </Modal>
 
-      <Modal open={confirmState.open} onClose={() => setConfirmState({ open: false, title: "", description: "", action: null })} title={confirmState.title}>
+      <Modal open={confirmState.open} onClose={closeUnlessBusy(() => setConfirmState({ open: false, title: "", description: "", action: null }))} title={confirmState.title}>
         <p className="text-sm text-neutral-300">{confirmState.description}</p>
         <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <Button variant="secondary" onClick={() => setConfirmState({ open: false, title: "", description: "", action: null })}>Cancelar</Button>
-          <Button className="bg-orange-500 hover:bg-orange-400" onClick={() => void runConfirmAction()}>Confirmar</Button>
+          <Button className="bg-orange-500 hover:bg-orange-400" disabled={busyText !== null} onClick={() => void runBusy("Procesando…", runConfirmAction)}>Confirmar</Button>
         </div>
       </Modal>
+
+      <BusyOverlay text={busyText} />
     </div>
   );
 }
