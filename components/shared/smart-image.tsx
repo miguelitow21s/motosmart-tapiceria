@@ -4,57 +4,46 @@ import Image from "next/image";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
-type SmartImageProps = {
-  src: string;
-  alt: string;
-  fill?: boolean;
-  className?: string;
-  fallbackSrc?: string;
-  sizes?: string;
-  priority?: boolean;
-  /** "contain" (default) muestra la foto completa sin recortarla, dejando
-   * franjas del fondo del marco si la proporcion no coincide con el
-   * contenedor. "cover" llena el marco recortando lo que sobre. */
-  fit?: "contain" | "cover";
-};
-
+/**
+ * Foto de un trabajo dentro de un marco con `relative` y proporción fija.
+ * Mientras carga se ve la superficie gris del marco; si la foto falla se
+ * dice en texto en vez de dejar un hueco.
+ */
 export function SmartImage({
   src,
   alt,
-  fill = false,
-  className,
-  fallbackSrc = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjgwMCI+PHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iODAwIiBmaWxsPSIjMGEwYTBhIi8+PC9zdmc+",
   sizes,
-  priority,
-  fit = "contain"
-}: SmartImageProps) {
-  const [loading, setLoading] = useState(true);
+  priority = false,
+  fit = "cover",
+  className
+}: {
+  src: string;
+  alt: string;
+  sizes: string;
+  priority?: boolean;
+  /** "cover" llena el marco (las fotos reales ya son verticales 3:4); "contain" la muestra entera. */
+  fit?: "contain" | "cover";
+  className?: string;
+}) {
   const [failed, setFailed] = useState(false);
 
+  if (failed || !src) {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center bg-surface p-4">
+        <span className="text-center text-sm text-ink-3">Foto no disponible</span>
+      </div>
+    );
+  }
+
   return (
-    <div className={cn("relative h-full w-full overflow-hidden bg-neutral-950", className)}>
-      {loading ? <div className="absolute inset-0 animate-pulse bg-white/10" /> : null}
-      <Image
-        src={failed ? fallbackSrc : src}
-        alt={alt}
-        fill={fill}
-        className={cn(
-          "transition duration-500",
-          fit === "contain" ? "object-contain" : "object-cover",
-          loading ? "scale-105 blur-xs opacity-0" : "scale-100 blur-0 opacity-100"
-        )}
-        sizes={sizes}
-        priority={priority}
-        loading={priority ? "eager" : "lazy"}
-        onLoad={() => setLoading(false)}
-        onError={() => {
-          setFailed(true);
-          setLoading(false);
-        }}
-      />
-      {fit === "cover" ? (
-        <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-black/45 via-transparent to-transparent" />
-      ) : null}
-    </div>
+    <Image
+      src={src}
+      alt={alt}
+      fill
+      sizes={sizes}
+      priority={priority}
+      className={cn(fit === "cover" ? "object-cover" : "object-contain", className)}
+      onError={() => setFailed(true)}
+    />
   );
 }

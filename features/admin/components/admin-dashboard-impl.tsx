@@ -39,6 +39,7 @@ import { getCsrfToken } from "@/lib/csrf-client";
 import { readApiError } from "@/lib/api-error-client";
 import { parseCarouselOrder, sortByCarouselOrder } from "@/lib/carousel-order";
 import { prepareImageForUpload } from "@/lib/prepare-image";
+import { DEFAULT_SETTINGS } from "@/lib/settings-defaults";
 import { RiderPhotosTab } from "@/features/admin/components/rider-photos-tab";
 
 type Design = {
@@ -189,10 +190,24 @@ const SETTINGS_KEYS = [
   { key: "business_name", label: "Nombre del negocio" },
   { key: "hero_tagline", label: "Eslogan / tagline" },
   { key: "hero_description", label: "Descripción hero" },
+  { key: "hero_note", label: "Nota corta bajo el botón del inicio (vacía = no se muestra)" },
   { key: "hero_cta_text", label: "Texto botón principal" },
   { key: "about_description", label: "Texto Sobre Nosotros" },
   { key: "whatsapp_number", label: "Número WhatsApp" },
   { key: "whatsapp_default_message", label: "Mensaje predeterminado WhatsApp" },
+  { key: "business_district", label: "Barrio o sector del taller, sin dirección exacta (vacío = no se muestra)" },
+  { key: "business_hours", label: "Horario de atención (vacío = no se muestra)" },
+  { key: "instagram_url", label: "Enlace de Instagram, ej. https://instagram.com/tu_cuenta (vacío = no se muestra)" },
+  { key: "services_title", label: "Servicios: título" },
+  { key: "services_text", label: "Servicios: texto" },
+  { key: "service_1_title", label: "Servicio 1: título" },
+  { key: "service_1_text", label: "Servicio 1: texto" },
+  { key: "service_2_title", label: "Servicio 2: título" },
+  { key: "service_2_text", label: "Servicio 2: texto" },
+  { key: "service_3_title", label: "Servicio 3: título" },
+  { key: "service_3_text", label: "Servicio 3: texto" },
+  { key: "closing_title", label: "Cierre de página: título" },
+  { key: "closing_text", label: "Cierre de página: texto" },
   { key: "meta_title", label: "Meta title" },
   { key: "meta_description", label: "Meta description" }
 ];
@@ -205,6 +220,23 @@ const settingsFormSchema = z.object({
   about_description: z.string().min(10).max(700),
   whatsapp_number: z.string().min(7).max(30),
   whatsapp_default_message: z.string().min(4).max(300),
+  hero_note: z.string().max(120),
+  business_district: z.string().max(80),
+  business_hours: z.string().max(160),
+  instagram_url: z.union([
+    z.literal(""),
+    z.string().url("El enlace de Instagram debe empezar por https://").max(200)
+  ]),
+  services_title: z.string().min(2).max(120),
+  services_text: z.string().min(2).max(400),
+  service_1_title: z.string().min(2).max(80),
+  service_1_text: z.string().min(2).max(240),
+  service_2_title: z.string().min(2).max(80),
+  service_2_text: z.string().min(2).max(240),
+  service_3_title: z.string().min(2).max(80),
+  service_3_text: z.string().min(2).max(240),
+  closing_title: z.string().min(2).max(120),
+  closing_text: z.string().min(2).max(300),
   meta_title: z.string().min(5).max(120),
   meta_description: z.string().min(10).max(220)
 });
@@ -692,7 +724,11 @@ export function AdminDashboardImpl() {
         SETTINGS_KEYS.forEach(({ key }) => {
           next[key] = editedSettingKeysRef.current.has(key)
             ? prev[key] ?? ""
-            : mapped.find((s) => s.key === key)?.value ?? "";
+            : mapped.find((s) => s.key === key)?.value ??
+              // Clave que aún no existe en la base: se muestra el texto que
+              // la tienda está usando de respaldo, no un campo vacío.
+              DEFAULT_SETTINGS[key as keyof typeof DEFAULT_SETTINGS] ??
+              "";
         });
         return next;
       });
@@ -2145,7 +2181,7 @@ export function AdminDashboardImpl() {
           {SETTINGS_KEYS.map((item) => (
             <div key={item.key} className="space-y-1">
               <Label htmlFor={`setting-${item.key}`} className="text-xs text-neutral-400">{item.label}</Label>
-              {item.key.includes("description") || item.key.includes("message") ? (
+              {item.key.includes("description") || item.key.includes("message") || item.key.endsWith("_text") ? (
                 <Textarea
                   id={`setting-${item.key}`}
                   value={settingsForm[item.key] ?? ""}
@@ -2154,7 +2190,7 @@ export function AdminDashboardImpl() {
               ) : (
                 <Input
                   id={`setting-${item.key}`}
-                  type={item.key === "whatsapp_number" ? "tel" : "text"}
+                  type={item.key === "whatsapp_number" ? "tel" : item.key === "instagram_url" ? "url" : "text"}
                   inputMode={item.key === "whatsapp_number" ? "tel" : undefined}
                   value={settingsForm[item.key] ?? ""}
                   onChange={(e) => updateSettingField(item.key, e.target.value)}

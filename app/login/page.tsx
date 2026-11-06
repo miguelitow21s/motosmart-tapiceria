@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
+import { containerClasses } from "@/components/shared/section";
 import { Card } from "@/components/ui/card";
-import { SectionContainer } from "@/components/shared/section-container";
 import { LoginForm } from "@/features/auth/components/login-form";
+import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Acceso administrador",
@@ -10,13 +11,14 @@ export const metadata: Metadata = {
 
 export default function LoginPage() {
   return (
-    <SectionContainer className="py-16">
+    <div className={cn(containerClasses, "py-12 md:py-20")}>
       <div className="mx-auto max-w-md">
-        <h1 className="mb-6 text-center font-display text-3xl text-white sm:text-4xl">Admin Access</h1>
-        <Card>
+        <h1 className="text-title">Acceso administrador</h1>
+        <p className="mt-3 text-ink-2">Solo para el equipo de MotoSmart. Entra con el correo del panel.</p>
+        <Card className="mt-6">
           <LoginForm />
         </Card>
       </div>
-    </SectionContainer>
+    </div>
   );
 }

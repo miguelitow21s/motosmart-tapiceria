@@ -1,20 +1,35 @@
 import type { Metadata } from "next";
-import { SectionContainer } from "@/components/shared/section-container";
+import { ContactDetails } from "@/components/shared/contact-details";
+import { PageIntro } from "@/components/shared/page-intro";
+import { containerClasses } from "@/components/shared/section";
 import { Card } from "@/components/ui/card";
 import { ContactForm } from "@/features/contact/components/contact-form";
+import { getSiteSettings } from "@/lib/settings";
+import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Contáctanos - Tapicería para moto en Medellín",
-  description: "Cotiza tu tapicería de moto por WhatsApp o escríbenos por el formulario y te contactamos pronto."
+  description: "Cotiza tu tapicería de moto por WhatsApp: cuéntanos tu marca y modelo y te respondemos con el precio."
 };
 
-export default function ContactanosPage() {
+export default async function ContactanosPage() {
+  const settings = await getSiteSettings();
+
   return (
-    <SectionContainer className="py-16">
-      <h1 className="font-display text-3xl text-white sm:text-4xl">Contáctanos</h1>
-      <Card className="mt-8 max-w-xl">
-        <ContactForm />
-      </Card>
-    </SectionContainer>
+    <>
+      <PageIntro
+        title="Contáctanos"
+        lead="Cuéntanos qué moto tienes y qué quieres hacerle a la silla. El mensaje se abre en WhatsApp, listo para enviar."
+      />
+      <div className={cn(containerClasses, "grid gap-10 pb-14 md:pb-20 lg:grid-cols-[minmax(0,36rem)_1fr] lg:gap-16")}>
+        <Card>
+          <ContactForm whatsappNumber={settings.whatsapp_number} />
+        </Card>
+        <div>
+          <h2 className="text-2xl">Otras formas de contacto</h2>
+          <ContactDetails className="mt-5" />
+        </div>
+      </div>
+    </>
   );
 }

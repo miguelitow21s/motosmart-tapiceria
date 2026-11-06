@@ -62,7 +62,7 @@ export async function POST(request: Request) {
   const parsed = loginSchema.safeParse(payload);
 
   if (!parsed.success) {
-    return NextResponse.json({ error: "Datos invalidos" }, { status: 400 });
+    return NextResponse.json({ error: "Escribe un correo y una contraseña válidos." }, { status: 400 });
   }
 
   const ip = (request.headers.get("x-forwarded-for") ?? "unknown").split(",")[0].trim();
@@ -71,7 +71,7 @@ export async function POST(request: Request) {
   if (!state.allowed) {
     return NextResponse.json(
       {
-        error: "Demasiados intentos. Intenta luego.",
+        error: "Demasiados intentos seguidos.",
         retryAfterMs: state.retryAfterMs
       },
       { status: 429 }
@@ -89,14 +89,14 @@ export async function POST(request: Request) {
     if (isSupabaseInfrastructureError(signInResult.error)) {
       console.error("login: fallo de infraestructura de Supabase Auth", signInResult.error);
       return NextResponse.json(
-        { error: "Servicio de autenticacion no disponible" },
+        { error: "El servicio de acceso no responde. Intenta de nuevo en unos minutos." },
         { status: 503 }
       );
     }
 
     // Respuesta identica para cualquier email: no revelar que cuentas existen
     // ni cual es la del administrador.
-    return NextResponse.json({ error: "Credenciales invalidas" }, { status: 401 });
+    return NextResponse.json({ error: "Correo o contraseña incorrectos." }, { status: 401 });
   }
 
   await recordLoginAttempt(parsed.data.email, ip, true);

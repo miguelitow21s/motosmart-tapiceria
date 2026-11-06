@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { SectionContainer } from "@/components/shared/section-container";
+import { ClosingCta } from "@/components/shared/closing-cta";
+import { PageIntro } from "@/components/shared/page-intro";
+import { containerClasses } from "@/components/shared/section";
 import { RiderGallery } from "@/features/riders/components/rider-gallery";
 import { getRiderPhotos } from "@/features/riders/services/rider-photos.service";
 import { isFeatureEnabled } from "@/lib/feature-flags";
+import { cn } from "@/lib/utils";
 
 export const revalidate = 0;
 
@@ -19,14 +22,15 @@ export default async function PilotosPage() {
   const photos = await getRiderPhotos();
 
   return (
-    <SectionContainer className="py-16">
-      <h1 className="font-display text-3xl text-white sm:text-4xl">Nuestros pilotos</h1>
-      <p className="mt-3 max-w-2xl text-neutral-300">
-        Motos reales de clientes reales, vestidas con tapicería MotoSmart. Súbenos tu foto por WhatsApp cuando recibas la tuya.
-      </p>
-      <div className="mt-8">
+    <>
+      <PageIntro
+        title="Nuestros pilotos"
+        lead="Motos reales de clientes reales, con su silla MotoSmart. Cuando recibas la tuya, mándanos la foto por WhatsApp."
+      />
+      <div className={cn(containerClasses, "pt-2 pb-12 md:pb-16")}>
         <RiderGallery photos={photos} />
       </div>
-    </SectionContainer>
+      <ClosingCta />
+    </>
   );
 }

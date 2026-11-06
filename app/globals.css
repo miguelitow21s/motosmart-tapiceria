@@ -185,6 +185,45 @@
   }
 }
 
+/*
+  Fila que se desliza de borde a borde de la pantalla pero cuyo primer
+  elemento arranca alineado con el contenido (mismo margen que containerClasses:
+  max-w-7xl con px-4 / sm:px-6 / lg:px-8).
+*/
+@utility bleed-row {
+  --gutter: 1rem;
+  padding-inline: max(var(--gutter), calc((100% - 80rem) / 2 + var(--gutter)));
+  scroll-padding-inline: max(var(--gutter), calc((100% - 80rem) / 2 + var(--gutter)));
+
+  @media (width >= 40rem) {
+    --gutter: 1.5rem;
+  }
+  @media (width >= 64rem) {
+    --gutter: 2rem;
+  }
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* El único estilo de enlace de texto: subrayado fino que se oscurece al pasar. */
+@utility link-underline {
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 0.25em;
+  transition: text-decoration-color 150ms;
+  @media (hover: hover) {
+    &:hover {
+      text-decoration-color: currentColor;
+    }
+  }
+}
+
 /* Voz de títulos para elementos que no son h1-h3 (precios grandes, cifras). */
 @utility type-display {
   font-family: var(--font-display);

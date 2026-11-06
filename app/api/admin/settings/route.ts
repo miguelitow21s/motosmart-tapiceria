@@ -5,6 +5,7 @@ import { logAdminActivity } from "@/lib/admin-activity";
 import { assertCsrf } from "@/lib/security";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { invalidPayload, internalError } from "@/lib/api-response";
+import { PUBLIC_SETTING_KEYS } from "@/lib/settings";
 
 // z.record(z.any()) no imponia forma, tamaño ni profundidad al JSON que
 // termina en la base de datos. Los settings del panel son siempre texto,
@@ -47,8 +48,13 @@ export async function POST(request: Request) {
   const parsed = settingSchema.safeParse(await request.json());
   if (!parsed.success) return invalidPayload(parsed.error);
 
+  // Las claves que lee la tienda se guardan siempre como públicas: sin esto,
+  // una clave nueva nacía con is_public = false y el visitante no la veía
+  // aunque el panel dijera "guardado". Las demás no tocan is_public.
+  const row = PUBLIC_SETTING_KEYS.has(parsed.data.key) ? { ...parsed.data, is_public: true } : parsed.data;
+
   const supabase = createAdminSupabaseClient();
-  const { error } = await supabase.from("settings").upsert(parsed.data, { onConflict: "key" });
+  const { error } = await supabase.from("settings").upsert(row, { onConflict: "key" });
   if (error) return internalError("settings POST", error);
   await logAdminActivity({
     action: "upsert",

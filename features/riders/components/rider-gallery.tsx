@@ -1,35 +1,32 @@
-import type { CSSProperties } from "react";
-import { Card } from "@/components/ui/card";
 import { SmartImage } from "@/components/shared/smart-image";
 import type { RiderPhoto } from "@/types";
 
+/** Fotos de clientes con su moto ya tapizada. */
 export function RiderGallery({ photos }: { photos: RiderPhoto[] }) {
   if (!photos.length) {
-    return (
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-neutral-200">
-        Todavía no hay fotos de pilotos publicadas. Vuelve pronto.
-      </div>
-    );
+    return <p className="max-w-xl text-lg text-ink-2">Todavía no hay fotos de pilotos publicadas.</p>;
   }
 
   return (
-    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3" data-animate-stagger>
-      {photos.map((photo, idx) => (
-        <Card key={photo.id} className="overflow-hidden p-0" style={{ "--i": idx } as CSSProperties}>
-          <div className="relative aspect-4/5 w-full">
-            <SmartImage
-              src={photo.storage_path}
-              alt={`${photo.rider_name} con su ${photo.moto_info} - MotoSmart Tapicería`}
-              fill
-              sizes="(max-width: 639px) 100vw, (max-width: 1023px) 50vw, 33vw"
-            />
-          </div>
-          <div className="space-y-1 p-4">
-            <p className="font-display text-lg text-white">{photo.rider_name}</p>
-            <p className="text-sm text-neutral-300">{photo.moto_info}</p>
-          </div>
-        </Card>
+    <ul className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">
+      {photos.map((photo, index) => (
+        <li key={photo.id}>
+          <figure>
+            <div className="relative aspect-4/5 overflow-hidden rounded-lg bg-surface">
+              <SmartImage
+                src={photo.storage_path}
+                alt={`${photo.rider_name} con su ${photo.moto_info}, tapizada por MotoSmart`}
+                sizes="(max-width: 767px) 50vw, (max-width: 1279px) 33vw, 25vw"
+                priority={index < 2}
+              />
+            </div>
+            <figcaption className="mt-3">
+              <span className="type-display block text-lg leading-tight">{photo.rider_name}</span>
+              <span className="block text-sm text-ink-2">{photo.moto_info}</span>
+            </figcaption>
+          </figure>
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }

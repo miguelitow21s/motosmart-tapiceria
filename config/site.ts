@@ -1,9 +1,7 @@
+/**
+ * Solo lo que no se edita desde el panel. El nombre, el WhatsApp y los textos
+ * viven en la tabla settings (ver lib/settings-defaults.ts).
+ */
 export const siteConfig = {
-  name: "MotoSmart Tapiceria",
-  city: "Medellin",
-  description:
-    "Tapiceria premium para motos con diseno tecnologico, personalizacion avanzada y acabados profesionales.",
-  url: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
-  // Se fuerza a constante para evitar mismatch de hidratacion; ajustar aqui si cambias el numero
-  whatsappNumber: "573146943434"
+  url: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
 } as const;

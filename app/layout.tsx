@@ -3,7 +3,6 @@ import { Archivo } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/shared/navbar";
 import { Footer } from "@/components/shared/footer";
-import { WhatsAppFab } from "@/components/shared/whatsapp-fab";
 import { siteConfig } from "@/config/site";
 import { canAccessAdmin, getCurrentUserRole } from "@/lib/auth";
 import { buildWhatsAppUrl, getSiteSettings } from "@/lib/settings";
@@ -51,7 +50,8 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const [{ user, role }, settings] = await Promise.all([getCurrentUserRole(), getSiteSettings()]);
-  const isAdmin = canAccessAdmin(role);
+  // El enlace al panel solo se ofrece a quien puede entrar.
+  const canOpenPanel = Boolean(user) && canAccessAdmin(role);
   const whatsappHref = buildWhatsAppUrl(settings.whatsapp_number, settings.whatsapp_default_message);
 
   return (
@@ -63,14 +63,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         >
           Saltar al contenido
         </a>
-        <Navbar isAuthenticated={Boolean(user)} isAdmin={isAdmin} />
-        {/* pb-24: deja aire para que el botón flotante de WhatsApp no tape
-            el último CTA de la página en el móvil. */}
-        <main id="contenido" tabIndex={-1} className="pb-24 outline-none">
+        {/* WhatsApp vive en la cabecera fija (siempre a mano), así que ya no
+            hay botón flotante tapando fotos y precios. */}
+        <Navbar isAuthenticated={canOpenPanel} whatsappHref={whatsappHref} />
+        <main id="contenido" tabIndex={-1} className="outline-none">
           {children}
         </main>
-        <Footer />
-        <WhatsAppFab href={whatsappHref} />
+        <Footer isAuthenticated={canOpenPanel} />
       </body>
     </html>
   );

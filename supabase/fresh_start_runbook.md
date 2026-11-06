@@ -36,6 +36,7 @@ En Supabase SQL Editor ejecuta, en este orden:
 11. supabase/migrations/011_alto_medio_hardening.sql
 12. supabase/migrations/012_rider_photos.sql
 13. supabase/migrations/013_fix_catalog_photos_in_carousel.sql
+14. supabase/migrations/014_seed_business_settings.sql
 
 Nota:
 - No ejecutar repair_current_auth.sql ni emergency_bootstrap_admin_auth.sql en proyecto nuevo.

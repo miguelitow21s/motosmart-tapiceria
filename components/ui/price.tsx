@@ -20,6 +20,20 @@ export function currentPrice(design: PriceSource, now: Date = new Date()) {
   return { value, promo };
 }
 
+/** Precio corto para pies de foto y etiquetas: "Desde $145.000" en una línea. */
+export function InlinePrice({ design, className }: { design: PriceSource; className?: string }) {
+  const { value, promo } = currentPrice(design);
+  return (
+    <p className={cn("tabular text-sm text-ink-2", className)}>
+      Desde{" "}
+      <data value={value} className={cn("font-semibold", promo.hasPromotion ? "text-brand" : "text-ink")}>
+        {formatCOP(value)}
+      </data>
+      {promo.hasPromotion ? <span className="sr-only"> (en promoción)</span> : null}
+    </p>
+  );
+}
+
 /*
   Precio en una sola línea: "Desde $145.000". Con promoción vigente el precio
   va en rojo, el anterior tachado al lado y, debajo, la etiqueta y la fecha
@@ -28,10 +42,13 @@ export function currentPrice(design: PriceSource, now: Date = new Date()) {
 export function Price({
   design,
   size = "md",
+  compact = false,
   className
 }: {
   design: PriceSource;
   size?: "md" | "lg";
+  /** En tarjetas angostas: sin "ahorras", que ya lo dice la etiqueta de porcentaje. */
+  compact?: boolean;
   className?: string;
 }) {
   const { value, promo } = currentPrice(design);
@@ -60,7 +77,8 @@ export function Price({
       </p>
       {promo.hasPromotion ? (
         <p className="mt-1 text-sm font-semibold text-brand">
-          {design.promotion_label || "Promoción"} · ahorras {formatCOP(promo.savings)}
+          {design.promotion_label || "Promoción"}
+          {compact ? null : ` · ahorras ${formatCOP(promo.savings)}`}
           {design.promotion_ends_at ? (
             <span className="font-normal text-ink-3"> · hasta el {formatDateShort(design.promotion_ends_at)}</span>
           ) : null}

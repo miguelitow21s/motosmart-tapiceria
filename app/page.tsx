@@ -1,102 +1,88 @@
-import { Hero } from "@/components/shared/hero";
-import { SectionContainer } from "@/components/shared/section-container";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { FeatureCarousel } from "@/components/shared/feature-carousel";
-import { BrandCarousel } from "@/features/catalog/components/brand-carousel";
-import { DesignGrid } from "@/features/catalog/components/design-grid";
-import { getBrands, getFeaturedDesigns } from "@/features/catalog/services/catalog.service";
-import { isFeatureEnabled } from "@/lib/feature-flags";
-import { Package, ShieldCheck, Sparkles } from "lucide-react";
-import type { CSSProperties } from "react";
 import Link from "next/link";
+import { ClosingCta } from "@/components/shared/closing-cta";
+import { Hero } from "@/components/shared/hero";
+import { Section, SectionHeader, containerClasses } from "@/components/shared/section";
+import { SmartImage } from "@/components/shared/smart-image";
+import { BrandBar } from "@/features/catalog/components/brand-bar";
+import { DesignGrid } from "@/features/catalog/components/design-grid";
+import { WeeklyWork } from "@/features/catalog/components/weekly-work";
+import { getBrands, getCarouselSlides, getFeaturedDesigns } from "@/features/catalog/services/catalog.service";
+import { getSiteSettings } from "@/lib/settings";
+import { cn } from "@/lib/utils";
 
 export default async function HomePage() {
-  const [checkoutEnabled, brands, featuredDesigns] = await Promise.all([
-    isFeatureEnabled("checkout_enabled"),
+  const [brands, featuredDesigns, slides, settings] = await Promise.all([
     getBrands(),
-    getFeaturedDesigns()
+    getFeaturedDesigns(),
+    getCarouselSlides(),
+    getSiteSettings()
   ]);
+
+  const featured = slides[0] ?? null;
+  // Para el bloque de servicios, la foto más lejos de la primera (que ya
+  // está en el héroe y abre la fila de trabajos).
+  const servicesPhoto = slides.length > 1 ? slides[slides.length - 1] : null;
+  const services = [
+    { title: settings.service_1_title, text: settings.service_1_text },
+    { title: settings.service_2_title, text: settings.service_2_text },
+    { title: settings.service_3_title, text: settings.service_3_text }
+  ];
 
   return (
     <>
-      <Hero />
-
-      <SectionContainer className="py-8">
-        <h2 className="font-display text-2xl text-white sm:text-3xl">Elige tu marca</h2>
-        <p className="mt-2 text-neutral-300">Entra directo al catálogo de tu moto.</p>
-        <div className="mt-6">
-          <BrandCarousel brands={brands} />
-        </div>
-      </SectionContainer>
+      <Hero featured={featured} />
+      <BrandBar brands={brands} />
+      <WeeklyWork slides={slides} featuredFirst />
 
       {featuredDesigns.length ? (
-        <SectionContainer className="py-8">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h2 className="font-display text-2xl text-white sm:text-3xl">Nuestras sillas</h2>
-              <p className="mt-2 text-neutral-300">Precio y diseño real. Toca una y cotiza por WhatsApp al instante.</p>
-            </div>
-            <Button asChild variant="secondary" className="w-full sm:w-auto">
-              <Link href="/catalogo">Ver catálogo completo</Link>
-            </Button>
-          </div>
+        <Section aria-labelledby="sillas" className="pt-4 md:pt-6">
+          <SectionHeader
+            id="sillas"
+            title="Sillas por marca"
+            description="Un diseño de cada marca con su precio de referencia."
+            action={
+              <Link href="/catalogo" className="link-underline inline-flex min-h-11 items-center font-semibold">
+                Ver catálogo completo
+              </Link>
+            }
+          />
           <div className="mt-6">
-            <DesignGrid designs={featuredDesigns} />
+            <DesignGrid designs={featuredDesigns} maxColumns={featuredDesigns.length % 4 === 0 ? 4 : 3} />
           </div>
-        </SectionContainer>
+        </Section>
       ) : null}
 
-      <SectionContainer>
-        <FeatureCarousel />
-      </SectionContainer>
-      <SectionContainer className="py-12">
+      <section aria-labelledby="servicios" className="border-t border-line">
         <div
-          className="rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur-xs"
-          data-animate="fade-up"
+          className={cn(
+            containerClasses,
+            "grid gap-8 py-12 md:py-16",
+            servicesPhoto && "lg:grid-cols-[minmax(0,26rem)_1fr] lg:items-center lg:gap-16"
+          )}
         >
-          <h2 className="font-display text-3xl text-white">Servicios de tapicería y personalización</h2>
-          <p className="mt-3 max-w-3xl text-neutral-300">
-            Diseños a medida, materiales premium y acabados listos para instalar. Pide tu estilo y lo fabricamos.
-          </p>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Button asChild>
-              <Link href="/catalogo">Ver catálogo</Link>
-            </Button>
-            {checkoutEnabled ? (
-              <Button variant="secondary" asChild>
-                <Link href="/checkout">Agendar instalación</Link>
-              </Button>
-            ) : null}
+          {servicesPhoto ? (
+            <div className="relative aspect-4/3 overflow-hidden rounded-lg bg-surface lg:aspect-3/4">
+              <SmartImage src={servicesPhoto.image} alt={servicesPhoto.alt} sizes="(min-width: 1024px) 416px, 100vw" />
+            </div>
+          ) : null}
+          <div>
+            <h2 id="servicios" className="text-title">
+              {settings.services_title}
+            </h2>
+            <p className="mt-3 max-w-2xl text-lg text-ink-2">{settings.services_text}</p>
+            <dl className="mt-8 divide-y divide-line border-y border-line">
+              {services.map((service) => (
+                <div key={service.title} className="grid gap-1 py-5 sm:grid-cols-[13rem_1fr] sm:gap-6">
+                  <dt className="type-display text-xl leading-tight">{service.title}</dt>
+                  <dd className="text-ink-2">{service.text}</dd>
+                </div>
+              ))}
+            </dl>
           </div>
         </div>
-      </SectionContainer>
+      </section>
 
-      <SectionContainer>
-        <div className="grid gap-4 md:grid-cols-3" data-animate-stagger>
-          <Card className="h-full space-y-3" style={{ "--i": 0 } as CSSProperties}>
-            <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-primary">
-              <ShieldCheck className="h-5 w-5" />
-            </div>
-            <h3 className="font-display text-xl text-white">Materiales premium</h3>
-            <p className="text-neutral-300">Cuero, antideslizantes y espumas de alta densidad para uso diario y touring.</p>
-          </Card>
-          <Card className="h-full space-y-3" style={{ "--i": 1 } as CSSProperties}>
-            <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-primary">
-              <Sparkles className="h-5 w-5" />
-            </div>
-            <h3 className="font-display text-xl text-white">Diseño a medida</h3>
-            <p className="text-neutral-300">Costuras, colores y texturas personalizadas según tu modelo y estilo.</p>
-          </Card>
-          <Card className="h-full space-y-3" style={{ "--i": 2 } as CSSProperties}>
-            <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-primary">
-              <Package className="h-5 w-5" />
-            </div>
-            <h3 className="font-display text-xl text-white">Entrega segura</h3>
-            <p className="text-neutral-300">Envíos protegidos y lista de chequeo antes de despachar tu asiento.</p>
-          </Card>
-        </div>
-      </SectionContainer>
+      <ClosingCta />
     </>
   );
 }

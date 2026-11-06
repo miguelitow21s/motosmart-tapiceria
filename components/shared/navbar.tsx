@@ -1,18 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Menu, X } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { ChevronRight, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { LogoGlow } from "@/components/shared/logo-glow";
+import { WhatsAppIcon } from "@/components/ui/whatsapp-icon";
 import { AdminSessionActions } from "@/components/shared/admin-session-actions";
-import { trackEvent } from "@/lib/analytics";
+import { Logo } from "@/components/shared/logo";
+import { containerClasses } from "@/components/shared/section";
+import { WhatsAppLink } from "@/components/shared/whatsapp-link";
 import { cn } from "@/lib/utils";
 
 const publicLinks = [
   { href: "/", label: "Inicio" },
-  { href: "/catalogo", label: "Catalogo" },
+  { href: "/catalogo", label: "Catálogo" },
   { href: "/pilotos", label: "Pilotos" },
   { href: "/sobre-nosotros", label: "Nosotros" },
   { href: "/contactanos", label: "Contacto" }
@@ -21,151 +23,204 @@ const publicLinks = [
 const adminLinks = [
   { href: "/admin", label: "Resumen" },
   { href: "/admin#brands", label: "Marcas" },
-  { href: "/admin#designs", label: "Precios y Diseños" },
+  { href: "/admin#designs", label: "Precios y diseños" },
   { href: "/admin#media", label: "Fotos" },
   { href: "/admin#riders", label: "Pilotos" },
-  { href: "/admin#features", label: "Modulos" }
+  { href: "/admin#features", label: "Módulos" }
 ];
 
-export function Navbar({ isAdmin = false, isAuthenticated = false }: { isAdmin?: boolean; isAuthenticated?: boolean }) {
-  const pathname = usePathname();
-  const [open, setOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-  const links = isAdmin ? adminLinks : publicLinks;
+function isActive(pathname: string, href: string) {
+  if (href.includes("#")) return false;
+  if (href === "/") return pathname === "/";
+  // Una marca es parte del catálogo.
+  if (href === "/catalogo" && pathname.startsWith("/marca/")) return true;
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
 
+export function Navbar({
+  isAuthenticated = false,
+  whatsappHref
+}: {
+  isAuthenticated?: boolean;
+  whatsappHref: string;
+}) {
+  const pathname = usePathname();
+  const inAdmin = pathname.startsWith("/admin");
+  const links = inAdmin ? adminLinks : publicLinks;
+  const [open, setOpen] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const firstLinkRef = useRef<HTMLAnchorElement>(null);
+
+  // Menú abierto: la página de atrás no se desplaza, Escape lo cierra y, si
+  // la pantalla se ensancha a escritorio, se cierra solo.
   useEffect(() => {
-    function onScroll() {
-      setScrolled(window.scrollY > 14);
-    }
-    onScroll();
-    window.addEventListener("scroll", onScroll);
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+    if (!open) return;
+    const root = document.documentElement;
+    const previousOverflow = root.style.overflow;
+    root.style.overflow = "hidden";
+    firstLinkRef.current?.focus();
+
+    const desktop = window.matchMedia("(min-width: 48rem)");
+    const close = () => setOpen(false);
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+        menuButtonRef.current?.focus();
+      }
+    };
+    const onResize = () => {
+      if (desktop.matches) close();
+    };
+    document.addEventListener("keydown", onKey);
+    desktop.addEventListener("change", onResize);
+    return () => {
+      root.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", onKey);
+      desktop.removeEventListener("change", onResize);
+    };
+  }, [open]);
+
+  const closeMenu = () => setOpen(false);
 
   return (
-    <header
-      className={cn(
-        "sticky top-0 z-50 border-b border-white/10 backdrop-blur-xl transition-all duration-300",
-        scrolled
-          ? isAdmin
-            ? "bg-red-950/80 py-0.5 shadow-[0_12px_30px_rgba(120,0,0,0.35)]"
-            : "bg-black/85 py-0.5 shadow-[0_12px_30px_rgba(0,0,0,0.3)]"
-          : isAdmin
-            ? "bg-linear-to-b from-red-950/70 via-black/55 to-transparent"
-            : "bg-linear-to-b from-black/70 via-black/55 to-transparent"
-      )}
-    >
-      <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-8">
-        <LogoGlow />
-        <div className="hidden items-center gap-6 md:flex">
-          {links.map((link) => (
-            <div key={link.href} className="transition-transform duration-200 hover:-translate-y-0.5">
-              <Link
-                className={cn(
-                  "relative text-sm text-neutral-200 transition-colors duration-200 hover:text-white",
-                  pathname === link.href && "text-white"
-                )}
-                href={link.href}
-                prefetch
-                onClick={() => {
-                  if (link.href === "/personalizador") trackEvent("personalizer_click_nav");
-                }}
-              >
-                {link.label}
-                <span
-                  className={cn(
-                    "absolute -bottom-2 left-0 h-[2px] w-full origin-left scale-x-0 rounded-sm bg-primary transition-transform duration-300",
-                    pathname === link.href && "scale-x-100"
-                  )}
-                />
-              </Link>
-            </div>
-          ))}
-        </div>
-        <div className="hidden items-center gap-2 md:flex">
-          {isAdmin ? (
-            <>
-              <Button asChild variant="secondary" size="sm">
-                <Link href="/">Ver tienda publica</Link>
-              </Button>
-              <AdminSessionActions compact />
-            </>
-          ) : isAuthenticated ? (
-            <>
-              <Button asChild variant="secondary" size="sm">
-                <Link href="/admin">Panel Admin</Link>
-              </Button>
-              <AdminSessionActions compact />
-            </>
-          ) : (
-            <Button asChild size="sm">
-              <Link href="/login">Panel Admin</Link>
-            </Button>
-          )}
-        </div>
-        <button
-          type="button"
-          className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-white/15 bg-white/5 md:hidden"
-          onClick={() => setOpen((prev) => !prev)}
-          aria-expanded={open}
-          aria-label={open ? "Cerrar menú" : "Abrir menú"}
-        >
-          {open ? <X className="h-5 w-5 text-white" /> : <Menu className="h-5 w-5 text-white" />}
-        </button>
-      </nav>
+    <header className="sticky top-0 z-50 bg-header pt-[env(safe-area-inset-top)] text-white [--focus:#fff]">
+      <div className={cn(containerClasses, "flex h-14 items-center gap-2")}>
+        <Logo priority />
 
+        <nav aria-label="Principal" className="ml-6 hidden md:block">
+          <ul className="flex items-center gap-1">
+            {links.map((link) => {
+              const active = isActive(pathname, link.href);
+              return (
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
+                    aria-current={active ? "page" : undefined}
+                    className={cn(
+                      "relative inline-flex h-11 items-center rounded-md px-3 text-[0.9375rem] font-medium transition-colors duration-150",
+                      active
+                        ? "text-white after:absolute after:inset-x-3 after:bottom-1 after:h-0.5 after:bg-brand"
+                        : "text-white/75 hover:text-white"
+                    )}
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+
+        <div className="ml-auto flex items-center gap-2">
+          {inAdmin ? (
+            <div className="hidden items-center gap-2 md:flex">
+              <Link
+                href="/"
+                className="inline-flex h-11 items-center rounded-md px-3 text-[0.9375rem] font-medium text-white/75 hover:text-white"
+              >
+                Ver tienda
+              </Link>
+              <AdminSessionActions compact />
+            </div>
+          ) : (
+            <>
+              {isAuthenticated ? (
+                <Link
+                  href="/admin"
+                  className="hidden h-11 items-center rounded-md px-3 text-[0.9375rem] font-medium text-white/75 hover:text-white md:inline-flex"
+                >
+                  Panel
+                </Link>
+              ) : null}
+              <Button asChild size="sm" className="hidden md:inline-flex">
+                <WhatsAppLink href={whatsappHref} source="cabecera">
+                  <WhatsAppIcon />
+                  Cotizar por WhatsApp
+                </WhatsAppLink>
+              </Button>
+              <Button asChild size="icon" className="md:hidden">
+                <WhatsAppLink href={whatsappHref} source="cabecera" aria-label="Escribir por WhatsApp">
+                  <WhatsAppIcon />
+                </WhatsAppLink>
+              </Button>
+            </>
+          )}
+
+          <button
+            ref={menuButtonRef}
+            type="button"
+            className="inline-flex size-11 items-center justify-center rounded-lg text-white transition-colors duration-150 hover:bg-white/10 active:scale-[0.97] md:hidden"
+            onClick={() => setOpen((prev) => !prev)}
+            aria-expanded={open}
+            aria-controls="menu-movil"
+            aria-label={open ? "Cerrar menú" : "Abrir menú"}
+          >
+            {open ? <X aria-hidden="true" className="size-6" /> : <Menu aria-hidden="true" className="size-6" />}
+          </button>
+        </div>
+      </div>
+
+      {/* Menú del teléfono: una hoja a pantalla completa bajo la barra negra. */}
       <div
-        aria-hidden={!open}
+        id="menu-movil"
         inert={!open}
         className={cn(
-          "grid overflow-hidden transition-[grid-template-rows] duration-300 ease-out md:hidden",
-          open ? "grid-rows-[1fr] border-t border-white/10 bg-black/90" : "grid-rows-[0fr]"
+          "fixed inset-x-0 top-[calc(3.5rem+env(safe-area-inset-top))] bottom-0 z-40 overflow-y-auto overscroll-contain bg-bg pb-[env(safe-area-inset-bottom)] text-ink [--focus:var(--ink)] md:hidden",
+          "transition-[opacity,translate] duration-[220ms] ease-out",
+          open ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-2 opacity-0"
         )}
       >
-        <div className="overflow-hidden">
-          <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-4">
-            {links.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setOpen(false)}
-                className={cn(
-                  "rounded-xl border border-transparent px-3 py-2 text-sm text-neutral-200 transition hover:border-white/15 hover:bg-white/5 hover:text-white",
-                  pathname === link.href && "border-red-300/30 bg-red-500/10 text-white"
-                )}
-              >
-                {link.label}
-              </Link>
-            ))}
-            {isAdmin ? (
-              <div className="mt-2 flex gap-2">
-                <Button asChild size="sm" variant="secondary" className="flex-1">
-                  <Link href="/" onClick={() => setOpen(false)}>
-                    Ver tienda
+        <nav aria-label="Menú" className={cn(containerClasses, "py-4")}>
+          <ul className="divide-y divide-line border-b border-line">
+            {links.map((link, index) => {
+              const active = isActive(pathname, link.href);
+              return (
+                <li key={link.href}>
+                  <Link
+                    ref={index === 0 ? firstLinkRef : undefined}
+                    href={link.href}
+                    onClick={closeMenu}
+                    aria-current={active ? "page" : undefined}
+                    className="type-display flex h-16 items-center justify-between text-2xl"
+                  >
+                    <span className={cn(active && "underline decoration-brand decoration-2 underline-offset-8")}>{link.label}</span>
+                    <ChevronRight aria-hidden="true" className="size-5 text-ink-3" />
                   </Link>
-                </Button>
-                <div className="flex-1">
-                  <AdminSessionActions compact />
-                </div>
-              </div>
-            ) : isAuthenticated ? (
-              <div className="mt-2 space-y-2">
-                <Button asChild size="sm" variant="secondary" className="w-full">
-                  <Link href="/admin" onClick={() => setOpen(false)}>
-                    Panel Admin
-                  </Link>
-                </Button>
-                <AdminSessionActions compact />
-              </div>
-            ) : (
-              <Button asChild size="sm" className="mt-2">
-                <Link href="/login" onClick={() => setOpen(false)}>
-                  Panel Admin
+                </li>
+              );
+            })}
+          </ul>
+
+          {inAdmin ? (
+            <div className="mt-6 grid gap-3">
+              <Button asChild variant="secondary" size="lg" className="w-full">
+                <Link href="/" onClick={closeMenu}>
+                  Ver tienda
                 </Link>
               </Button>
-            )}
-          </div>
-        </div>
+              <AdminSessionActions />
+            </div>
+          ) : (
+            <div className="mt-6 grid gap-3">
+              <Button asChild size="lg" className="w-full">
+                <WhatsAppLink href={whatsappHref} source="menu" onClick={closeMenu}>
+                  <WhatsAppIcon />
+                  Cotizar por WhatsApp
+                </WhatsAppLink>
+              </Button>
+              {isAuthenticated ? (
+                <>
+                  <Button asChild variant="secondary" size="lg" className="w-full">
+                    <Link href="/admin" onClick={closeMenu}>
+                      Ir al panel
+                    </Link>
+                  </Button>
+                  <AdminSessionActions />
+                </>
+              ) : null}
+            </div>
+          )}
+        </nav>
       </div>
     </header>
   );
