@@ -28,6 +28,7 @@ import { confirmAction, notify, runBusy } from "@/features/admin/lib/feedback";
 import { fileBaseName } from "@/features/admin/lib/format";
 import { useCarouselImages } from "@/features/admin/lib/selectors";
 import { tabHref } from "@/features/admin/lib/tabs";
+import { rowTransitionName, withViewTransition } from "@/features/admin/lib/view-transition";
 import { loadData, retry, useAdminData } from "@/features/admin/store/admin-data";
 import type { AdminImage } from "@/features/admin/types";
 
@@ -46,7 +47,7 @@ export function CarouselTab() {
     const ids = slides.map((slide) => slide.id);
     [ids[index], ids[target]] = [ids[target], ids[index]];
     // Sin aviso por cada movimiento: el cambio de lugar ya es la respuesta.
-    if (await saveCarouselOrder(ids)) setAnnouncement(`Foto movida al puesto ${target + 1} de ${slides.length}.`);
+    if (await withViewTransition(() => saveCarouselOrder(ids))) setAnnouncement(`Foto movida al puesto ${target + 1} de ${slides.length}.`);
   }
 
   async function removeFromCarousel(image: AdminImage) {
@@ -164,7 +165,10 @@ function CarouselRow({
   }
 
   return (
-    <li className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-x-3 gap-y-3 p-3 sm:grid-cols-[2rem_9rem_minmax(0,1fr)_auto] sm:items-center sm:gap-x-4">
+    <li
+      className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-x-3 gap-y-3 bg-bg p-3 sm:grid-cols-[2rem_9rem_minmax(0,1fr)_auto] sm:items-center sm:gap-x-4"
+      style={{ viewTransitionName: rowTransitionName("carrusel", image.id) }}
+    >
       <span aria-hidden="true" className="hidden text-center text-lg font-semibold tabular text-ink-3 sm:block">
         {position}
       </span>

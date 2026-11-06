@@ -54,7 +54,7 @@ export function Modal({
       }}
     >
       <Dialog.Portal>
-        <Dialog.Overlay className="modal-overlay fixed inset-0 z-80 flex items-end justify-center bg-ink/45 sm:items-center sm:p-6">
+        <Dialog.Overlay className="modal-overlay fixed inset-0 z-80 flex items-end justify-center sm:items-center sm:p-6">
           <Dialog.Content
             role={role}
             // Sin descripción, Radix avisaría por consola; así se le dice que no hay.

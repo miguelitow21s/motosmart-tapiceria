@@ -80,7 +80,7 @@ export function AdminBottomNav({ active, roleLabel }: { active: TabKey; roleLabe
     <>
       <nav
         aria-label="Secciones del panel"
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-bg pb-[env(safe-area-inset-bottom)] lg:hidden"
+        className="vt-chrome-bottom fixed inset-x-0 bottom-0 z-40 border-t border-line bg-bg pb-[env(safe-area-inset-bottom)] lg:hidden"
       >
         <ul className="mx-auto flex max-w-xl">
           {primary.map((tab) => {

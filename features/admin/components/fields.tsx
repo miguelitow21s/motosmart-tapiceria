@@ -124,8 +124,9 @@ export function Switch({
       >
         <span
           className={cn(
-            "absolute top-1/2 left-0.5 -translate-y-1/2 rounded-full transition-[translate,width,height,background-color] duration-150 ease-(--ease-out)",
-            checked ? "size-5 translate-x-5 bg-white" : "size-4 translate-x-0.5 bg-ink-3"
+            // El botón crece al encenderse con scale, no con width/height (no recalcula el diseño).
+            "absolute top-1/2 left-0.5 size-5 -translate-y-1/2 rounded-full transition-[translate,scale,background-color] duration-150 ease-(--ease-out)",
+            checked ? "translate-x-5 bg-white" : "translate-x-0 scale-80 bg-ink-3"
           )}
         />
       </span>

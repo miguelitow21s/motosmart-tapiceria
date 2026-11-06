@@ -17,6 +17,7 @@ import {
 } from "@/features/admin/components/primitives";
 import { deleteRiderPhoto, moveRiderPhoto, patchRiderPhoto, uploadRiderPhoto } from "@/features/admin/lib/actions";
 import { confirmAction, notify, runBusy } from "@/features/admin/lib/feedback";
+import { rowTransitionName, withViewTransition } from "@/features/admin/lib/view-transition";
 import { retry, useAdminData, useAdminStore } from "@/features/admin/store/admin-data";
 import type { RiderPhoto } from "@/features/admin/types";
 
@@ -29,7 +30,7 @@ export function RidersTab() {
   const [announcement, setAnnouncement] = useState("");
 
   async function move(photo: RiderPhoto, index: number, direction: "up" | "down") {
-    await moveRiderPhoto(photo.id, direction);
+    await withViewTransition(() => moveRiderPhoto(photo.id, direction));
     setAnnouncement(`Foto de ${photo.rider_name} movida al puesto ${direction === "up" ? index : index + 2}.`);
   }
 
@@ -144,7 +145,10 @@ function RiderCard({
   onDelete: () => void;
 }) {
   return (
-    <li className="flex flex-col overflow-hidden rounded-lg border border-line">
+    <li
+      className="flex flex-col overflow-hidden rounded-lg border border-line bg-bg"
+      style={{ viewTransitionName: rowTransitionName("piloto", photo.id) }}
+    >
       <div className="relative">
         <Thumb src={photo.storage_path} alt="" className="aspect-[4/3] w-full" />
         <span className="absolute top-2 left-2 inline-flex h-7 min-w-7 items-center justify-center rounded-md bg-bg px-2 text-sm font-semibold tabular">

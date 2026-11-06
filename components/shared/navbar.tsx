@@ -79,7 +79,7 @@ export function Navbar({
   const closeMenu = () => setOpen(false);
 
   return (
-    <header className="sticky top-0 z-50 bg-header pt-[env(safe-area-inset-top)] text-white [--focus:#fff]">
+    <header className="vt-chrome-top sticky top-0 z-50 bg-header pt-[env(safe-area-inset-top)] text-white [--focus:#fff]">
       <div className={cn(containerClasses, "flex h-14 items-center gap-2")}>
         <Logo priority />
 
@@ -171,7 +171,7 @@ export function Navbar({
           inert={!open}
           className={cn(
             "fixed inset-x-0 top-[calc(3.5rem+env(safe-area-inset-top))] bottom-0 z-40 overflow-y-auto overscroll-contain bg-bg pb-[env(safe-area-inset-bottom)] text-ink [--focus:var(--ink)] md:hidden",
-            "transition-[opacity,translate] duration-[220ms] ease-out",
+            "transition-[opacity,translate] duration-[220ms] ease-(--ease-out)",
             open ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-2 opacity-0"
           )}
         >

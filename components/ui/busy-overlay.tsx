@@ -3,11 +3,12 @@ import { Loader2 } from "lucide-react";
 // Pantalla de espera del panel mientras se guarda o se sube algo. Cubre todo
 // (también los diálogos, z-80) para que no se pueda volver a pulsar "Guardar":
 // antes no había ninguna señal de que algo estuviera pasando y se pulsaba
-// varias veces.
+// varias veces. Se ve solo si la espera pasa de 300 ms (.busy-overlay en
+// globals.css), pero bloquea los toques desde el primer instante.
 export function BusyOverlay({ text }: { text: string | null }) {
   if (!text) return null;
   return (
-    <div className="fixed inset-0 z-90 flex items-center justify-center bg-ink/45 p-6">
+    <div className="busy-overlay fixed inset-0 z-90 flex items-center justify-center bg-ink/45 p-6">
       <div
         role="status"
         aria-live="polite"

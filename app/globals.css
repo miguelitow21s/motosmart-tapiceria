@@ -4,10 +4,9 @@
   Sistema de diseño de MotoSmart: la tienda estándar del rubro, hecha bien.
   Contrato de dirección en .impeccable/surfaces/app-page-tsx.md.
 
-  Los colores son tokens semánticos (fondo, superficie, tinta, línea, marca).
-  Las utilidades leen variables CSS, así que un bloque con data-theme="dark"
-  cambia de tema sin tocar clases. El panel /admin usa ese tema oscuro
-  mientras se reconstruye.
+  Los colores son tokens semánticos (fondo, superficie, tinta, línea, marca):
+  las utilidades leen variables CSS. La tienda y el panel usan el mismo tema
+  claro; la cabecera negra es la única superficie oscura (el logo lo pide).
 */
 
 @theme inline {
@@ -50,7 +49,10 @@
      (menús, hojas, toasts). Las tarjetas usan borde, no sombra. */
   --shadow-float: 0 12px 32px -12px rgb(17 17 17 / 0.28), 0 2px 6px -2px rgb(17 17 17 / 0.12);
 
+  /* Movimiento: una sola gramática. Lo que entra frena al llegar (ease-out);
+     las hojas del teléfono usan la curva de cajón de iOS. Nada pasa de 300 ms. */
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 :root {
@@ -74,19 +76,6 @@
   /* El logo es un recorte transparente con letras blancas: solo se lee sobre negro. */
   --header: #000000;
   --focus: #111111;
-}
-
-[data-theme="dark"] {
-  color-scheme: dark;
-  --bg: #0b0b0b;
-  --surface: #161616;
-  --surface-2: #202020;
-  --ink: #f5f5f5;
-  --ink-2: #c4c4c4;
-  --ink-3: #9a9a9a;
-  --line: #2a2a2a;
-  --line-strong: #3d3d3d;
-  --focus: #ffffff;
 }
 
 @layer base {
@@ -182,6 +171,20 @@
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
     }
+
+    /* Diálogos y hojas: un fundido corto en lugar de un salto. Tiene que vivir
+       en esta capa: un !important de una capa anterior gana a uno posterior. */
+    .modal-overlay[data-state="open"]::before,
+    .modal-panel[data-state="open"] {
+      animation: fade-in 150ms ease-out !important;
+    }
+    .modal-overlay[data-state="closed"]::before,
+    .modal-panel[data-state="closed"] {
+      animation: fade-out 150ms ease-out forwards !important;
+    }
+    .modal-overlay[data-state="closed"] {
+      animation: hold 150ms linear forwards !important;
+    }
   }
 }
 
@@ -230,4 +233,129 @@
   font-stretch: 75%;
   font-weight: 800;
   letter-spacing: -0.01em;
+}
+
+/*
+  Diálogos y hojas (components/ui/modal.tsx, sobre Radix). Radix marca
+  data-state="open" / "closed" y espera a que termine la animación de salida
+  antes de desmontar; el fondo dura lo mismo que el panel al salir porque el
+  panel vive dentro del fondo.
+  - El velo oscuro es el ::before del fondo y es lo único que se funde: si se
+    fundiera el fondo entero, el panel (su hijo) subiría medio transparente.
+    Al cerrar, el fondo corre «hold» (no cambia nada a la vista) solo para que
+    Radix lo mantenga montado mientras el panel sale.
+  - Teléfono: la hoja sube desde el borde de abajo y baja por el mismo borde.
+  - Escritorio: el diálogo crece apenas desde el centro (nunca desde 0).
+  - Movimiento reducido: solo un fundido corto, sin desplazamiento (en @layer base).
+*/
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes hold {
+  from,
+  to {
+    opacity: 1;
+  }
+}
+@keyframes sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+}
+@keyframes sheet-out {
+  to {
+    transform: translateY(100%);
+  }
+}
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+@keyframes dialog-out {
+  to {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+}
+
+@layer components {
+  .modal-overlay::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: color-mix(in oklab, var(--color-ink) 45%, transparent);
+  }
+  .modal-overlay[data-state="open"]::before {
+    animation: fade-in 200ms var(--ease-out);
+  }
+  .modal-overlay[data-state="closed"]::before {
+    animation: fade-out 200ms var(--ease-out) forwards;
+  }
+  .modal-overlay[data-state="closed"] {
+    animation: hold 200ms linear forwards;
+  }
+  .modal-panel[data-state="open"] {
+    animation: sheet-in 300ms var(--ease-drawer);
+  }
+  .modal-panel[data-state="closed"] {
+    animation: sheet-out 200ms var(--ease-drawer) forwards;
+  }
+
+  @media (width >= 40rem) {
+    .modal-overlay[data-state="closed"],
+    .modal-overlay[data-state="closed"]::before {
+      animation-duration: 150ms;
+    }
+    .modal-panel[data-state="open"] {
+      animation: dialog-in 200ms var(--ease-out);
+    }
+    .modal-panel[data-state="closed"] {
+      animation: dialog-out 150ms var(--ease-out) forwards;
+    }
+  }
+
+  /*
+    Pantalla de espera: bloquea los toques desde el primer instante, pero solo
+    se deja ver si la espera pasa de 300 ms. Un guardado rápido no parpadea.
+  */
+  .busy-overlay {
+    animation: fade-in 150ms var(--ease-out) 300ms both;
+  }
+}
+
+/*
+  Reordenar con las flechas (carrusel, pilotos): la fila viaja a su nuevo
+  puesto en lugar de aparecer ahí. Cada fila lleva su view-transition-name;
+  el resto de la página no se anima. Ver features/admin/lib/view-transition.ts.
+
+  Las filas con nombre se pintan encima de la captura de la página, así que
+  taparían la cabecera fija y la barra inferior del panel durante el viaje.
+  Con nombre propio, esas barras vuelven a quedar encima (orden de pintado).
+*/
+.vt-chrome-top {
+  view-transition-name: chrome-top;
+}
+.vt-chrome-bottom {
+  view-transition-name: chrome-bottom;
+}
+[data-sonner-toaster] {
+  view-transition-name: chrome-toasts;
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+::view-transition-group(*) {
+  animation-duration: 220ms;
+  animation-timing-function: var(--ease-out);
 }
