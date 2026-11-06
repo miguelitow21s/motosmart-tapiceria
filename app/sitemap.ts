@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { siteConfig } from "@/config/site";
-import { getActiveDesigns, getBrands } from "@/features/catalog/services/catalog.service";
+import { getStoreDesigns, getBrands } from "@/features/catalog/services/catalog.service";
 import { isFeatureEnabled } from "@/lib/feature-flags";
 
 /**
@@ -15,7 +15,7 @@ export const revalidate = 300;
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [brands, designs, catalogOn, ridersOn] = await Promise.all([
     getBrands(),
-    getActiveDesigns(),
+    getStoreDesigns(),
     isFeatureEnabled("catalog_enabled"),
     isFeatureEnabled("riders_enabled")
   ]);

@@ -313,6 +313,7 @@ export async function saveCarouselOrder(ids: string[]) {
     notify("error", res.error);
     return false;
   }
+  void refreshLoaded("activity");
   return true;
 }
 
@@ -465,6 +466,7 @@ export async function toggleProduct(product: Product) {
     return;
   }
   notify("success", is_active ? `${product.sku} activo` : `${product.sku} inactivo`);
+  void refreshLoaded("activity");
 }
 
 export async function deleteProduct(product: Product) {
@@ -475,6 +477,7 @@ export async function deleteProduct(product: Product) {
   }
   setAdminState((state) => ({ products: state.products.filter((item) => item.id !== product.id) }));
   notify("success", `${product.sku} eliminado`);
+  void refreshLoaded("activity");
   return true;
 }
 
@@ -515,6 +518,7 @@ export async function patchRiderPhoto(id: string, changes: RiderChanges, success
     return false;
   }
   if (successText) notify("success", successText);
+  void refreshLoaded("activity");
   return true;
 }
 
@@ -546,6 +550,7 @@ export async function moveRiderPhoto(id: string, direction: "up" | "down") {
     await loadData("riders", { force: true });
     return false;
   }
+  void refreshLoaded("activity");
   return true;
 }
 

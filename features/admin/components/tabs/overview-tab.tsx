@@ -63,7 +63,7 @@ export function OverviewTab() {
       if (noPhoto) {
         list.push({
           id: "no-photo",
-          text: `${plural(noPhoto, "diseño no tiene", "diseños no tienen")} foto principal`,
+          text: `${plural(noPhoto, "diseño sin foto no se muestra", "diseños sin foto no se muestran")} en la tienda`,
           action: "Ver cuáles",
           onClick: () => showDesigns("no-photo")
         });

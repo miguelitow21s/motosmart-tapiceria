@@ -96,8 +96,8 @@ async function findMissingPhotos(urls: string[]): Promise<Set<string>> {
 
 /**
  * Todos los diseños activos de marcas activas, ordenados por nombre. Uno con
- * la foto perdida queda "sin foto": así no ocupa los primeros puestos (van
- * primero los que tienen foto) mostrando un hueco.
+ * foto de stock o con la foto perdida queda "sin foto" (image_url vacío).
+ * La tienda usa getStoreDesigns; esta lista completa es para la demo del panel.
  */
 export const getActiveDesigns = cache(async (): Promise<DesignWithBrand[]> => {
   const supabase = createPublicSupabaseClient();
@@ -116,26 +116,37 @@ export const getActiveDesigns = cache(async (): Promise<DesignWithBrand[]> => {
 });
 
 /**
+ * Lo que la tienda muestra: solo diseños con foto propia. Una tarjeta con
+ * "Foto no disponible" en una tienda que vende por la foto se ve rota; el
+ * panel avisa en Resumen cuántos quedan fuera por no tener foto.
+ */
+export const getStoreDesigns = cache(async (): Promise<DesignWithBrand[]> => {
+  const designs = await getActiveDesigns();
+  return designs.filter((design) => design.image_url);
+});
+
+/**
  * Los mismos diseños, guardados 5 minutos fuera del render. La búsqueda es la
  * única página de la tienda que se arma en cada visita (lee ?q=): así no
  * consulta Supabase ni revisa las fotos con cada búsqueda. refreshStore() la
  * borra al guardar en el panel.
  */
-export const getSearchableDesigns = unstable_cache(() => getActiveDesigns(), ["tienda-disenos"], {
+// La clave cambia cuando cambia lo que se guarda: la caché de datos de Vercel
+// sobrevive entre despliegues y serviría una vez la lista vieja.
+export const getSearchableDesigns = unstable_cache(() => getStoreDesigns(), ["tienda-disenos-con-foto"], {
   revalidate: 300,
   tags: [STORE_TAG]
 });
 
-// Inicio: un diseño real por marca activa (con foto propia si la marca tiene),
-// con precio y botón de WhatsApp.
+// Inicio: un diseño con foto por marca activa, con precio y botón de WhatsApp.
 // PostgREST no tiene "un registro por grupo" en el cliente JS, así que se
 // agrupa en memoria: a esta escala (marcas x diseños de un taller) es trivial.
 export async function getFeaturedDesigns(limit = 8): Promise<DesignWithBrand[]> {
-  const designs = await getActiveDesigns();
+  const designs = await getStoreDesigns();
   const seenBrands = new Set<string>();
   const featured: DesignWithBrand[] = [];
   const ordered = [...designs].sort(
-    (a, b) => a.brand_name.localeCompare(b.brand_name, "es") || photoFirst(a, b) || a.name.localeCompare(b.name, "es")
+    (a, b) => a.brand_name.localeCompare(b.brand_name, "es") || a.name.localeCompare(b.name, "es")
   );
   for (const design of ordered) {
     if (seenBrands.has(design.brand_id)) continue;

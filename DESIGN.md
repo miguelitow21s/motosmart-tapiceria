@@ -359,7 +359,8 @@ Una sola gramática, con `transform` y `opacity`, y nada por encima de 300 ms. L
 - **Do** escribir títulos y precios en Archivo 800 condensado (`type-display`) y el resto en 400 a 600 de ancho normal.
 - **Do** usar solo `transform` y `opacity` para mover cosas, con `--ease-out` (`cubic-bezier(0.23, 1, 0.32, 1)`) o `--ease-drawer`, y nada por encima de 300 ms.
 - **Do** dar a cada hover la guarda de puntero fino y a cada animación su salida con `prefers-reduced-motion` (fundido corto o quieto).
-- **Do** mostrar "Consultar precio" cuando el precio guardado es implausible, y "Foto no disponible" cuando la foto falla.
+- **Do** mostrar "Consultar precio" cuando el precio guardado es implausible, y "Foto no disponible" cuando la foto falla en el navegador.
+- **Do** dejar fuera de la tienda los diseños sin foto propia (sin foto, foto de stock o foto borrada de Storage): `getStoreDesigns` los filtra en el servidor y el Resumen del panel cuenta cuántos quedan fuera. Una marca sin diseños con foto muestra su estado vacío con WhatsApp.
 
 ### Don't:
 - **Don't** poner el logo sobre blanco o sobre rojo; vive sobre `header` negro puro.

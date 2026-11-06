@@ -141,7 +141,8 @@ function promoSummary(draft: DesignDraft) {
   const percent = Math.round(((base - discount) / base) * 100);
   const from = draft.promotion_starts_at ? `desde el ${formatWhen(draft.promotion_starts_at)}` : "desde ya";
   const until = draft.promotion_ends_at ? `hasta el ${formatWhen(draft.promotion_ends_at)}` : "sin fecha de fin";
-  return `Se verá a ${formatCOP(discount)} en vez de ${formatCOP(base)} (−${percent} %), ${from}, ${until}.`;
+  // La hora ya termina en "a. m."/"p. m.": sin esto quedaba "a. m..".
+  return `Se verá a ${formatCOP(discount)} en vez de ${formatCOP(base)} (−${percent} %), ${from}, ${until}${until.endsWith(".") ? "" : "."}`;
 }
 
 export function DesignDialogHost() {
