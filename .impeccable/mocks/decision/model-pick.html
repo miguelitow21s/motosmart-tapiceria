@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=390">
+<title>El muestrario</title>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { width: 390px; height: 844px; overflow: hidden; background: #1B1B1B; color: #fff; font-family: "Segoe UI", Helvetica, Arial, sans-serif; position: relative; }
+  .rings { height: 34px; display: flex; justify-content: center; gap: 120px; align-items: center; }
+  .rings i { width: 26px; height: 26px; border-radius: 50%; border: 5px solid #8E8B85; display: block; }
+  header { padding: 6px 20px 14px; display: flex; justify-content: space-between; align-items: center; }
+  .logo { width: 84px; height: 40px; border-radius: 8px; background: #000; display: grid; place-items: center; font: italic 900 12px Arial; }
+  .logo b { color: #C8102E; }
+  h1 { padding: 0 20px; font: 800 34px/1 "Arial Narrow", "Segoe UI", Arial, sans-serif; letter-spacing: -0.01em; text-transform: uppercase; }
+  .tabs { position: absolute; right: 0; top: 190px; display: flex; flex-direction: column; gap: 6px; }
+  .tabs span { width: 34px; height: 74px; background: #8E8B85; color: #1B1B1B; border-radius: 8px 0 0 8px; writing-mode: vertical-rl; display: grid; place-items: center; font-weight: 700; font-size: 13px; }
+  .tabs span.on { background: #fff; width: 40px; }
+  .stack { position: absolute; left: 20px; top: 180px; width: 300px; }
+  .card { position: absolute; left: 0; width: 300px; background: #fff; color: #1B1B1B; border-radius: 4px; }
+  .card.back1 { top: -14px; left: 10px; height: 440px; background: #e9e6df; }
+  .card.back2 { top: -28px; left: 20px; height: 440px; background: #d6d2c9; }
+  .card.top { top: 0; padding: 12px; clip-path: polygon(0 0, 100% 0, 100% 96%, 95% 100%, 90% 96%, 85% 100%, 80% 96%, 75% 100%, 70% 96%, 65% 100%, 60% 96%, 55% 100%, 50% 96%, 45% 100%, 40% 96%, 35% 100%, 30% 96%, 25% 100%, 20% 96%, 15% 100%, 10% 96%, 5% 100%, 0 96%); }
+  .shot { height: 300px; background: linear-gradient(#5a524a, #3b3631); position: relative; }
+  .seat { position: absolute; left: 50%; top: 24px; width: 120px; height: 250px; transform: translateX(-50%); border-radius: 60px 60px 40px 40px; background: #161616; }
+  .seat::before { content: ""; position: absolute; inset: 40px 20px; border-radius: 30px; background: repeating-linear-gradient(45deg, #C8102E 0 10px, #9e0c23 10px 20px); }
+  .ref { display: flex; justify-content: space-between; align-items: baseline; padding: 12px 2px 26px; border-top: 1px dashed #8E8B85; margin-top: 12px; }
+  .ref strong { font: 800 30px/1 "Arial Narrow", Arial, sans-serif; }
+  .ref em { font: 700 24px/1 "Segoe UI", Arial; font-style: normal; font-variant-numeric: tabular-nums; }
+  .cta { position: absolute; left: 20px; right: 20px; bottom: 34px; height: 56px; border-radius: 6px; background: #C8102E; display: grid; place-items: center; font: 700 22px/1 "Segoe UI", Arial; }
+</style>
+</head>
+<body>
+  <div class="rings"><i></i><i></i></div>
+  <header><div class="logo">Moto<b>Smart</b></div><span style="font-size:13px;color:#8E8B85">Muestrario 2026</span></header>
+  <h1>Muestrario AKT</h1>
+  <div class="tabs"><span class="on">AKT</span><span>Honda</span><span>Yamaha</span><span>Suzuki</span></div>
+  <div class="stack">
+    <div class="card back2"></div>
+    <div class="card back1"></div>
+    <div class="card top">
+      <div class="shot"><div class="seat"></div></div>
+      <div class="ref"><strong>AKT-07</strong><em>$145.000</em></div>
+    </div>
+  </div>
+  <div class="cta">Cotizar AKT-07</div>
+</body>
+</html>

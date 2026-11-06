@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=390">
+<title>La tienda de siempre</title>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { width: 390px; height: 844px; overflow: hidden; background: #fff; color: #141414; font-family: "Segoe UI", Helvetica, Arial, sans-serif; }
+  nav { height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-bottom: 1px solid #e6e6e6; }
+  .logo { width: 84px; height: 40px; border-radius: 8px; background: #000; display: grid; place-items: center; color: #fff; font: italic 900 12px Arial; }
+  .logo b { color: #D0021B; }
+  .menu { width: 44px; height: 44px; border-radius: 10px; border: 1px solid #e6e6e6; }
+  .hero { height: 330px; position: relative; background: linear-gradient(#5a524a, #2c2925); overflow: hidden; }
+  .seat { position: absolute; right: 30px; top: 22px; width: 116px; height: 236px; border-radius: 56px 56px 36px 36px; background: #161616; }
+  .seat::before { content: ""; position: absolute; inset: 36px 20px; border-radius: 26px; background: repeating-linear-gradient(45deg, #b0101c 0 10px, #8f0b16 10px 20px); }
+  .copy { position: absolute; left: 16px; right: 16px; bottom: 18px; color: #fff; }
+  .copy h1 { font: 800 28px/1.08 "Segoe UI", Arial; letter-spacing: -0.02em; margin-bottom: 12px; max-width: 220px; }
+  .btn { height: 50px; border-radius: 12px; background: #D0021B; display: grid; place-items: center; font: 700 17px/1 "Segoe UI", Arial; }
+  .search { margin: 16px; height: 48px; border-radius: 12px; border: 1px solid #ccc; display: flex; align-items: center; padding: 0 14px; color: #6b6b6b; font-size: 16px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 16px; }
+  .p .img { height: 190px; border-radius: 12px; background: #f1f1f1; position: relative; overflow: hidden; }
+  .p .img i { position: absolute; left: 50%; top: 18px; width: 70px; height: 154px; transform: translateX(-50%); border-radius: 34px 34px 22px 22px; background: #161616; }
+  .p .img i::before { content: ""; position: absolute; inset: 24px 12px; border-radius: 16px; background: repeating-linear-gradient(45deg, #b0101c 0 8px, #8f0b16 8px 16px); }
+  .p h3 { font: 600 14px/1.2 "Segoe UI", Arial; margin-top: 8px; }
+  .p strong { display: block; font: 700 17px/1.2 "Segoe UI", Arial; font-variant-numeric: tabular-nums; margin-top: 2px; }
+</style>
+</head>
+<body>
+  <nav><div class="logo">Moto<b>Smart</b></div><div class="menu"></div></nav>
+  <section class="hero"><div class="seat"></div><div class="copy"><h1>Tapicería para tu moto, hecha a mano en Medellín</h1><div class="btn">Cotizar por WhatsApp</div></div></section>
+  <div class="search">Busca tu marca y modelo</div>
+  <div class="grid">
+    <div class="p"><div class="img"><i></i></div><h3>Yamaha DT 125</h3><strong>$145.000</strong></div>
+    <div class="p"><div class="img"><i></i></div><h3>AKT NKD 125</h3><strong>$120.000</strong></div>
+  </div>
+</body>
+</html>
