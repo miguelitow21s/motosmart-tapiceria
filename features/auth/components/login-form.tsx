@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,7 +9,6 @@ import { getCsrfToken } from "@/lib/csrf-client";
 const FALLBACK_ERROR = "No pudimos iniciar sesión. Revisa el correo y la contraseña.";
 
 export function LoginForm() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -48,8 +46,12 @@ export function LoginForm() {
       return;
     }
 
-    router.push("/admin");
-    router.refresh();
+    // Carga completa, no router.push + router.refresh: en producción esa pareja
+    // dejaba el botón en "Ingresando" para siempre (la sesión sí quedaba
+    // abierta y bastaba recargar). Una carga nueva es lo mismo que recargar:
+    // el servidor pinta /admin con las cookies recién puestas. El botón sigue
+    // cargando hasta que el navegador cambia de página.
+    window.location.assign("/admin");
   }
 
   const errorId = error ? "login-error" : undefined;
