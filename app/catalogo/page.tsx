@@ -7,13 +7,13 @@ import { containerClasses } from "@/components/shared/section";
 import { BrandBar } from "@/features/catalog/components/brand-bar";
 import { CatalogSearch } from "@/features/catalog/components/catalog-search";
 import { DesignGrid } from "@/features/catalog/components/design-grid";
-import { getActiveDesigns, getBrands, sortForStore } from "@/features/catalog/services/catalog.service";
+import { getStoreDesigns, getBrands, sortForStore } from "@/features/catalog/services/catalog.service";
 import { isFeatureEnabled } from "@/lib/feature-flags";
 import { pageMetadata } from "@/lib/seo";
 import { cn } from "@/lib/cn";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const designs = await getActiveDesigns();
+  const designs = await getStoreDesigns();
   const photo = designs.find((design) => design.image_url);
   return pageMetadata({
     title: "Catálogo de tapicería para moto por marca",
@@ -32,7 +32,7 @@ export default async function CatalogoPage() {
   const [enabled, brands, designs] = await Promise.all([
     isFeatureEnabled("catalog_enabled", { onError: "open" }),
     getBrands(),
-    getActiveDesigns()
+    getStoreDesigns()
   ]);
   if (!enabled) redirect("/");
 

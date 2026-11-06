@@ -7,7 +7,7 @@ import { containerClasses } from "@/components/shared/section";
 import { siteConfig } from "@/config/site";
 import { BrandBar } from "@/features/catalog/components/brand-bar";
 import { DesignGrid } from "@/features/catalog/components/design-grid";
-import { getActiveDesigns, getBrands, type DesignWithBrand } from "@/features/catalog/services/catalog.service";
+import { getStoreDesigns, getBrands, type DesignWithBrand } from "@/features/catalog/services/catalog.service";
 import { pageMetadata } from "@/lib/seo";
 import { cn } from "@/lib/cn";
 import { getPromotionMeta } from "@/lib/utils";
@@ -19,7 +19,7 @@ type Props = { params: Promise<{ slug: string }> };
  * (cacheadas) que usan el catálogo y la barra de marcas.
  */
 async function loadBrand(slug: string) {
-  const [brands, designs] = await Promise.all([getBrands(), getActiveDesigns()]);
+  const [brands, designs] = await Promise.all([getBrands(), getStoreDesigns()]);
   const brand = brands.find((item) => item.slug === slug);
   return { brands, brand, designs: brand ? designs.filter((design) => design.brand_id === brand.id) : [] };
 }
