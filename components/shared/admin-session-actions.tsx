@@ -1,12 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { getCsrfToken } from "@/lib/csrf-client";
 
 export function AdminSessionActions({ compact = false }: { compact?: boolean }) {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
 
@@ -20,15 +18,16 @@ export function AdminSessionActions({ compact = false }: { compact?: boolean }) 
         }
       });
       if (!res.ok) throw new Error(`logout ${res.status}`);
-      router.push("/");
-      router.refresh();
+      // Carga completa (como en el ingreso): borra todo lo del panel que
+      // quedara en memoria y no depende de que router.refresh() termine.
+      window.location.assign("/");
+      return;
     } catch {
       // Antes se navegaba igual al inicio aunque la sesión siguiera abierta:
       // en un equipo prestado, eso es creer que se salió sin haber salido.
       // Sin sonner aquí: este botón también va en la cabecera de la tienda y
       // no debe cargarle esa librería a cada visitante.
       setFailed(true);
-    } finally {
       setLoading(false);
     }
   }
