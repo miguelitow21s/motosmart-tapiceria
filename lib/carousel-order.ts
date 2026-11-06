@@ -6,6 +6,12 @@
 // Primero van las fotos en el orden guardado en settings.carousel_order; las
 // que no estan ahi (recien subidas) van despues, de la mas nueva a la mas vieja.
 
+/**
+ * Cuántas fotos muestra el carrusel de la tienda. El panel no deja marcar más:
+ * una foto de sobra no se vería y la administradora no sabría por qué.
+ */
+export const CAROUSEL_MAX = 12;
+
 export function parseCarouselOrder(value: unknown): string[] {
   if (!value || typeof value !== "object") return [];
   const ids = (value as { ids?: unknown }).ids;

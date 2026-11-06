@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { containerClasses } from "@/components/shared/section";
-import { AdminDashboard } from "@/features/admin/components/admin-dashboard-impl";
+import { AdminDashboard } from "@/features/admin/components/admin-dashboard";
 import { canAccessAdmin, getCurrentUserRole } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
-export const metadata: Metadata = { robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Panel", robots: { index: false, follow: false } };
 
 export default async function AdminPage() {
   const { user, role } = await getCurrentUserRole();
@@ -18,17 +18,9 @@ export default async function AdminPage() {
     redirect("/");
   }
 
-  // Tema oscuro provisional: el panel todavía usa sus clases de color viejas
-  // y se rehace en la Fase 5 con los tokens claros del sistema.
   return (
-    <div data-theme="dark" className="min-h-dvh bg-bg text-ink">
-      <div className={cn(containerClasses, "py-8 sm:py-10 md:py-16")}>
-        <h1 className="font-display text-3xl text-white sm:text-4xl">Panel admin</h1>
-        <p className="mt-2 text-neutral-300">Rol actual: {role}</p>
-        <div className="mt-6 sm:mt-8">
-          <AdminDashboard />
-        </div>
-      </div>
+    <div className={cn(containerClasses, "pt-5 pb-28 lg:pt-8 lg:pb-16")}>
+      <AdminDashboard roleLabel={role === "admin" ? "administrador" : "editor"} canPurge={role === "admin"} />
     </div>
   );
 }

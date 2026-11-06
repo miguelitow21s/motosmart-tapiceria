@@ -20,17 +20,13 @@ const publicLinks = [
   { href: "/contactanos", label: "Contacto" }
 ];
 
-const adminLinks = [
-  { href: "/admin", label: "Resumen" },
-  { href: "/admin#brands", label: "Marcas" },
-  { href: "/admin#designs", label: "Precios y diseños" },
-  { href: "/admin#media", label: "Fotos" },
-  { href: "/admin#riders", label: "Pilotos" },
-  { href: "/admin#features", label: "Módulos" }
-];
+// En el panel, las secciones viven en su propia navegación (lateral o barra
+// inferior): la cabecera solo lleva el logo, "Ver tienda" y la sesión.
+function isAdminPath(pathname: string) {
+  return pathname.startsWith("/admin") || pathname.startsWith("/panel-demo");
+}
 
 function isActive(pathname: string, href: string) {
-  if (href.includes("#")) return false;
   if (href === "/") return pathname === "/";
   // Una marca es parte del catálogo.
   if (href === "/catalogo" && pathname.startsWith("/marca/")) return true;
@@ -45,8 +41,8 @@ export function Navbar({
   whatsappHref: string;
 }) {
   const pathname = usePathname();
-  const inAdmin = pathname.startsWith("/admin");
-  const links = inAdmin ? adminLinks : publicLinks;
+  const inAdmin = isAdminPath(pathname);
+  const links = publicLinks;
   const [open, setOpen] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const firstLinkRef = useRef<HTMLAnchorElement>(null);
@@ -87,7 +83,11 @@ export function Navbar({
       <div className={cn(containerClasses, "flex h-14 items-center gap-2")}>
         <Logo priority />
 
-        <nav aria-label="Principal" className="ml-6 hidden md:block">
+        {inAdmin ? (
+          <span className="ml-1 hidden border-l border-white/25 pl-3 text-[0.9375rem] font-medium text-white/75 sm:inline">Panel</span>
+        ) : null}
+
+        <nav aria-label="Principal" className={cn("ml-6 hidden", !inAdmin && "md:block")}>
           <ul className="flex items-center gap-1">
             {links.map((link) => {
               const active = isActive(pathname, link.href);
@@ -113,14 +113,17 @@ export function Navbar({
 
         <div className="ml-auto flex items-center gap-2">
           {inAdmin ? (
-            <div className="hidden items-center gap-2 md:flex">
+            <div className="flex items-center gap-2">
               <Link
                 href="/"
-                className="inline-flex h-11 items-center rounded-md px-3 text-[0.9375rem] font-medium text-white/75 hover:text-white"
+                className="inline-flex h-11 items-center rounded-md px-3 text-[0.9375rem] font-medium text-white/75 transition-colors duration-150 hover:text-white"
               >
                 Ver tienda
               </Link>
-              <AdminSessionActions compact />
+              {/* En el teléfono, cerrar sesión está en "Más" de la barra inferior del panel. */}
+              <div className="hidden lg:block">
+                <AdminSessionActions compact />
+              </div>
             </div>
           ) : (
             <>
@@ -149,6 +152,7 @@ export function Navbar({
           <button
             ref={menuButtonRef}
             type="button"
+            hidden={inAdmin}
             className="inline-flex size-11 items-center justify-center rounded-lg text-white transition-colors duration-150 hover:bg-white/10 active:scale-[0.97] md:hidden"
             onClick={() => setOpen((prev) => !prev)}
             aria-expanded={open}
@@ -161,46 +165,37 @@ export function Navbar({
       </div>
 
       {/* Menú del teléfono: una hoja a pantalla completa bajo la barra negra. */}
-      <div
-        id="menu-movil"
-        inert={!open}
-        className={cn(
-          "fixed inset-x-0 top-[calc(3.5rem+env(safe-area-inset-top))] bottom-0 z-40 overflow-y-auto overscroll-contain bg-bg pb-[env(safe-area-inset-bottom)] text-ink [--focus:var(--ink)] md:hidden",
-          "transition-[opacity,translate] duration-[220ms] ease-out",
-          open ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-2 opacity-0"
-        )}
-      >
-        <nav aria-label="Menú" className={cn(containerClasses, "py-4")}>
-          <ul className="divide-y divide-line border-b border-line">
-            {links.map((link, index) => {
-              const active = isActive(pathname, link.href);
-              return (
-                <li key={link.href}>
-                  <Link
-                    ref={index === 0 ? firstLinkRef : undefined}
-                    href={link.href}
-                    onClick={closeMenu}
-                    aria-current={active ? "page" : undefined}
-                    className="type-display flex h-16 items-center justify-between text-2xl"
-                  >
-                    <span className={cn(active && "underline decoration-brand decoration-2 underline-offset-8")}>{link.label}</span>
-                    <ChevronRight aria-hidden="true" className="size-5 text-ink-3" />
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+      {!inAdmin ? (
+        <div
+          id="menu-movil"
+          inert={!open}
+          className={cn(
+            "fixed inset-x-0 top-[calc(3.5rem+env(safe-area-inset-top))] bottom-0 z-40 overflow-y-auto overscroll-contain bg-bg pb-[env(safe-area-inset-bottom)] text-ink [--focus:var(--ink)] md:hidden",
+            "transition-[opacity,translate] duration-[220ms] ease-out",
+            open ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-2 opacity-0"
+          )}
+        >
+          <nav aria-label="Menú" className={cn(containerClasses, "py-4")}>
+            <ul className="divide-y divide-line border-b border-line">
+              {links.map((link, index) => {
+                const active = isActive(pathname, link.href);
+                return (
+                  <li key={link.href}>
+                    <Link
+                      ref={index === 0 ? firstLinkRef : undefined}
+                      href={link.href}
+                      onClick={closeMenu}
+                      aria-current={active ? "page" : undefined}
+                      className="type-display flex h-16 items-center justify-between text-2xl"
+                    >
+                      <span className={cn(active && "underline decoration-brand decoration-2 underline-offset-8")}>{link.label}</span>
+                      <ChevronRight aria-hidden="true" className="size-5 text-ink-3" />
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
 
-          {inAdmin ? (
-            <div className="mt-6 grid gap-3">
-              <Button asChild variant="secondary" size="lg" className="w-full">
-                <Link href="/" onClick={closeMenu}>
-                  Ver tienda
-                </Link>
-              </Button>
-              <AdminSessionActions />
-            </div>
-          ) : (
             <div className="mt-6 grid gap-3">
               <Button asChild size="lg" className="w-full">
                 <WhatsAppLink href={whatsappHref} source="menu" onClick={closeMenu}>
@@ -219,9 +214,9 @@ export function Navbar({
                 </>
               ) : null}
             </div>
-          )}
-        </nav>
-      </div>
+          </nav>
+        </div>
+      ) : null}
     </header>
   );
 }

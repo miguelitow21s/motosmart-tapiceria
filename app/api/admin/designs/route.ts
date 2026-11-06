@@ -192,7 +192,7 @@ export async function PATCH(request: Request) {
 
   const supabase = createAdminSupabaseClient();
   const id = parsedId.data.id;
-  const { id: _ignoredId, ...rest } = parsed.data;
+  const { id: _id, ...rest } = parsed.data; // el id va en el filtro, no en las columnas
   const normalized = normalizePromotionPayload(rest);
   const { error } = await supabase
     .from("designs")

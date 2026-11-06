@@ -3,6 +3,7 @@ import { Archivo } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/shared/navbar";
 import { Footer } from "@/components/shared/footer";
+import { HideOnAdmin } from "@/components/shared/hide-on-admin";
 import { siteConfig } from "@/config/site";
 import { canAccessAdmin, getCurrentUserRole } from "@/lib/auth";
 import { buildWhatsAppUrl, getSiteSettings } from "@/lib/settings";
@@ -69,7 +70,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <main id="contenido" tabIndex={-1} className="outline-none">
           {children}
         </main>
-        <Footer isAuthenticated={canOpenPanel} />
+        <HideOnAdmin>
+          <Footer isAuthenticated={canOpenPanel} />
+        </HideOnAdmin>
       </body>
     </html>
   );

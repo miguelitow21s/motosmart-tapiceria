@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { parseCarouselOrder, sortByCarouselOrder } from "@/lib/carousel-order";
+import { CAROUSEL_MAX, parseCarouselOrder, sortByCarouselOrder } from "@/lib/carousel-order";
 import type { Brand, Design } from "@/types";
 import { getPromotionMeta } from "@/lib/utils";
 
@@ -167,8 +167,6 @@ export type CarouselSlide = {
   href: string;
 };
 
-const MAX_PUBLIC_SLIDES = 12;
-
 /**
  * "Trabajos de la semana": las fotos marcadas en el panel, en el orden que
  * guardó la administradora. Se lee en el servidor (antes el navegador las
@@ -206,7 +204,7 @@ export const getCarouselSlides = cache(async (): Promise<CarouselSlide[]> => {
 
   const ordered = sortByCarouselOrder((data ?? []) as Row[], parseCarouselOrder(orderSetting?.value)).slice(
     0,
-    MAX_PUBLIC_SLIDES
+    CAROUSEL_MAX
   );
 
   return ordered.map((row) => {

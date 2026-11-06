@@ -7,7 +7,7 @@
 const KNOWN_ERRORS: Record<string, string> = {
   Forbidden: "Tu sesión expiró o no tienes permiso. Vuelve a iniciar sesión.",
   "CSRF invalido": "La sesión del panel expiró. Recarga la página e intenta de nuevo.",
-  "Feature disabled": "La subida de fotos está apagada. Actívala en Feature Flags > admin_uploads_enabled.",
+  "Feature disabled": "La subida de fotos está apagada. Enciéndela en Módulos > Subir fotos desde el panel.",
   "File required": "Elige una foto antes de subir.",
   "Error interno": "Error interno del servidor. Intenta de nuevo en un momento."
 };
