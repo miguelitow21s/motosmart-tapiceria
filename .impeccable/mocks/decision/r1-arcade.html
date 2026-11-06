@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=390">
+<title>Elige tu moto</title>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { width: 390px; height: 844px; overflow: hidden; color: #F4F4F4; font-family: Consolas, "Courier New", monospace; position: relative;
+    background: repeating-linear-gradient(#0B0B0E 0 3px, #060608 3px 4px); }
+  header { height: 56px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; font-size: 13px; }
+  header b { color: #F2C94C; }
+  h1 { text-align: center; font: 900 30px/1 Consolas, monospace; letter-spacing: 0.12em; padding: 6px 0 14px; text-shadow: 3px 3px 0 #D0021B; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 0 16px; }
+  .tile { height: 76px; border: 4px solid #3b3b44; display: grid; place-items: center; font-weight: 900; font-size: 13px; background: #15151b; }
+  .tile.on { border-color: #F4F4F4; outline: 4px solid #D0021B; outline-offset: 2px; background: #22222b; }
+  .item { margin: 18px 16px 0; border: 4px solid #F4F4F4; display: grid; grid-template-columns: 150px 1fr; height: 238px; }
+  .ph { background: linear-gradient(#5a524a, #3b3631); position: relative; border-right: 4px solid #F4F4F4; }
+  .ph i { position: absolute; left: 50%; top: 14px; width: 74px; height: 200px; transform: translateX(-50%); border-radius: 36px 36px 22px 22px; background: #161616; }
+  .ph i::before { content: ""; position: absolute; inset: 30px 12px; border-radius: 18px; background: repeating-linear-gradient(45deg, #b0101c 0 8px, #8f0b16 8px 16px); }
+  .stats { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+  .stats small { font-size: 12px; color: #9a9aa6; }
+  .stats .score { font: 900 26px/1 Consolas, monospace; }
+  .pu { align-self: flex-start; background: #F2C94C; color: #0B0B0E; padding: 4px 8px; font-weight: 900; font-size: 12px; }
+  .cta { position: absolute; left: 16px; right: 16px; bottom: 32px; height: 56px; background: #D0021B; border: 4px solid #F4F4F4; display: grid; place-items: center; font: 900 22px/1 Consolas, monospace; letter-spacing: 0.08em; }
+</style>
+</head>
+<body>
+  <header><span>MOTOSMART</span><b>PROMO ★ 2</b></header>
+  <h1>ELIGE TU MOTO</h1>
+  <div class="grid">
+    <div class="tile on">AKT</div><div class="tile">HONDA</div><div class="tile">YAMAHA</div>
+    <div class="tile">SUZUKI</div><div class="tile">KAWA</div><div class="tile">MÁS</div>
+  </div>
+  <div class="item">
+    <div class="ph"><i></i></div>
+    <div class="stats"><small>AKT DESIGN 2</small><span class="score">145.000</span><span class="pu">POWER-UP</span><small>DIAMANTE · ROJO</small></div>
+  </div>
+  <div class="cta">COTIZAR ▶</div>
+</body>
+</html>

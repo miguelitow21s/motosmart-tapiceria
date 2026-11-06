@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=390">
+<title>La tienda de siempre</title>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { width: 390px; height: 844px; overflow: hidden; background: #fff; color: #141414; font-family: "Segoe UI", Helvetica, Arial, sans-serif; }
+  nav { height: 64px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-bottom: 1px solid #e6e6e6; }
+  .logo { width: 84px; height: 40px; border-radius: 8px; background: #000; display: grid; place-items: center; color: #fff; font: italic 900 12px Arial; }
+  .logo b { color: #D0021B; }
+  .menu { width: 44px; height: 44px; border-radius: 10px; border: 1px solid #e6e6e6; }
+  .hero { height: 420px; position: relative; background: linear-gradient(#5a524a, #2c2925); overflow: hidden; }
+  .seat { position: absolute; right: 30px; top: 30px; width: 130px; height: 270px; border-radius: 60px 60px 40px 40px; background: #161616; }
+  .seat::before { content: ""; position: absolute; inset: 40px 22px; border-radius: 30px; background: repeating-linear-gradient(45deg, #b0101c 0 10px, #8f0b16 10px 20px); }
+  .copy { position: absolute; left: 16px; right: 16px; bottom: 20px; color: #fff; }
+  .copy h1 { font: 800 32px/1.05 "Segoe UI", Arial; letter-spacing: -0.02em; margin-bottom: 14px; }
+  .btn { height: 52px; border-radius: 12px; background: #D0021B; display: grid; place-items: center; font: 700 22px/1 "Segoe UI", Arial; }
+  .filters { display: flex; gap: 8px; padding: 16px; overflow: hidden; }
+  .filters span { height: 40px; padding: 0 16px; border-radius: 20px; border: 1px solid #ddd; display: inline-flex; align-items: center; font-size: 14px; white-space: nowrap; }
+  .filters span.on { background: #141414; color: #fff; border-color: #141414; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 16px; }
+  .p { height: 240px; border-radius: 12px; background: #f1f1f1; }
+</style>
+</head>
+<body>
+  <nav><div class="logo">Moto<b>Smart</b></div><div class="menu"></div></nav>
+  <section class="hero"><div class="seat"></div><div class="copy"><h1>Tapicería de moto hecha a mano en Medellín</h1><div class="btn">Cotizar por WhatsApp</div></div></section>
+  <div class="filters"><span class="on">Todas</span><span>AKT</span><span>Honda</span><span>Yamaha</span><span>Suzuki</span></div>
+  <div class="grid"><div class="p"></div><div class="p"></div></div>
+</body>
+</html>

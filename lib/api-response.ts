@@ -1,6 +1,14 @@
 import { NextResponse } from "next/server";
 import type { ZodError } from "zod";
 
+/**
+ * Cuerpo JSON de la petición, o undefined si no es JSON válido. Así un cuerpo
+ * roto termina en 400 (el schema lo rechaza) y no en un 500 sin explicación.
+ */
+export function readJson(request: Request): Promise<unknown> {
+  return request.json().catch(() => undefined);
+}
+
 export function invalidPayload(error: ZodError) {
   return NextResponse.json(
     {

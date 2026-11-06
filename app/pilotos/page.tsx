@@ -1,32 +1,42 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { SectionContainer } from "@/components/shared/section-container";
+import { ClosingCta } from "@/components/shared/closing-cta";
+import { PageIntro } from "@/components/shared/page-intro";
+import { containerClasses } from "@/components/shared/section";
 import { RiderGallery } from "@/features/riders/components/rider-gallery";
 import { getRiderPhotos } from "@/features/riders/services/rider-photos.service";
 import { isFeatureEnabled } from "@/lib/feature-flags";
+import { pageMetadata } from "@/lib/seo";
+import { cn } from "@/lib/cn";
 
-export const revalidate = 0;
 
-export const metadata: Metadata = {
-  title: "Nuestros pilotos",
-  description:
-    "Motociclistas de Medellín que ya confiaron en MotoSmart Tapicería para vestir el asiento de su moto. Mira sus fotos y cotiza la tuya por WhatsApp."
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const photos = await getRiderPhotos();
+  const photo = photos[0];
+  return pageMetadata({
+    title: "Nuestros pilotos",
+    description:
+      "Motociclistas de Medellín que ya confiaron en MotoSmart Tapicería para vestir el asiento de su moto. Mira sus fotos y cotiza la tuya por WhatsApp.",
+    path: "/pilotos",
+    image: photo?.storage_path,
+    imageAlt: photo ? `${photo.rider_name} en su moto con la silla de MotoSmart` : undefined
+  });
+}
 
 export default async function PilotosPage() {
-  const enabled = await isFeatureEnabled("riders_enabled");
+  const [enabled, photos] = await Promise.all([isFeatureEnabled("riders_enabled", { onError: "open" }), getRiderPhotos()]);
   if (!enabled) redirect("/");
-  const photos = await getRiderPhotos();
 
   return (
-    <SectionContainer className="py-16">
-      <h1 className="font-display text-3xl text-white sm:text-4xl">Nuestros pilotos</h1>
-      <p className="mt-3 max-w-2xl text-neutral-300">
-        Motos reales de clientes reales, vestidas con tapicería MotoSmart. Súbenos tu foto por WhatsApp cuando recibas la tuya.
-      </p>
-      <div className="mt-8">
+    <>
+      <PageIntro
+        title="Nuestros pilotos"
+        lead="Motos reales de clientes reales, con su silla MotoSmart. Cuando recibas la tuya, mándanos la foto por WhatsApp."
+      />
+      <div className={cn(containerClasses, "pt-2 pb-12 md:pb-16")}>
         <RiderGallery photos={photos} />
       </div>
-    </SectionContainer>
+      <ClosingCta />
+    </>
   );
 }

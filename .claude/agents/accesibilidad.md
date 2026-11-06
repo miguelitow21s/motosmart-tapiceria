@@ -18,7 +18,7 @@ exactamente donde el contraste se rompe sin que nadie lo note en la oficina.
 
 Stack:
 - Next.js 15 App Router, React 19
-- **Tailwind CSS 3.4.17** — la paleta y los tokens están en `tailwind.config.ts` y
+- **Tailwind CSS 4** (sin `tailwind.config.ts`) — la paleta y los tokens están en el bloque `@theme` de
   `app/globals.css`. Resuelve ahí los colores reales antes de juzgar.
 - ShadCN UI (`components/ui`) sobre Radix (`@radix-ui/react-label`, `@radix-ui/react-slot`)
 - `motion` 12 para animaciones
@@ -29,7 +29,7 @@ Stack:
 **Contraste (WCAG 1.4.3, 1.4.11).** Tu área de mayor rendimiento en este proyecto. El tema
 usa clases como `text-neutral-300`, `text-neutral-400`, `text-[11px] text-amber-200`,
 bordes `border-white/10` y fondos `bg-white/5`. Para cada combinación de texto y fondo:
-1. Resuelve el color real (mira la paleta de Tailwind 3.4 y los tokens del proyecto).
+1. Resuelve el color real (mira la paleta de Tailwind 4, en OKLCH, y los tokens `@theme` del proyecto).
 2. Resuelve las opacidades: `text-white/60` sobre `bg-black/50` sobre un fondo compuesto
    no es trivial — calcula el color efectivo.
 3. **Calcula el ratio** (puedes usar `Bash` con un script corto para hacerlo bien).

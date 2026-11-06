@@ -15,7 +15,14 @@ const compat = new FlatCompat({
 // disparaba miles de errores que nunca fueron del proyecto.
 const eslintConfig = [
   { ignores: [".next/**", "node_modules/**", "out/**", "next-env.d.ts"] },
-  ...compat.extends("next/core-web-vitals", "next/typescript")
+  ...compat.extends("next/core-web-vitals", "next/typescript"),
+  {
+    rules: {
+      // Sacar una clave con el resto ({ id, ...rest }) es la forma idiomática
+      // de omitirla: la clave omitida no cuenta como variable sin usar.
+      "@typescript-eslint/no-unused-vars": ["warn", { ignoreRestSiblings: true }]
+    }
+  }
 ];
 
 export default eslintConfig;

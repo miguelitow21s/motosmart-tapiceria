@@ -1,10 +1,16 @@
 // Unica regla de orden del carrusel "Trabajos recientes". La usan el panel
-// (lo que la administradora ve y reordena) y /api/carousel (lo que ve el
-// publico): antes el publico ignoraba el orden guardado y mostraba por fecha,
+// (lo que la administradora ve y reordena) y getCarouselSlides en
+// features/catalog/services/catalog.service.ts (lo que ve el publico): antes el publico ignoraba el orden guardado y mostraba por fecha,
 // asi que reordenar en el panel no cambiaba nada en la web.
 //
 // Primero van las fotos en el orden guardado en settings.carousel_order; las
 // que no estan ahi (recien subidas) van despues, de la mas nueva a la mas vieja.
+
+/**
+ * Cuántas fotos muestra el carrusel de la tienda. El panel no deja marcar más:
+ * una foto de sobra no se vería y la administradora no sabría por qué.
+ */
+export const CAROUSEL_MAX = 12;
 
 export function parseCarouselOrder(value: unknown): string[] {
   if (!value || typeof value !== "object") return [];

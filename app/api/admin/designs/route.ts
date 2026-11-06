@@ -4,36 +4,39 @@ import { canAccessAdmin, getCurrentUserRole } from "@/lib/auth";
 import { logAdminActivity } from "@/lib/admin-activity";
 import { assertCsrf, sanitizeText } from "@/lib/security";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
-import { invalidPayload, internalError } from "@/lib/api-response";
+import { invalidPayload, internalError, readJson } from "@/lib/api-response";
+import { MAX_PRICE } from "@/lib/price-limits";
 
 // Postgres/PostgREST devuelve timestamptz como "2026-09-29T20:00:00+00:00".
 // z.string().datetime() sin offset solo acepta "...Z", asi que cualquier
 // edicion rapida (precio, descripcion, activo, promo) de un diseño que ya
 // tuviera fechas de promocion se rechazaba con "Invalid payload".
-const isoDateTime = z.string().datetime({ offset: true, message: "Fecha de promocion invalida" });
+const isoDateTime = z.string().datetime({ offset: true, message: "Fecha de promoción invalida" });
 
 const designSchema = z.object({
   id: z.string().uuid().optional(),
   brand_id: z.string({ required_error: "Elige una marca" }).uuid("Elige una marca"),
-  name: z.string().trim().min(2, "El nombre debe tener al menos 2 caracteres").max(60, "El nombre admite maximo 60 caracteres"),
+  name: z.string().trim().min(2, "El nombre debe tener al menos 2 caracteres").max(60, "El nombre admite máximo 60 caracteres"),
   slug: z
     .string()
-    .min(2, "El slug debe tener al menos 2 caracteres")
-    .max(60, "El slug admite maximo 60 caracteres")
-    .regex(/^[a-z0-9-]+$/, "El slug solo puede tener minusculas, numeros y guiones"),
-  short_description: z.string().max(180, "La descripcion corta admite maximo 180 caracteres").default(""),
+    .min(2, "La dirección debe tener al menos 2 caracteres")
+    .max(60, "La dirección admite máximo 60 caracteres")
+    .regex(/^[a-z0-9-]+$/, "La dirección solo puede tener minúsculas, números y guiones"),
+  short_description: z.string().max(180, "La descripción corta admite máximo 180 caracteres").default(""),
   image_url: z.string({ required_error: "Sube una foto principal" }).url("Sube una foto principal o pega una URL valida"),
   base_price: z
     .number({ invalid_type_error: "Escribe el precio base" })
     .int("El precio base debe ser en pesos enteros, sin decimales")
-    .nonnegative("El precio base no puede ser negativo"),
+    .nonnegative("El precio base no puede ser negativo")
+    .max(MAX_PRICE, "El precio es demasiado alto: revisa que no sobre un cero."),
   discount_price: z
     .number({ invalid_type_error: "Escribe el precio de rebaja" })
     .int("El precio de rebaja debe ser en pesos enteros, sin decimales")
     .positive("El precio de rebaja debe ser mayor que 0")
+    .max(MAX_PRICE, "El precio de rebaja es demasiado alto: revisa que no sobre un cero.")
     .nullable()
     .optional(),
-  promotion_label: z.string().max(60, "La etiqueta de promocion admite maximo 60 caracteres").default(""),
+  promotion_label: z.string().max(60, "La etiqueta de promoción admite máximo 60 caracteres").default(""),
   promotion_active: z.boolean().default(false),
   promotion_starts_at: isoDateTime.nullable().optional(),
   promotion_ends_at: isoDateTime.nullable().optional(),
@@ -68,7 +71,7 @@ const designSchema = z.object({
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ["discount_price"],
-      message: "Debes definir precio de descuento cuando la promocion esta activa"
+      message: "Debes definir precio de descuento cuando la promoción está activa"
     });
   }
 
@@ -76,7 +79,7 @@ const designSchema = z.object({
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ["promotion_label"],
-      message: "La etiqueta de promocion debe tener al menos 3 caracteres"
+      message: "La etiqueta de promoción debe tener al menos 3 caracteres"
     });
   }
 });
@@ -97,7 +100,7 @@ function normalizePromotionPayload(payload: z.infer<typeof designSchema>) {
   };
 }
 
-const DUPLICATE_DESIGN_MESSAGE = "Ya existe un diseño con ese nombre (slug) en esta marca. Usa otro nombre.";
+const DUPLICATE_DESIGN_MESSAGE = "Ya existe un diseño con esa dirección en esta marca. Usa otro nombre o cambia la dirección.";
 
 // La foto se sube antes de guardar el diseño (al crear uno nuevo aun no hay
 // id), asi que la fila de la galeria queda "Sin vincular". Al guardar se
@@ -154,7 +157,7 @@ export async function POST(request: Request) {
   const { role } = await getCurrentUserRole();
   if (!canAccessAdmin(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const parsed = designSchema.safeParse(await request.json());
+  const parsed = designSchema.safeParse(await readJson(request));
   if (!parsed.success) return invalidPayload(parsed.error);
 
   const supabase = createAdminSupabaseClient();
@@ -183,7 +186,7 @@ export async function PATCH(request: Request) {
   const { role } = await getCurrentUserRole();
   if (!canAccessAdmin(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const payload = await request.json();
+  const payload = await readJson(request);
   const parsedId = z.object({ id: z.string().uuid() }).safeParse(payload);
   if (!parsedId.success) return invalidPayload(parsedId.error);
 
@@ -192,7 +195,7 @@ export async function PATCH(request: Request) {
 
   const supabase = createAdminSupabaseClient();
   const id = parsedId.data.id;
-  const { id: _ignoredId, ...rest } = parsed.data;
+  const { id: _id, ...rest } = parsed.data; // el id va en el filtro, no en las columnas
   const normalized = normalizePromotionPayload(rest);
   const { error } = await supabase
     .from("designs")
@@ -229,7 +232,7 @@ export async function DELETE(request: Request) {
   const { role } = await getCurrentUserRole();
   if (!canAccessAdmin(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const parsed = deleteDesignSchema.safeParse(await request.json());
+  const parsed = deleteDesignSchema.safeParse(await readJson(request));
   if (!parsed.success) return invalidPayload(parsed.error);
 
   const supabase = createAdminSupabaseClient();

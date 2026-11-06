@@ -1,21 +1,22 @@
 import { Loader2 } from "lucide-react";
 
 // Pantalla de espera del panel mientras se guarda o se sube algo. Cubre todo
-// (incluidos los modales, z-[80]) para que no se pueda volver a pulsar
-// "Guardar": antes no habia ninguna señal de que algo estuviera pasando y se
-// pulsaba varias veces.
+// (también los diálogos, z-80) para que no se pueda volver a pulsar "Guardar":
+// antes no había ninguna señal de que algo estuviera pasando y se pulsaba
+// varias veces. Se ve solo si la espera pasa de 300 ms (.busy-overlay en
+// globals.css), pero bloquea los toques desde el primer instante.
 export function BusyOverlay({ text }: { text: string | null }) {
   if (!text) return null;
   return (
-    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/70 p-6 backdrop-blur-sm">
+    <div className="busy-overlay fixed inset-0 z-90 flex items-center justify-center bg-ink/45 p-6">
       <div
         role="status"
         aria-live="polite"
-        className="flex w-full max-w-sm flex-col items-center gap-3 rounded-3xl border border-white/15 bg-neutral-950 px-6 py-8 text-center shadow-card"
+        className="flex w-full max-w-xs flex-col items-center gap-3 rounded-xl bg-bg px-6 py-7 text-center shadow-float"
       >
-        <Loader2 aria-hidden="true" className="h-10 w-10 text-orange-400 motion-safe:animate-spin" />
-        <p className="font-display text-lg text-white">{text}</p>
-        <p className="text-sm text-neutral-300">Espera un momento, no cierres esta ventana.</p>
+        <Loader2 aria-hidden="true" className="size-8 text-ink motion-safe:animate-spin" />
+        <p className="text-lg font-semibold text-ink">{text}</p>
+        <p className="text-sm text-ink-2">No cierres esta ventana.</p>
       </div>
     </div>
   );

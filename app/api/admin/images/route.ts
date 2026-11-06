@@ -5,7 +5,7 @@ import { logAdminActivity } from "@/lib/admin-activity";
 import { isFeatureEnabled } from "@/lib/feature-flags";
 import { assertCsrf, sanitizeText } from "@/lib/security";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
-import { invalidPayload, internalError } from "@/lib/api-response";
+import { invalidPayload, internalError, readJson } from "@/lib/api-response";
 
 const imageUpdateSchema = z.object({
   id: z.string().uuid(),
@@ -35,7 +35,7 @@ const imageUploadFieldsSchema = z
   .object({
     brand_id: z.string().uuid().nullable(),
     design_id: z.string().uuid().nullable(),
-    alt_text: z.string().max(180, "El texto de la foto admite maximo 180 caracteres").optional().default(""),
+    alt_text: z.string().max(180, "El texto de la foto admite máximo 180 caracteres").optional().default(""),
     is_weekly_highlight: formBoolean,
     set_as_design_image: formBoolean
   })
@@ -141,7 +141,9 @@ export async function POST(request: Request) {
   const path = `catalog/${crypto.randomUUID()}.${ext}`;
   const { error: uploadError } = await adminClient.storage.from("catalog").upload(path, file, {
     upsert: false,
-    contentType: file.type
+    contentType: file.type,
+    // Nombre UUID que nunca se reescribe: la foto se puede guardar en caché un año.
+    cacheControl: "31536000"
   });
 
   if (uploadError) return internalError("images POST upload", uploadError);
@@ -202,7 +204,7 @@ export async function PATCH(request: Request) {
   const { role } = await getCurrentUserRole();
   if (!canAccessAdmin(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const parsed = imageUpdateSchema.safeParse(await request.json());
+  const parsed = imageUpdateSchema.safeParse(await readJson(request));
   if (!parsed.success) return invalidPayload(parsed.error);
 
   const adminClient = await createAdminClient();
@@ -258,7 +260,7 @@ export async function DELETE(request: Request) {
   const { role } = await getCurrentUserRole();
   if (!canAccessAdmin(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const parsed = imageDeleteSchema.safeParse(await request.json());
+  const parsed = imageDeleteSchema.safeParse(await readJson(request));
   if (!parsed.success) return invalidPayload(parsed.error);
 
   const adminClient = await createAdminClient();

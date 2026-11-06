@@ -1,16 +1,32 @@
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { clsx } from "clsx";
 
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
+/**
+ * Une clases sin resolver conflictos: para lo que corre en el navegador de la
+ * tienda, donde tailwind-merge sobra (lib/cn.ts). Botón y campos ya ceden ante
+ * las utilidades por capa CSS (app/globals.css); el resto no pasa clases que choquen.
+ */
+export { clsx as cx };
+
+const copNumber = new Intl.NumberFormat("es-CO", { maximumFractionDigits: 0 });
+
+/** Precio en pesos como se escribe en Colombia: "$145.000" (sin espacio ni decimales). */
+export function formatCOP(value: number) {
+  const sign = value < 0 ? "-" : "";
+  return `${sign}$${copNumber.format(Math.abs(value))}`;
 }
 
-export function formatCOP(value: number) {
-  return new Intl.NumberFormat("es-CO", {
-    style: "currency",
-    currency: "COP",
-    maximumFractionDigits: 0
-  }).format(value);
+// El servidor de Vercel corre en UTC: sin zona fija, una promo que acaba a
+// las 9 p. m. en Medellín se mostraría con la fecha del día siguiente.
+const TIME_ZONE = "America/Bogota";
+
+/** Fecha corta para el cliente: "15 nov". */
+export function formatDateShort(value: string | null | undefined) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("es-CO", { day: "numeric", month: "short", timeZone: TIME_ZONE })
+    .format(date)
+    .replace(".", "");
 }
 
 export function getPromotionMeta(
@@ -45,16 +61,4 @@ export function getPromotionMeta(
     percentOff,
     status: "live" as const
   };
-}
-
-export function formatDateTimeShort(value: string | null | undefined) {
-  if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
-  return new Intl.DateTimeFormat("es-CO", {
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit"
-  }).format(date);
 }

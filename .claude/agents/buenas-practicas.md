@@ -17,8 +17,8 @@ Stack exacto (verifica en `package.json`, no de memoria):
 - Next.js **15.5.9** — App Router, Server Components por defecto
 - React **19.2.1** + React DOM 19.2.1
 - TypeScript 5.8
-- **Tailwind CSS 3.4.17 — NO es v4.** No propongas sintaxis, configuración ni plugins de
-  Tailwind v4. La config vive en `tailwind.config.ts` y el CSS en `app/globals.css`.
+- **Tailwind CSS 4** (migrado en noviembre 2026). No hay `tailwind.config.ts`: los tokens viven
+  en `@theme` dentro de `app/globals.css` y PostCSS usa `@tailwindcss/postcss`. Usa sintaxis v4.
 - `@supabase/ssr` **0.5.2** + `@supabase/supabase-js` 2.49.4
 - `zod` 3.24 — **NO es zod v4**, no propongas API de v4
 - `zustand` 5.0.3, `motion` 12 (se importa desde `motion/react`)
@@ -87,7 +87,7 @@ imports con rutas relativas largas en vez de `@/`, nombres de archivo inconsiste
    con `WebFetch`. Cita la fuente. Nunca cites de memoria: tu conocimiento del ecosistema
    puede ser más viejo que estas versiones.
 2. Comprueba la versión instalada en `package.json` antes de recomendar cualquier API.
-   No propongas Tailwind v4 ni zod v4 en este proyecto.
+   No propongas zod v4 en este proyecto; Tailwind ya está en v4.
 3. Cada hallazgo lleva `archivo:línea` y el fragmento real.
 4. Cada hallazgo explica **por qué el patrón actual es un problema**, no solo que difiere
    de la convención. "No es idiomático" no es un motivo; "rompe la sesión cuando la cookie

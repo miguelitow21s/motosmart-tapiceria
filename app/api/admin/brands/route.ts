@@ -4,17 +4,17 @@ import { canAccessAdmin, getCurrentUserRole } from "@/lib/auth";
 import { logAdminActivity } from "@/lib/admin-activity";
 import { assertCsrf, sanitizeText } from "@/lib/security";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
-import { invalidPayload, internalError } from "@/lib/api-response";
+import { invalidPayload, internalError, readJson } from "@/lib/api-response";
 
 const brandSchema = z.object({
   id: z.string().uuid().optional(),
-  name: z.string().trim().min(2, "El nombre debe tener al menos 2 caracteres").max(60, "El nombre admite maximo 60 caracteres"),
+  name: z.string().trim().min(2, "El nombre debe tener al menos 2 caracteres").max(60, "El nombre admite máximo 60 caracteres"),
   slug: z
     .string()
-    .min(2, "El slug debe tener al menos 2 caracteres")
-    .max(60, "El slug admite maximo 60 caracteres")
-    .regex(/^[a-z0-9-]+$/, "El slug solo puede tener minusculas, numeros y guiones"),
-  description: z.string().max(300, "La descripcion admite maximo 300 caracteres").default(""),
+    .min(2, "La dirección debe tener al menos 2 caracteres")
+    .max(60, "La dirección admite máximo 60 caracteres")
+    .regex(/^[a-z0-9-]+$/, "La dirección solo puede tener minúsculas, números y guiones"),
+  description: z.string().max(300, "La descripción admite máximo 300 caracteres").default(""),
   // Campo de texto vaciado en el panel = "sin logo". Antes "" fallaba la
   // validacion de URL y la marca no se podia guardar.
   logo_url: z.preprocess(
@@ -24,7 +24,7 @@ const brandSchema = z.object({
   is_active: z.boolean().default(true)
 });
 
-const DUPLICATE_BRAND_MESSAGE = "Ya existe una marca con ese slug. Usa otro nombre o slug.";
+const DUPLICATE_BRAND_MESSAGE = "Ya existe una marca con esa dirección. Usa otro nombre o cambia la dirección.";
 
 // El logo se sube antes de guardar la marca (una marca nueva aun no tiene id):
 // al guardar, la foto que quedo como logo se vincula a la marca en la galeria.
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
   const { role } = await getCurrentUserRole();
   if (!canAccessAdmin(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const parsed = brandSchema.safeParse(await request.json());
+  const parsed = brandSchema.safeParse(await readJson(request));
   if (!parsed.success) return invalidPayload(parsed.error);
 
   const supabase = createAdminSupabaseClient();
@@ -106,7 +106,7 @@ export async function PATCH(request: Request) {
   const { role } = await getCurrentUserRole();
   if (!canAccessAdmin(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const parsed = brandSchema.extend({ id: z.string().uuid() }).safeParse(await request.json());
+  const parsed = brandSchema.extend({ id: z.string().uuid() }).safeParse(await readJson(request));
   if (!parsed.success) return invalidPayload(parsed.error);
 
   const supabase = createAdminSupabaseClient();
@@ -144,7 +144,7 @@ export async function DELETE(request: Request) {
   const { role } = await getCurrentUserRole();
   if (!canAccessAdmin(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const parsed = deleteBrandSchema.safeParse(await request.json());
+  const parsed = deleteBrandSchema.safeParse(await readJson(request));
   if (!parsed.success) return invalidPayload(parsed.error);
 
   const supabase = createAdminSupabaseClient();

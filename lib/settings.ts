@@ -1,79 +1,65 @@
 import { cache } from "react";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createPublicSupabaseClient } from "@/lib/supabase/public";
+import { DEFAULT_SETTINGS, OPTIONAL_SETTING_KEYS, type SiteSettings } from "@/lib/settings-defaults";
+
+export {
+  buildWhatsAppUrl,
+  DEFAULT_SETTINGS,
+  instagramHandle,
+  OPTIONAL_SETTING_KEYS,
+  PUBLIC_SETTING_KEYS,
+  type SiteSettings
+} from "@/lib/settings-defaults";
+
+type SettingRow = { key: string; value: unknown };
 
 /**
- * Textos y configuracion editables desde /admin > "Textos y Config".
- *
- * Estas claves viven en public.settings con is_public = true (migraciones 009 y
- * 010). Cambiarlas en el panel cambia la web sin desplegar nada.
- *
- * Para anadir una clave nueva: sembrarla en una migracion con is_public = true
- * y anadirla aqui y en SETTINGS_KEYS del panel.
+ * Todas las claves públicas de la tabla settings en un solo viaje por render:
+ * los textos (getSiteSettings) y el orden del carrusel (getCarouselOrderValue)
+ * salen de aquí. Antes la portada consultaba la tabla dos veces.
+ * `null` si la consulta falló: cada lector decide su respaldo.
  */
-export type SiteSettings = {
-  business_name: string;
-  hero_tagline: string;
-  hero_description: string;
-  hero_cta_text: string;
-  about_description: string;
-  whatsapp_number: string;
-  whatsapp_default_message: string;
-  meta_title: string;
-  meta_description: string;
-};
+const getSettingRows = cache(async (): Promise<SettingRow[] | null> => {
+  const supabase = createPublicSupabaseClient();
+  const { data, error } = await supabase.from("settings").select("key,value");
 
-/**
- * Valores de respaldo, identicos a los sembrados en la migracion 010.
- * Solo se usan si la consulta falla: la web nunca debe quedarse en blanco
- * porque la base de datos tenga un mal momento.
- */
-export const DEFAULT_SETTINGS: SiteSettings = {
-  business_name: "MotoSmart Tapiceria",
-  hero_tagline: "Tapiceria de moto premium a tu medida",
-  hero_description:
-    "Asientos hechos a mano, materiales de alto agarre y terminados con detalle profesional para que tu moto se vea y se sienta mejor.",
-  hero_cta_text: "Ver catalogo",
-  about_description:
-    "Somos un equipo enfocado en tapiceria premium para motos. Combinamos materiales de alto rendimiento, procesos tecnicos y diseno contemporaneo para crear productos duraderos y unicos.",
-  whatsapp_number: "573146943434",
-  whatsapp_default_message: "Hola MotoSmart, quiero informacion.",
-  meta_title: "MotoSmart Tapiceria | Tapiceria premium en Medellin",
-  meta_description:
-    "Tapiceria premium para motos en Medellin. Asientos a medida, materiales de alto agarre y acabados profesionales. Cotiza por WhatsApp."
-};
+  if (error) {
+    console.error("getSettingRows", error.message);
+    return null;
+  }
+  return (data ?? []) as SettingRow[];
+});
 
 function readText(value: unknown): string | null {
   if (value && typeof value === "object" && "text" in value) {
     const text = (value as { text?: unknown }).text;
-    if (typeof text === "string" && text.trim().length > 0) return text;
+    if (typeof text === "string") return text.trim();
   }
   return null;
 }
 
 /**
- * cache() de React deduplica la consulta dentro de un mismo render: el layout
- * y la pagina piden los settings y solo se hace un viaje a Supabase.
+ * Textos editables desde el panel, con los de fábrica como respaldo. cache()
+ * de React deduplica dentro de un mismo render: el layout, la metadata y la
+ * página los piden y solo se hace un viaje a Supabase.
  */
 export const getSiteSettings = cache(async (): Promise<SiteSettings> => {
-  const supabase = await createServerSupabaseClient();
-  const { data, error } = await supabase.from("settings").select("key,value");
-
-  if (error) {
-    console.error("getSiteSettings", error.message);
-    return DEFAULT_SETTINGS;
-  }
+  const rows = await getSettingRows();
+  if (!rows) return DEFAULT_SETTINGS;
 
   const result = { ...DEFAULT_SETTINGS };
-  for (const row of data ?? []) {
-    const key = (row as { key?: string }).key;
+  for (const row of rows) {
+    const key = row.key as keyof SiteSettings | undefined;
     if (!key || !(key in result)) continue;
-    const text = readText((row as { value?: unknown }).value);
-    if (text) result[key as keyof SiteSettings] = text;
+    const text = readText(row.value);
+    if (text === null) continue;
+    if (text.length > 0 || OPTIONAL_SETTING_KEYS.has(key)) result[key] = text;
   }
   return result;
 });
 
-/** Enlace de WhatsApp ya armado, para no repetir la plantilla en cada sitio. */
-export function buildWhatsAppUrl(number: string, message: string) {
-  return `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
+/** Valor crudo de settings.carousel_order (lo interpreta lib/carousel-order). */
+export async function getCarouselOrderValue(): Promise<unknown> {
+  const rows = await getSettingRows();
+  return rows?.find((row) => row.key === "carousel_order")?.value ?? null;
 }

@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { SectionContainer } from "@/components/shared/section-container";
-import { AdminDashboard } from "@/features/admin/components/admin-dashboard-impl";
+import { containerClasses } from "@/components/shared/section";
+import { AdminDashboard } from "@/features/admin/components/admin-dashboard";
 import { canAccessAdmin, getCurrentUserRole } from "@/lib/auth";
+import { cn } from "@/lib/cn";
 
-export const metadata: Metadata = { robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Panel", robots: { index: false, follow: false } };
 
 export default async function AdminPage() {
   const { user, role } = await getCurrentUserRole();
@@ -18,12 +19,8 @@ export default async function AdminPage() {
   }
 
   return (
-    <SectionContainer className="py-8 sm:py-10 md:py-16">
-      <h1 className="font-display text-3xl text-white sm:text-4xl">Panel admin</h1>
-      <p className="mt-2 text-neutral-300">Rol actual: {role}</p>
-      <div className="mt-6 sm:mt-8">
-        <AdminDashboard />
-      </div>
-    </SectionContainer>
+    <div className={cn(containerClasses, "pt-5 pb-28 lg:pt-8 lg:pb-16")}>
+      <AdminDashboard roleLabel={role === "admin" ? "administrador" : "editor"} canPurge={role === "admin"} />
+    </div>
   );
 }

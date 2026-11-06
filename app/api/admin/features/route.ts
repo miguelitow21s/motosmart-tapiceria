@@ -4,7 +4,7 @@ import { canAccessAdmin, getCurrentUserRole } from "@/lib/auth";
 import { logAdminActivity } from "@/lib/admin-activity";
 import { assertCsrf } from "@/lib/security";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
-import { invalidPayload, internalError } from "@/lib/api-response";
+import { invalidPayload, internalError, readJson } from "@/lib/api-response";
 
 const featureSchema = z.object({
   name: z.string().min(2).max(120),
@@ -41,7 +41,7 @@ export async function PATCH(request: Request) {
   const { role } = await getCurrentUserRole();
   if (!canAccessAdmin(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const parsed = featureSchema.safeParse(await request.json());
+  const parsed = featureSchema.safeParse(await readJson(request));
   if (!parsed.success) return invalidPayload(parsed.error);
 
   const supabase = createAdminSupabaseClient();
@@ -71,7 +71,7 @@ export async function POST(request: Request) {
   const { role } = await getCurrentUserRole();
   if (!canAccessAdmin(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const parsed = createFeatureSchema.safeParse(await request.json());
+  const parsed = createFeatureSchema.safeParse(await readJson(request));
   if (!parsed.success) return invalidPayload(parsed.error);
 
   const key = (parsed.data.key ?? parsed.data.name ?? "").trim();

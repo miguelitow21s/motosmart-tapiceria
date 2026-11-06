@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=390">
+<title>El hilo de cotización</title>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { width: 390px; height: 844px; overflow: hidden; background: #F2F1EC; color: #141414; font-family: "Segoe UI", Helvetica, Arial, sans-serif; position: relative; }
+  header { height: 72px; display: flex; align-items: center; gap: 12px; padding: 0 16px; border-bottom: 1px solid #D9D6CE; background: #F2F1EC; }
+  .avatar { width: 60px; height: 40px; border-radius: 10px; background: #0d0d0d; display: grid; place-items: center; color: #fff; font: italic 900 12px/1 Arial, sans-serif; }
+  .avatar b { color: #D0021B; }
+  .who strong { display: block; font-size: 17px; }
+  .who span { font-size: 13px; color: #5c5a55; }
+  .thread { padding: 16px 16px 120px; display: flex; flex-direction: column; gap: 10px; }
+  .in { align-self: flex-start; max-width: 300px; background: #fff; border-radius: 6px 20px 20px 20px; padding: 14px 16px; }
+  .in h1 { font: 800 30px/1.05 "Segoe UI", Arial, sans-serif; letter-spacing: -0.02em; }
+  .photo { align-self: flex-start; width: 286px; background: #fff; border-radius: 6px 20px 20px 20px; padding: 6px; }
+  .shot { height: 300px; border-radius: 14px; background: linear-gradient(#5a524a, #3b3631); position: relative; overflow: hidden; }
+  .seat { position: absolute; left: 50%; top: 30px; width: 130px; height: 250px; transform: translateX(-50%); border-radius: 60px 60px 40px 40px; background: #161616; }
+  .seat::before { content: ""; position: absolute; inset: 40px 22px 40px; border-radius: 30px; background: repeating-linear-gradient(45deg, #b0101c 0 10px, #8f0b16 10px 20px); }
+  .meta { display: flex; justify-content: space-between; align-items: baseline; padding: 10px 8px 6px; }
+  .meta span { font-size: 15px; }
+  .meta strong { font: 800 24px/1 "Segoe UI", Arial, sans-serif; font-variant-numeric: tabular-nums; }
+  .ask { font: 700 24px/1.1 "Segoe UI", Arial, sans-serif; }
+  .chips { align-self: flex-end; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; max-width: 330px; }
+  .chip { height: 44px; padding: 0 16px; border-radius: 22px; background: #141414; color: #fff; display: inline-flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; }
+  .chip i { font-style: normal; color: #a9a6a0; font-size: 13px; }
+  .bar { position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 16px 28px; background: #F2F1EC; border-top: 1px solid #D9D6CE; }
+  .cta { height: 56px; border-radius: 28px; background: #D0021B; color: #fff; display: grid; place-items: center; font: 700 22px/1 "Segoe UI", Arial, sans-serif; }
+</style>
+</head>
+<body>
+  <header>
+    <div class="avatar">Moto<b>Smart</b></div>
+    <div class="who"><strong>MotoSmart Tapicería</strong><span>Medellín · responde hoy hasta las 6 p. m.</span></div>
+  </header>
+  <main class="thread">
+    <div class="in"><h1>Sillas hechas a mano para tu moto.</h1></div>
+    <div class="photo">
+      <div class="shot"><div class="seat"></div></div>
+      <div class="meta"><span>Yamaha DT 125</span><strong>$145.000</strong></div>
+    </div>
+    <div class="in"><p class="ask">¿Qué moto tienes?</p></div>
+    <div class="chips">
+      <span class="chip">AKT <i>12</i></span><span class="chip">Honda <i>8</i></span><span class="chip">Yamaha <i>6</i></span><span class="chip">Suzuki <i>4</i></span><span class="chip">Más marcas</span>
+    </div>
+  </main>
+  <div class="bar"><div class="cta">Cotizar por WhatsApp</div></div>
+</body>
+</html>

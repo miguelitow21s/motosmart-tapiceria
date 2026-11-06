@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=390">
+<title>Rótulo de taller</title>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { width: 390px; height: 844px; overflow: hidden; background: #F3F0E8; color: #141414; font-family: "Segoe UI", Helvetica, Arial, sans-serif; position: relative; }
+  nav { height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; }
+  .logo { width: 84px; height: 40px; border-radius: 4px; background: #000; display: grid; place-items: center; color: #fff; font: italic 900 12px Arial; }
+  .logo b { color: #C8102E; }
+  .menu { width: 44px; height: 44px; border-radius: 4px; border: 2px solid #141414; }
+  .sign { padding: 18px 16px 0; }
+  .sign small { display: block; font: 700 14px/1 Georgia, serif; font-style: italic; color: #141414; margin-bottom: 4px; }
+  .sign h1 { font: 900 50px/0.92 Impact, "Arial Black", sans-serif; color: #C8102E; text-shadow: 3px 3px 0 #141414; letter-spacing: 0.01em; text-transform: uppercase; }
+  .wall { margin: 22px 16px 0; display: grid; grid-template-columns: 172px 1fr; gap: 12px; }
+  .frame { height: 250px; border: 6px solid #141414; background: #141414; position: relative; }
+  .frame .ph { position: absolute; inset: 0; background: linear-gradient(#5a524a, #2c2925); }
+  .frame i { position: absolute; left: 50%; top: 18px; width: 86px; height: 202px; transform: translateX(-50%); border-radius: 42px 42px 28px 28px; background: #161616; }
+  .frame i::before { content: ""; position: absolute; inset: 30px 14px; border-radius: 20px; background: repeating-linear-gradient(45deg, #b0101c 0 10px, #8f0b16 10px 20px); }
+  .board { background: #141414; color: #fff; padding: 12px 10px; border-radius: 2px; }
+  .board h2 { font: 900 18px/1 Impact, "Arial Black", sans-serif; color: #fff; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 2px solid #C8102E; padding-bottom: 6px; margin-bottom: 8px; }
+  .line { display: flex; gap: 4px; font: 600 13px/1 "Segoe UI", Arial; padding: 7px 0; }
+  .line span:nth-child(2) { flex: 1; border-bottom: 2px dotted rgba(255,255,255,0.4); margin-bottom: 3px; }
+  .line b { font-variant-numeric: tabular-nums; }
+  .note { margin: 16px 16px 0; font: italic 16px/1.4 Georgia, serif; }
+  .cta { position: absolute; left: 16px; right: 16px; bottom: 24px; height: 56px; border-radius: 4px; background: #C8102E; color: #fff; display: grid; place-items: center; font: 900 22px/1 Impact, "Arial Black", sans-serif; text-transform: uppercase; letter-spacing: 0.04em; box-shadow: 3px 3px 0 #141414; }
+</style>
+</head>
+<body>
+  <nav><div class="logo">Moto<b>Smart</b></div><div class="menu"></div></nav>
+  <div class="sign"><small>Medellín · hecho a mano</small><h1>Tapicería<br>de motos</h1></div>
+  <div class="wall">
+    <div class="frame"><div class="ph"></div><i></i></div>
+    <div class="board">
+      <h2>Precios</h2>
+      <div class="line"><span>DT 125</span><span></span><b>145.000</b></div>
+      <div class="line"><span>NKD 125</span><span></span><b>120.000</b></div>
+      <div class="line"><span>Pulsar 200</span><span></span><b>160.000</b></div>
+      <div class="line"><span>FZ 2.0</span><span></span><b>150.000</b></div>
+      <div class="line"><span>XTZ 150</span><span></span><b>155.000</b></div>
+    </div>
+  </div>
+  <p class="note">Mándanos la foto de tu moto y te decimos precio y tiempo.</p>
+  <div class="cta">Cotiza por WhatsApp</div>
+</body>
+</html>

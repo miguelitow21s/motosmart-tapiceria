@@ -1,3 +1,4 @@
+import { refreshStore } from "@/lib/store-cache";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export async function logAdminActivity(params: {
@@ -6,6 +7,9 @@ export async function logAdminActivity(params: {
   entityId?: string | null;
   detail?: Record<string, unknown>;
 }) {
+  // Todo cambio del panel pasa por aquí (cada handler de escritura lo
+  // registra): es el punto único para regenerar la tienda.
+  refreshStore();
   const supabase = await createServerSupabaseClient();
   const {
     data: { user }

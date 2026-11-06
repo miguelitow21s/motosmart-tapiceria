@@ -1,0 +1,523 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-06T08:54:53.850Z",
+  "title": "Design System: MotoSmart Tapicería",
+  "extensions": {
+    "colorMeta": {
+      "bg": {
+        "role": "neutral",
+        "displayName": "Blanco Papel",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "oklch(15% 0.000 90)",
+          "oklch(27% 0.000 90)",
+          "oklch(39% 0.000 90)",
+          "oklch(51% 0.000 90)",
+          "oklch(63% 0.000 90)",
+          "oklch(75% 0.000 90)",
+          "oklch(85% 0.000 90)",
+          "oklch(95% 0.000 90)"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Gris Taller",
+        "canonical": "#f5f5f3",
+        "tonalRamp": [
+          "oklch(15% 0.003 106)",
+          "oklch(27% 0.003 106)",
+          "oklch(39% 0.003 106)",
+          "oklch(51% 0.003 106)",
+          "oklch(63% 0.003 106)",
+          "oklch(75% 0.003 106)",
+          "oklch(85% 0.003 106)",
+          "oklch(95% 0.003 106)"
+        ]
+      },
+      "surface-2": {
+        "role": "neutral",
+        "displayName": "Gris Taller Hondo",
+        "canonical": "#ebebe8",
+        "tonalRamp": [
+          "oklch(15% 0.004 106)",
+          "oklch(27% 0.004 106)",
+          "oklch(39% 0.004 106)",
+          "oklch(51% 0.004 106)",
+          "oklch(63% 0.004 106)",
+          "oklch(75% 0.004 106)",
+          "oklch(85% 0.004 106)",
+          "oklch(95% 0.004 106)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Tinta",
+        "canonical": "#111111",
+        "tonalRamp": [
+          "oklch(15% 0.000 90)",
+          "oklch(27% 0.000 90)",
+          "oklch(39% 0.000 90)",
+          "oklch(51% 0.000 90)",
+          "oklch(63% 0.000 90)",
+          "oklch(75% 0.000 90)",
+          "oklch(85% 0.000 90)",
+          "oklch(95% 0.000 90)"
+        ]
+      },
+      "ink-2": {
+        "role": "neutral",
+        "displayName": "Tinta Segunda",
+        "canonical": "#4d4d4d",
+        "tonalRamp": [
+          "oklch(15% 0.000 90)",
+          "oklch(27% 0.000 90)",
+          "oklch(39% 0.000 90)",
+          "oklch(51% 0.000 90)",
+          "oklch(63% 0.000 90)",
+          "oklch(75% 0.000 90)",
+          "oklch(85% 0.000 90)",
+          "oklch(95% 0.000 90)"
+        ]
+      },
+      "ink-3": {
+        "role": "neutral",
+        "displayName": "Tinta Tercera",
+        "canonical": "#6b6b6b",
+        "tonalRamp": [
+          "oklch(15% 0.000 90)",
+          "oklch(27% 0.000 90)",
+          "oklch(39% 0.000 90)",
+          "oklch(51% 0.000 90)",
+          "oklch(63% 0.000 90)",
+          "oklch(75% 0.000 90)",
+          "oklch(85% 0.000 90)",
+          "oklch(95% 0.000 90)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Línea",
+        "canonical": "#e2e2df",
+        "tonalRamp": [
+          "oklch(15% 0.004 106)",
+          "oklch(27% 0.004 106)",
+          "oklch(39% 0.004 106)",
+          "oklch(51% 0.004 106)",
+          "oklch(63% 0.004 106)",
+          "oklch(75% 0.004 106)",
+          "oklch(85% 0.004 106)",
+          "oklch(95% 0.004 106)"
+        ]
+      },
+      "line-strong": {
+        "role": "neutral",
+        "displayName": "Línea Fuerte",
+        "canonical": "#c9c9c5",
+        "tonalRamp": [
+          "oklch(15% 0.005 107)",
+          "oklch(27% 0.005 107)",
+          "oklch(39% 0.005 107)",
+          "oklch(51% 0.005 107)",
+          "oklch(63% 0.005 107)",
+          "oklch(75% 0.005 107)",
+          "oklch(85% 0.005 107)",
+          "oklch(95% 0.005 107)"
+        ]
+      },
+      "line-field": {
+        "role": "neutral",
+        "displayName": "Línea de Campo",
+        "canonical": "#858581",
+        "tonalRamp": [
+          "oklch(15% 0.006 107)",
+          "oklch(27% 0.006 107)",
+          "oklch(39% 0.006 107)",
+          "oklch(51% 0.006 107)",
+          "oklch(63% 0.006 107)",
+          "oklch(75% 0.006 107)",
+          "oklch(85% 0.006 107)",
+          "oklch(95% 0.006 107)"
+        ]
+      },
+      "brand": {
+        "role": "primary",
+        "displayName": "Rojo Bandera",
+        "canonical": "#c8102e",
+        "tonalRamp": [
+          "oklch(15% 0.104 22)",
+          "oklch(27% 0.207 22)",
+          "oklch(39% 0.207 22)",
+          "oklch(51% 0.207 22)",
+          "oklch(63% 0.207 22)",
+          "oklch(75% 0.166 22)",
+          "oklch(85% 0.114 22)",
+          "oklch(95% 0.052 22)"
+        ]
+      },
+      "brand-hover": {
+        "role": "primary",
+        "displayName": "Rojo Bandera Oscuro",
+        "canonical": "#a50d26",
+        "tonalRamp": [
+          "oklch(15% 0.089 22)",
+          "oklch(27% 0.179 22)",
+          "oklch(39% 0.179 22)",
+          "oklch(51% 0.179 22)",
+          "oklch(63% 0.179 22)",
+          "oklch(75% 0.143 22)",
+          "oklch(85% 0.098 22)",
+          "oklch(95% 0.045 22)"
+        ]
+      },
+      "brand-ink": {
+        "role": "primary",
+        "displayName": "Blanco sobre Rojo",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "oklch(15% 0.000 90)",
+          "oklch(27% 0.000 90)",
+          "oklch(39% 0.000 90)",
+          "oklch(51% 0.000 90)",
+          "oklch(63% 0.000 90)",
+          "oklch(75% 0.000 90)",
+          "oklch(85% 0.000 90)",
+          "oklch(95% 0.000 90)"
+        ]
+      },
+      "danger": {
+        "role": "state",
+        "displayName": "Peligro",
+        "canonical": "#b3261e",
+        "tonalRamp": [
+          "oklch(15% 0.089 29)",
+          "oklch(27% 0.178 29)",
+          "oklch(39% 0.178 29)",
+          "oklch(51% 0.178 29)",
+          "oklch(63% 0.178 29)",
+          "oklch(75% 0.143 29)",
+          "oklch(85% 0.098 29)",
+          "oklch(95% 0.045 29)"
+        ]
+      },
+      "danger-hover": {
+        "role": "state",
+        "displayName": "Peligro Oscuro",
+        "canonical": "#8f1e18",
+        "tonalRamp": [
+          "oklch(15% 0.075 28)",
+          "oklch(27% 0.150 28)",
+          "oklch(39% 0.150 28)",
+          "oklch(51% 0.150 28)",
+          "oklch(63% 0.150 28)",
+          "oklch(75% 0.120 28)",
+          "oklch(85% 0.082 28)",
+          "oklch(95% 0.037 28)"
+        ]
+      },
+      "success": {
+        "role": "state",
+        "displayName": "Verde de Estado",
+        "canonical": "#1a6e35",
+        "tonalRamp": [
+          "oklch(15% 0.059 150)",
+          "oklch(27% 0.119 150)",
+          "oklch(39% 0.119 150)",
+          "oklch(51% 0.119 150)",
+          "oklch(63% 0.119 150)",
+          "oklch(75% 0.095 150)",
+          "oklch(85% 0.065 150)",
+          "oklch(95% 0.030 150)"
+        ]
+      },
+      "warning": {
+        "role": "state",
+        "displayName": "Ámbar de Estado",
+        "canonical": "#8a5300",
+        "tonalRamp": [
+          "oklch(15% 0.055 67)",
+          "oklch(27% 0.109 67)",
+          "oklch(39% 0.109 67)",
+          "oklch(51% 0.109 67)",
+          "oklch(63% 0.109 67)",
+          "oklch(75% 0.087 67)",
+          "oklch(85% 0.060 67)",
+          "oklch(95% 0.027 67)"
+        ]
+      },
+      "header": {
+        "role": "neutral",
+        "displayName": "Negro de Cabecera",
+        "canonical": "#000000",
+        "tonalRamp": [
+          "oklch(15% 0.000 0)",
+          "oklch(27% 0.000 0)",
+          "oklch(39% 0.000 0)",
+          "oklch(51% 0.000 0)",
+          "oklch(63% 0.000 0)",
+          "oklch(75% 0.000 0)",
+          "oklch(85% 0.000 0)",
+          "oklch(95% 0.000 0)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "El h1 del inicio. Archivo 800, font-stretch 75%, word-spacing 0.06em."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "H1 de páginas internas y h2 de secciones."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Nombre del diseño en la tarjeta y títulos de panel y diálogo."
+      },
+      "price": {
+        "displayName": "Price",
+        "purpose": "Precios, en cifras tabulares y formato $145.000."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Todo el texto corrido; 16 px también en campos."
+      },
+      "lead": {
+        "displayName": "Lead",
+        "purpose": "Entrada del héroe y de las páginas internas, en ink-2."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Botones, chips y enlaces de navegación."
+      },
+      "caption": {
+        "displayName": "Caption",
+        "purpose": "Texto menor: migas, pies, pistas e insignias."
+      }
+    },
+    "shadows": [
+      {
+        "name": "float",
+        "value": "0 12px 32px -12px rgb(17 17 17 / 0.28), 0 2px 6px -2px rgb(17 17 17 / 0.12)",
+        "purpose": "Solo lo que flota: diálogos, hojas y la tarjeta de espera del panel."
+      },
+      {
+        "name": "field-ring",
+        "value": "0 0 0 3px color-mix(in srgb, var(--ink) 14%, transparent)",
+        "purpose": "Anillo de foco de los campos; en error, danger al 18 %."
+      },
+      {
+        "name": "scrim",
+        "value": "color-mix(in oklab, var(--color-ink) 45%, transparent)",
+        "purpose": "Velo detrás de diálogos y de la pantalla de espera."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.23, 1, 0.32, 1)",
+        "purpose": "Curva por defecto: lo que entra frena al llegar."
+      },
+      {
+        "name": "ease-drawer",
+        "value": "cubic-bezier(0.32, 0.72, 0, 1)",
+        "purpose": "Hojas del teléfono (curva de cajón de iOS)."
+      },
+      {
+        "name": "press",
+        "value": "scale(.97) / 150ms",
+        "purpose": "Pulsado de botones y controles; transición de color y borde en 150 ms."
+      },
+      {
+        "name": "mobile-menu",
+        "value": "opacity + translateY(-8px) / 220ms ease-out",
+        "purpose": "Menú móvil de la tienda como hoja bajo la barra negra."
+      },
+      {
+        "name": "sheet",
+        "value": "translateY(100%) a 0 / 300ms ease-drawer al entrar, 200ms al salir",
+        "purpose": "Hoja del teléfono (Modal)."
+      },
+      {
+        "name": "dialog",
+        "value": "opacity + scale(.96) a 1 / 200ms ease-out al entrar, 150ms al salir",
+        "purpose": "Diálogo de escritorio (Modal desde sm)."
+      },
+      {
+        "name": "photo-hover",
+        "value": "scale(1.02 a 1.03) / 300ms ease-out",
+        "purpose": "Hover de la foto, solo puntero fino."
+      },
+      {
+        "name": "busy-overlay",
+        "value": "fundido de 150ms con 300ms de retraso",
+        "purpose": "Pantalla de espera del panel."
+      },
+      {
+        "name": "reorder",
+        "value": "View Transitions / 220ms ease-out",
+        "purpose": "Reordenar filas con flechas en carrusel y pilotos."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "0.01ms; diálogos y hojas con fundido de 150ms",
+        "purpose": "Con prefers-reduced-motion todo queda quieto."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px (40rem)"
+      },
+      {
+        "name": "md",
+        "value": "768px (48rem)"
+      },
+      {
+        "name": "lg",
+        "value": "1024px (64rem)"
+      },
+      {
+        "name": "xl",
+        "value": "1280px (80rem)"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Botón principal",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "La acción de la tienda: cotizar por WhatsApp. Rojo de marca, 48 px (52 px en tamaño grande).",
+      "html": "<button class=\"ds-btn-primary\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21c5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2Zm5.8 14.14c-.25.69-1.45 1.32-2 1.37-.51.05-.99.24-3.33-.69-2.82-1.12-4.6-4.01-4.74-4.2-.14-.19-1.13-1.5-1.13-2.86s.71-2.03.96-2.31c.25-.28.55-.35.73-.35h.52c.17 0 .39-.06.61.47.22.55.75 1.9.82 2.04.07.14.11.3.02.49-.09.19-.14.3-.28.47-.14.16-.29.36-.42.49-.14.14-.28.29-.12.57.16.28.71 1.17 1.53 1.9 1.05.94 1.94 1.23 2.22 1.37.28.14.44.12.6-.07.16-.19.69-.8.88-1.08.19-.28.37-.23.63-.14.25.09 1.62.76 1.9.9.28.14.46.21.53.33.07.12.07.68-.18 1.37Z\"/></svg>Cotizar por WhatsApp</button>",
+      "css": ".ds-btn-primary{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;padding:0 20px;border:0;border-radius:8px;background:var(--color-brand,#c8102e);color:var(--color-brand-ink,#fff);font-family:inherit;font-weight:600;font-size:0.9375rem;line-height:1.5;cursor:pointer;transition:background-color 150ms,border-color 150ms,transform 150ms cubic-bezier(0.23,1,0.32,1);}.ds-btn-primary:hover{background:var(--color-brand-hover,#a50d26)}.ds-btn-primary:active{transform:scale(.97)}.ds-btn-primary:focus-visible{outline:2px solid #111;outline-offset:2px}"
+    },
+    {
+      "name": "Botón secundario",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Acción de apoyo en contorno, por ejemplo Ver catálogo junto al botón rojo.",
+      "html": "<button class=\"ds-btn-secondary\">Ver catálogo</button>",
+      "css": ".ds-btn-secondary{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;padding:0 20px;border:0;border-radius:8px;background:var(--color-bg,#fff);color:var(--color-ink,#111);font-family:inherit;font-weight:600;font-size:0.9375rem;line-height:1.5;cursor:pointer;transition:background-color 150ms,border-color 150ms,transform 150ms cubic-bezier(0.23,1,0.32,1);border:1px solid var(--color-line-strong,#c9c9c5);}.ds-btn-secondary:hover{border-color:var(--color-ink,#111);background:var(--color-surface,#f5f5f3)}.ds-btn-secondary:active{transform:scale(.97)}.ds-btn-secondary:focus-visible{outline:2px solid #111;outline-offset:2px}"
+    },
+    {
+      "name": "Botón oscuro del panel",
+      "kind": "button",
+      "refersTo": "button-dark",
+      "description": "Acción principal del panel de administración: tinta sólida. El rojo queda para borrar.",
+      "html": "<button class=\"ds-btn-dark\">Guardar cambios</button>",
+      "css": ".ds-btn-dark{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;padding:0 20px;border:0;border-radius:8px;background:var(--color-ink,#111);color:var(--color-bg,#fff);font-family:inherit;font-weight:600;font-size:0.9375rem;line-height:1.5;cursor:pointer;transition:background-color 150ms,border-color 150ms,transform 150ms cubic-bezier(0.23,1,0.32,1);}.ds-btn-dark:hover{background:var(--color-ink-2,#4d4d4d)}.ds-btn-dark:active{transform:scale(.97)}.ds-btn-dark:focus-visible{outline:2px solid #111;outline-offset:2px}"
+    },
+    {
+      "name": "Botón de peligro",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "Solo para borrar o deshacer algo que no se recupera. Rojo de peligro, distinto del rojo de marca.",
+      "html": "<button class=\"ds-btn-danger\">Sí, borrar</button>",
+      "css": ".ds-btn-danger{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;padding:0 20px;border:0;border-radius:8px;background:var(--color-danger,#b3261e);color:#fff;font-family:inherit;font-weight:600;font-size:0.9375rem;line-height:1.5;cursor:pointer;transition:background-color 150ms,border-color 150ms,transform 150ms cubic-bezier(0.23,1,0.32,1);}.ds-btn-danger:hover{background:var(--color-danger-hover,#8f1e18)}.ds-btn-danger:active{transform:scale(.97)}.ds-btn-danger:focus-visible{outline:2px solid #111;outline-offset:2px}"
+    },
+    {
+      "name": "Campo de texto",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "48 px de alto, texto de 16 px y borde de campo con contraste 3,7:1; el foco oscurece el borde y añade un anillo de tinta.",
+      "html": "<label class=\"ds-label\" for=\"ds-in\">Nombre del diseño</label><input class=\"ds-input\" id=\"ds-in\" placeholder=\"Ej. Silla Ninja 400\"><p class=\"ds-hint\">Así lo verá el cliente.</p>",
+      "css": ".ds-label{display:block;margin-bottom:6px;font-size:0.875rem;font-weight:600;color:var(--color-ink,#111)}.ds-input{box-sizing:border-box;width:100%;height:48px;padding:0 16px;border:1px solid var(--color-line-field,#858581);border-radius:8px;background:var(--color-bg,#fff);color:var(--color-ink,#111);font-family:inherit;font-size:1rem;transition:border-color 150ms,box-shadow 150ms}.ds-input::placeholder{color:var(--color-ink-3,#6b6b6b)}.ds-input:hover{border-color:var(--color-ink-3,#6b6b6b)}.ds-input:focus{outline:none;border-color:var(--color-ink,#111);box-shadow:0 0 0 3px color-mix(in srgb,#111 14%,transparent)}.ds-hint{margin:6px 0 0;font-size:0.875rem;color:var(--color-ink-3,#6b6b6b)}"
+    },
+    {
+      "name": "Barra negra de navegación",
+      "kind": "nav",
+      "refersTo": "header-bar",
+      "description": "Barra superior de 56 px sobre negro puro; el logo solo se lee aquí. Página activa en blanco con subrayado blanco; WhatsApp a la derecha.",
+      "html": "<header class=\"ds-header\"><span class=\"ds-logo\">MotoSmart</span><nav class=\"ds-links\"><a class=\"ds-link\" href=\"#\">Inicio</a><a class=\"ds-link ds-active\" href=\"#\" aria-current=\"page\">Catálogo</a><a class=\"ds-link\" href=\"#\">Pilotos</a><a class=\"ds-link\" href=\"#\">Contacto</a></nav><button class=\"ds-cta\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21c5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2Zm5.8 14.14c-.25.69-1.45 1.32-2 1.37-.51.05-.99.24-3.33-.69-2.82-1.12-4.6-4.01-4.74-4.2-.14-.19-1.13-1.5-1.13-2.86s.71-2.03.96-2.31c.25-.28.55-.35.73-.35h.52c.17 0 .39-.06.61.47.22.55.75 1.9.82 2.04.07.14.11.3.02.49-.09.19-.14.3-.28.47-.14.16-.29.36-.42.49-.14.14-.28.29-.12.57.16.28.71 1.17 1.53 1.9 1.05.94 1.94 1.23 2.22 1.37.28.14.44.12.6-.07.16-.19.69-.8.88-1.08.19-.28.37-.23.63-.14.25.09 1.62.76 1.9.9.28.14.46.21.53.33.07.12.07.68-.18 1.37Z\"/></svg>Cotizar por WhatsApp</button></header>",
+      "css": ".ds-header{display:flex;align-items:center;gap:8px;height:56px;padding:0 24px;background:var(--color-header,#000);color:#fff}.ds-logo{font-style:italic;font-weight:800;font-size:1.25rem;margin-right:16px}.ds-links{display:flex;gap:4px;margin-right:auto}.ds-link{position:relative;display:inline-flex;align-items:center;height:44px;padding:0 12px;border-radius:6px;color:rgba(255,255,255,.75);font-size:0.9375rem;font-weight:500;text-decoration:none;transition:color 150ms}.ds-link:hover{color:#fff}.ds-link:focus-visible{outline:2px solid #fff;outline-offset:2px}.ds-active{color:#fff}.ds-active::after{content:'';position:absolute;left:12px;right:12px;bottom:4px;height:2px;background:#fff}.ds-cta{display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 16px;border:0;border-radius:8px;background:var(--color-brand,#c8102e);color:#fff;font-family:inherit;font-weight:600;font-size:0.875rem;cursor:pointer;transition:background-color 150ms}.ds-cta:hover{background:var(--color-brand-hover,#a50d26)}.ds-cta:focus-visible{outline:2px solid #fff;outline-offset:2px}"
+    },
+    {
+      "name": "Chips de marca",
+      "kind": "chip",
+      "refersTo": "chip-brand",
+      "description": "Barra Elige tu marca: chips de 44 px, la marca abierta se invierte a tinta.",
+      "html": "<div class=\"ds-bar\"><span class=\"ds-bar-label\">Elige tu marca</span><a class=\"ds-chip\" href=\"#\">Todas</a><a class=\"ds-chip ds-chip-on\" href=\"#\" aria-current=\"page\">Yamaha</a><a class=\"ds-chip\" href=\"#\">Honda</a><a class=\"ds-chip\" href=\"#\">AKT</a></div>",
+      "css": ".ds-bar{display:flex;align-items:center;gap:8px;padding:10px 16px;border-top:1px solid var(--color-line,#e2e2df);border-bottom:1px solid var(--color-line,#e2e2df);background:var(--color-bg,#fff)}.ds-bar-label{padding-right:4px;font-size:0.875rem;font-weight:600;color:var(--color-ink-2,#4d4d4d);white-space:nowrap}.ds-chip{display:inline-flex;align-items:center;height:44px;padding:0 16px;border:1px solid var(--color-line-strong,#c9c9c5);border-radius:8px;background:var(--color-bg,#fff);color:var(--color-ink,#111);font-size:0.9375rem;font-weight:600;text-decoration:none;transition:border-color 150ms,background-color 150ms}.ds-chip:hover{border-color:var(--color-ink,#111)}.ds-chip:focus-visible{outline:2px solid #111;outline-offset:2px}.ds-chip-on{border-color:var(--color-ink,#111);background:var(--color-ink,#111);color:var(--color-bg,#fff)}"
+    },
+    {
+      "name": "Tarjeta de diseño",
+      "kind": "card",
+      "refersTo": "card-design",
+      "description": "Foto vertical 3:4 con etiqueta de porcentaje, modelo en condensado, precio en promoción en rojo y botón Cotizar. Plana: borde y sin sombra.",
+      "html": "<article class=\"ds-card\"><div class=\"ds-photo\"><span class=\"ds-photo-text\">Foto no disponible</span><span class=\"ds-pct\">-20%</span></div><div class=\"ds-card-body\"><p class=\"ds-brand\">Yamaha</p><h3 class=\"ds-card-title\">Ninja 400 cuero negro</h3><p class=\"ds-price\"><span class=\"ds-from\">Desde</span> <data value=\"116000\" class=\"ds-price-now\">$116.000</data> <s class=\"ds-price-old\">$145.000</s></p><p class=\"ds-promo\">Promoción de la semana</p><button class=\"ds-btn-sm\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21c5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2Zm5.8 14.14c-.25.69-1.45 1.32-2 1.37-.51.05-.99.24-3.33-.69-2.82-1.12-4.6-4.01-4.74-4.2-.14-.19-1.13-1.5-1.13-2.86s.71-2.03.96-2.31c.25-.28.55-.35.73-.35h.52c.17 0 .39-.06.61.47.22.55.75 1.9.82 2.04.07.14.11.3.02.49-.09.19-.14.3-.28.47-.14.16-.29.36-.42.49-.14.14-.28.29-.12.57.16.28.71 1.17 1.53 1.9 1.05.94 1.94 1.23 2.22 1.37.28.14.44.12.6-.07.16-.19.69-.8.88-1.08.19-.28.37-.23.63-.14.25.09 1.62.76 1.9.9.28.14.46.21.53.33.07.12.07.68-.18 1.37Z\"/></svg>Cotizar</button></div></article>",
+      "css": ".ds-card{display:flex;flex-direction:column;width:220px;overflow:hidden;border:1px solid var(--color-line,#e2e2df);border-radius:8px;background:var(--color-bg,#fff)}.ds-photo{position:relative;aspect-ratio:3/4;display:flex;align-items:center;justify-content:center;background:var(--color-surface,#f5f5f3)}.ds-photo-text{font-size:0.875rem;color:var(--color-ink-3,#6b6b6b)}.ds-pct{position:absolute;top:8px;left:8px;padding:4px 8px;border-radius:6px;background:var(--color-brand,#c8102e);color:#fff;font-size:0.875rem;font-weight:700;font-variant-numeric:tabular-nums}.ds-card-body{display:flex;flex-direction:column;padding:12px}.ds-brand{margin:0;font-size:0.8125rem;font-weight:500;color:var(--color-ink-3,#6b6b6b)}.ds-card-title{margin:0;font-stretch:75%;font-weight:800;font-size:1.125rem;line-height:1.25;letter-spacing:-0.01em;word-spacing:0.06em}.ds-price{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;margin:12px 0 0;font-variant-numeric:tabular-nums}.ds-from{font-size:0.875rem;color:var(--color-ink-3,#6b6b6b)}.ds-price-now{font-stretch:75%;font-weight:800;font-size:1.375rem;line-height:1;letter-spacing:-0.01em;color:var(--color-brand,#c8102e)}.ds-price-old{font-size:0.875rem;color:var(--color-ink-3,#6b6b6b)}.ds-promo{margin:4px 0 0;font-size:0.875rem;font-weight:600;color:var(--color-brand,#c8102e)}.ds-btn-sm{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;height:44px;margin-top:16px;padding:0 16px;border:0;border-radius:8px;background:var(--color-brand,#c8102e);color:#fff;font-family:inherit;font-weight:600;font-size:0.875rem;cursor:pointer;transition:background-color 150ms,transform 150ms cubic-bezier(0.23,1,0.32,1)}.ds-btn-sm:hover{background:var(--color-brand-hover,#a50d26)}.ds-btn-sm:active{transform:scale(.97)}.ds-btn-sm:focus-visible{outline:2px solid #111;outline-offset:2px}"
+    },
+    {
+      "name": "Interruptor del panel",
+      "kind": "custom",
+      "description": "Para todo lo que se enciende o apaga. Zona táctil de 44 por 52 px; apagado con borde, encendido en verde de estado.",
+      "html": "<button class=\"ds-sw\" role=\"switch\" aria-checked=\"true\" aria-label=\"Visible en la tienda\"><span class=\"ds-track\"><span class=\"ds-knob\"></span></span></button>",
+      "css": ".ds-sw{display:inline-flex;align-items:center;justify-content:center;width:52px;height:44px;padding:0;border:0;background:none;cursor:pointer}.ds-track{position:relative;display:inline-flex;align-items:center;box-sizing:border-box;width:48px;height:28px;border:2px solid var(--color-success,#1a6e35);border-radius:9999px;background:var(--color-success,#1a6e35);transition:background-color 150ms,border-color 150ms}.ds-knob{position:absolute;top:50%;left:2px;width:20px;height:20px;border-radius:9999px;background:#fff;transform:translate(20px,-50%);transition:transform 150ms cubic-bezier(0.23,1,0.32,1)}.ds-sw[aria-checked='false'] .ds-track{border-color:var(--color-ink-3,#6b6b6b);background:var(--color-bg,#fff)}.ds-sw[aria-checked='false'] .ds-knob{background:var(--color-ink-3,#6b6b6b);transform:translate(0,-50%) scale(.8)}.ds-sw:focus-visible{outline:2px solid #111;outline-offset:2px;border-radius:9999px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "La tienda de siempre",
+    "overview": "MotoSmart se ve como la tienda estándar de tapicería para moto, hecha con el acabado de Luimoto y Saddlemen y sin ironía. El nombre sale del contrato de dirección de la tienda (`.impeccable/surfaces/app-page-tsx.md`, forma \"Canon\"), no de una conversación nueva. Todo lo que hay en pantalla es lo que un motociclista espera encontrar: una foto grande de una silla real, el modelo, el precio y un botón que escribe por WhatsApp. El sistema no trae un truco propio; su carácter está en la disciplina: un solo acento, un solo borde fino, una sola familia tipográfica, una sola gramática de movimiento.\n\nLa tienda se lee al sol y con una mano, así que el fondo es blanco, la tinta es casi negra y todo lo tocable mide 44 px o más. La única masa oscura es la barra negra de arriba (y el pie, que repite su color), porque el logo es un recorte transparente con letras blancas y solo se lee sobre negro. El panel de administración es la misma casa en modo de trabajo: hereda los tokens, cambia el rojo por tinta en la acción principal y reserva el rojo para borrar.",
+    "keyCharacteristics": [
+      "Tema claro único; fondo blanco, superficies de gris neutro apenas cálido, tinta `#111111`.",
+      "Un solo acento, el rojo de marca, y solo para actuar (botones y etiqueta de porcentaje; también tiñe el cursor de texto en los campos) y para el precio y la etiqueta de promoción.",
+      "Archivo variable: títulos condensados (ancho 75) y pesados (800), texto en ancho normal (400).",
+      "Tarjetas planas: borde de 1 px, radio de 8 px, sin sombra. Las sombras son solo para lo que flota.",
+      "Foto vertical 3:4 de un trabajo real como protagonista de cada pantalla de la tienda.",
+      "Todo control mide 44 px o más; campos de 16 px de texto para que iOS no haga zoom.",
+      "Movimiento corto con transform y opacidad, nada aparece con el scroll, y con movimiento reducido todo queda quieto."
+    ],
+    "rules": [
+      {
+        "name": "The Rojo Que Actúa Rule",
+        "body": "El rojo de marca es para hacer algo (cotizar, escribir) o para decir que algo cuesta menos hoy. No decora, no marca la página activa, no selecciona texto. En el panel la acción principal es tinta y el rojo (el de peligro) solo borra.",
+        "section": "colors"
+      },
+      {
+        "name": "The Un Solo Acento Rule",
+        "body": "No hay segundo acento. Ni verde WhatsApp ni azul de enlace: el glifo de WhatsApp va blanco sobre el rojo. Verde y ámbar son estados del panel, nunca acentos de la tienda.",
+        "section": "colors"
+      },
+      {
+        "name": "The Negro Del Logo Rule",
+        "body": "El logo solo se pone sobre `header` negro. Sobre blanco desaparece \"MotoSmart\"; sobre rojo desaparecen los trazos.",
+        "section": "colors"
+      },
+      {
+        "name": "The Condensado Solo Manda Rule",
+        "body": "El ancho 75 y el peso 800 son la voz de títulos, nombres de diseño y precios, y de nada más. El texto corrido, las etiquetas y los botones van en ancho normal. Para un elemento que no es h1 a h3 (precio, cifra, enlace del menú móvil) se usa la utilidad `type-display`, no una fuente distinta.",
+        "section": "typography"
+      },
+      {
+        "name": "The Cifras Fijas Rule",
+        "body": "Todo precio y todo dato numérico va en `<data>` o `.tabular` (`font-variant-numeric: tabular-nums`), con formato colombiano `$145.000`. Si el precio guardado es implausible (menos de $1.000 o más de $99.999.999, `lib/price-limits.ts`), se escribe \"Consultar precio\" en lugar de la cifra.",
+        "section": "typography"
+      },
+      {
+        "name": "The Borde No Sombra Rule",
+        "body": "Una tarjeta se declara con borde, nunca con sombra. La sombra Flotante es solo para superficies que se despegan de la página.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** poner una foto vertical 3:4 de un trabajo real en cada pantalla de la tienda, con el modelo y el precio a la vista y el botón \"Cotizar\" rojo.",
+      "**Do** usar `brand` solo para acciones y para el precio y la etiqueta en promoción; la página activa se marca con blanco (barra) o con tinta (panel y chips).",
+      "**Do** declarar una tarjeta con borde de 1 px (`line`) y radio de 8 px, sin sombra; reservar `--shadow-float` para diálogos, hojas y la tarjeta de espera.",
+      "**Do** dar a todo control táctil 44 px o más y a todo campo de texto 16 px.",
+      "**Do** escribir títulos y precios en Archivo 800 condensado (`type-display`) y el resto en 400 a 600 de ancho normal.",
+      "**Do** usar solo `transform` y `opacity` para mover cosas, con `--ease-out` (`cubic-bezier(0.23, 1, 0.32, 1)`) o `--ease-drawer`, y nada por encima de 300 ms.",
+      "**Do** dar a cada hover la guarda de puntero fino y a cada animación su salida con `prefers-reduced-motion` (fundido corto o quieto).",
+      "**Do** mostrar \"Consultar precio\" cuando el precio guardado es implausible, y \"Foto no disponible\" cuando la foto falla."
+    ],
+    "donts": [
+      "**Don't** poner el logo sobre blanco o sobre rojo; vive sobre `header` negro puro.",
+      "**Don't** añadir un segundo acento (verde WhatsApp, azul de enlace, neón) ni un degradado o brillo; verde y ámbar son estados del panel.",
+      "**Don't** usar rojo de marca para decorar, para marcar la página activa ni para seleccionar texto (`::selection` es tinta).",
+      "**Don't** usar el rojo de marca para borrar en el panel: borrar es `danger`, y la acción principal del panel es `dark`.",
+      "**Don't** hacer que algo aparezca al hacer scroll, ni que nada se mueva solo.",
+      "**Don't** usar fotos de stock ni ilustraciones donde va la foto de un trabajo real.",
+      "**Don't** darle a la tienda lenguaje de taller mecánico o de repuestos (placas, calcomanías, rótulos): es tapicería, un oficio de confección.",
+      "**Don't** animar `width`, `height`, `top` ni `left`; el interruptor y las hojas usan `translate` y `scale`."
+    ]
+  }
+}
