@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { sortByCarouselOrder } from "@/lib/carousel-order";
 import { useAdminStore } from "@/features/admin/store/admin-data";
 
-/** Fotos del carrusel en el mismo orden que ve el público (/api/carousel usa la misma regla). */
+/** Fotos del carrusel en el mismo orden que ve el público (getCarouselSlides usa la misma regla). */
 export function useCarouselImages() {
   const images = useAdminStore((state) => state.images);
   const order = useAdminStore((state) => state.carouselOrder);

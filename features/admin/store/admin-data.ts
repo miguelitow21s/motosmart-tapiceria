@@ -65,25 +65,29 @@ const INITIAL_STATUS: Record<DataKey, Status> = {
   riders: "idle"
 };
 
-export const useAdminStore = create<AdminState>(() => ({
-  designs: [],
-  brands: [],
-  images: [],
-  settings: {},
-  carouselOrder: [],
-  features: [],
-  activity: [],
-  products: [],
-  riders: [],
-  status: INITIAL_STATUS,
-  settingsEdits: {},
-  uploadQueue: [],
-  designQuery: "",
-  designBrand: "all",
-  designFilter: "all",
-  designSort: "name",
-  designDialog: null
-}));
+function initialAdminState(): AdminState {
+  return {
+    designs: [],
+    brands: [],
+    images: [],
+    settings: {},
+    carouselOrder: [],
+    features: [],
+    activity: [],
+    products: [],
+    riders: [],
+    status: INITIAL_STATUS,
+    settingsEdits: {},
+    uploadQueue: [],
+    designQuery: "",
+    designBrand: "all",
+    designFilter: "all",
+    designSort: "name",
+    designDialog: null
+  };
+}
+
+export const useAdminStore = create<AdminState>(initialAdminState);
 
 export const setAdminState = useAdminStore.setState;
 export const getAdminState = useAdminStore.getState;
@@ -143,6 +147,15 @@ const LOADERS: Record<DataKey, () => Promise<Loaded | string>> = {
 };
 
 const inflight = new Map<DataKey, Promise<void>>();
+/** Recarga forzada esperando a que termine la que ya iba (una por conjunto). */
+const queued = new Map<DataKey, Promise<void>>();
+
+/** Vuelve al estado del primer ingreso (al salir de la demostración). */
+export function resetAdminState() {
+  inflight.clear();
+  queued.clear();
+  setAdminState(initialAdminState(), true);
+}
 
 function setStatus(key: DataKey, status: Status) {
   setAdminState((state) => ({ status: { ...state.status, [key]: status } }));
@@ -153,7 +166,19 @@ export function loadData(key: DataKey, { force = false } = {}): Promise<void> {
   const current = getAdminState().status[key];
   if (!force && current === "ready") return Promise.resolve();
   const running = inflight.get(key);
-  if (running) return running;
+  if (running && !force) return running;
+  if (running) {
+    // Después de guardar no sirve una respuesta que salió antes del guardado:
+    // se espera a que termine y se pide de nuevo.
+    const waiting = queued.get(key);
+    if (waiting) return waiting;
+    const next = running.then(() => {
+      queued.delete(key);
+      return loadData(key, { force: true });
+    });
+    queued.set(key, next);
+    return next;
+  }
 
   if (current !== "ready") setStatus(key, "loading");
   const job = LOADERS[key]()
@@ -169,10 +194,6 @@ export function loadData(key: DataKey, { force = false } = {}): Promise<void> {
     .finally(() => inflight.delete(key));
   inflight.set(key, job);
   return job;
-}
-
-export function refresh(...keys: DataKey[]) {
-  return Promise.all(keys.map((key) => loadData(key, { force: true })));
 }
 
 /** Pide los datos que usa una pestaña y devuelve su estado conjunto. */

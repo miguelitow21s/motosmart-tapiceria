@@ -11,7 +11,12 @@ type ModalProps = {
   onClose: () => void;
   title: string;
   description?: ReactNode;
-  children: ReactNode;
+  /**
+   * "header": línea corta bajo el título. "body": el texto principal del
+   * diálogo (confirmaciones). En los dos casos el lector lo lee al abrir.
+   */
+  descriptionPlacement?: "header" | "body";
+  children?: ReactNode;
   /** Botones fijos abajo (Guardar / Cancelar): siempre a mano aunque el contenido sea largo. */
   footer?: ReactNode;
   size?: "md" | "lg";
@@ -39,6 +44,7 @@ export function Modal({
   onClose,
   title,
   description,
+  descriptionPlacement = "header",
   children,
   footer,
   size = "md",
@@ -76,7 +82,7 @@ export function Modal({
             <div className="flex shrink-0 items-start gap-3 border-b border-line py-3 pr-2 pl-5 sm:py-4">
               <div className="min-w-0 flex-1 pt-2">
                 <Dialog.Title className="text-xl leading-tight sm:text-2xl">{title}</Dialog.Title>
-                {description ? (
+                {description && descriptionPlacement === "header" ? (
                   <Dialog.Description className="mt-1 text-sm text-ink-2">{description}</Dialog.Description>
                 ) : null}
               </div>
@@ -87,10 +93,16 @@ export function Modal({
                 <X aria-hidden="true" className="size-5" />
               </Dialog.Close>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5">{children}</div>
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5">
+              {description && descriptionPlacement === "body" ? (
+                <Dialog.Description className="text-ink-2">{description}</Dialog.Description>
+              ) : null}
+              {children}
+            </div>
             {footer ? (
               // Dos botones lado a lado también en el teléfono: la hoja no pierde alto útil.
-              <div className="flex shrink-0 gap-2 border-t border-line bg-bg px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] *:min-w-0 *:flex-1 sm:items-center sm:justify-end sm:*:flex-none">
+              // Un texto largo («Sí, borrar Kawasaki Ninja 400…») pasa a dos líneas en vez de salirse del botón.
+              <div className="flex shrink-0 gap-2 border-t border-line bg-bg px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] *:h-auto *:min-h-12 *:min-w-0 *:flex-1 *:py-2 *:text-center *:whitespace-normal sm:items-center sm:justify-end sm:*:flex-none">
                 {footer}
               </div>
             ) : null}

@@ -13,7 +13,8 @@ export function Logo({ className, priority = false }: { className?: string; prio
         width={946}
         height={446}
         priority={priority}
-        sizes="120px"
+        // h-11 con la proporción del PNG: 93 px de ancho.
+        sizes="94px"
         className="h-11 w-auto"
       />
     </Link>

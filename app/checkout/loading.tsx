@@ -1,1 +1,3 @@
-export { default } from "@/app/loading";
+import { PageSkeleton } from "@/components/shared/page-skeleton";
+
+export default PageSkeleton;

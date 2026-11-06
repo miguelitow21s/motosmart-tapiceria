@@ -35,7 +35,7 @@ export function ScrollRow({ header, label, children }: { header: ReactNode; labe
 
   function page(direction: -1 | 1) {
     const el = trackRef.current;
-    if (!el) return;
+    if (!el || (direction === -1 ? edges.start : edges.end)) return;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     el.scrollBy({ left: direction * el.clientWidth * 0.8, behavior: reduce ? "auto" : "smooth" });
   }
@@ -45,10 +45,11 @@ export function ScrollRow({ header, label, children }: { header: ReactNode; labe
       <div className={cn(containerClasses, "flex items-end justify-between gap-4")}>
         {header}
         <div className="hidden shrink-0 gap-2 md:flex">
-          <Button variant="secondary" size="icon" aria-label="Ver anteriores" disabled={edges.start} onClick={() => page(-1)}>
+          {/* aria-disabled y no disabled: al llegar al final, el foco no salta al <body>. */}
+          <Button variant="secondary" size="icon" aria-label="Ver anteriores" aria-disabled={edges.start} onClick={() => page(-1)}>
             <ChevronLeft aria-hidden="true" />
           </Button>
-          <Button variant="secondary" size="icon" aria-label="Ver siguientes" disabled={edges.end} onClick={() => page(1)}>
+          <Button variant="secondary" size="icon" aria-label="Ver siguientes" aria-disabled={edges.end} onClick={() => page(1)}>
             <ChevronRight aria-hidden="true" />
           </Button>
         </div>

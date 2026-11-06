@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 import {
   Activity,
   Images,
@@ -59,6 +59,9 @@ function tabFromHash(hash: string): TabKey {
   return TABS.find((tab) => tab.hash === clean)?.key ?? LEGACY[clean] ?? "overview";
 }
 
+// "Diseños · " al principio del título, para no apilar prefijos.
+const TITLE_PREFIX = new RegExp(`^(?:${TABS.map((tab) => tab.label).join("|")}) · `);
+
 function subscribe(callback: () => void) {
   window.addEventListener("hashchange", callback);
   return () => window.removeEventListener("hashchange", callback);
@@ -71,9 +74,34 @@ export function useActiveTab(): TabKey {
     () => "overview" as TabKey
   );
 
-  // Al cambiar de sección se vuelve arriba: si no, la nueva sección aparece a media altura.
+  const first = useRef(true);
+
   useEffect(() => {
+    // El título de la pestaña del navegador dice en qué sección se está.
+    // Next escribe el <title> de metadata después de montar (lo transmite en
+    // streaming), así que se vuelve a poner cada vez que <head> cambia.
+    const label = TAB_BY_KEY.get(tab)?.label ?? "Panel";
+    const apply = () => {
+      const base = document.title.replace(TITLE_PREFIX, "");
+      const next = `${label} · ${base}`;
+      if (document.title !== next) document.title = next;
+    };
+    apply();
+    const observer = new MutationObserver(apply);
+    observer.observe(document.head, { childList: true, subtree: true, characterData: true });
+    return () => observer.disconnect();
+  }, [tab]);
+
+  useEffect(() => {
+    if (first.current) {
+      first.current = false;
+      return;
+    }
+    // Al cambiar de sección se vuelve arriba (si no, la nueva aparece a media
+    // altura) y el foco pasa a su título: el lector de pantalla anuncia dónde
+    // se está y Tab sigue desde ahí, no desde el botón de la barra.
     if (window.scrollY > 0) window.scrollTo({ top: 0 });
+    requestAnimationFrame(() => document.querySelector<HTMLElement>("[data-admin-shell] h1")?.focus({ preventScroll: true }));
   }, [tab]);
 
   return tab;

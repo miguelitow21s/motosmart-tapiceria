@@ -17,10 +17,16 @@ export type ApiResult<T> = { ok: true; data: T } | { ok: false; error: string; s
 
 type Transport = (path: string, init: RequestInit) => Promise<Response>;
 
-let transport: Transport = (path, init) => fetch(path, init);
+const network: Transport = (path, init) => fetch(path, init);
+let transport: Transport = network;
 
 export function setAdminTransport(next: Transport) {
   transport = next;
+}
+
+/** Vuelve a la red: al salir de la demostración, /admin no debe seguir en memoria. */
+export function resetAdminTransport() {
+  transport = network;
 }
 
 const OFFLINE = "No hay conexión con el servidor. Revisa tu internet e intenta de nuevo.";

@@ -20,6 +20,7 @@ import {
 } from "@/features/admin/lib/format";
 import { getAdminState, setAdminState, useAdminData, useAdminStore } from "@/features/admin/store/admin-data";
 import type { Design } from "@/features/admin/types";
+import { isAllowedPhotoUrl, ownPhoto, PHOTO_URL_HINT } from "@/lib/photos";
 import { cn, formatCOP } from "@/lib/utils";
 
 /*
@@ -38,6 +39,9 @@ const DURATIONS = [
 ];
 
 type DraftErrors = Partial<Record<keyof DesignDraft, string>>;
+
+/** Campos que solo se ven con la promoción encendida. */
+const PROMO_FIELDS: (keyof DesignDraft)[] = ["discount_price", "promotion_label", "promotion_starts_at", "promotion_ends_at"];
 
 // Orden en que se revisa y se enfoca el primer campo con error.
 const FIELD_ORDER: (keyof DesignDraft)[] = [
@@ -75,7 +79,8 @@ function toDraft(design: Design | null, brandId: string): DesignDraft {
     name: design.name,
     slug: design.slug,
     short_description: design.short_description,
-    image_url: design.image_url ?? "",
+    // Una foto de stock del seed cuenta como "sin foto": hay que subir la real.
+    image_url: ownPhoto(design.image_url),
     base_price: design.base_price,
     discount_price: design.discount_price,
     promotion_label: design.promotion_label,
@@ -91,6 +96,9 @@ function validate(draft: DesignDraft): DraftErrors {
   const name = draft.name.trim();
   if (!draft.image_url.trim()) errors.image_url = "Sube la foto principal: es la que se ve en el catálogo.";
   else if (!/^https?:\/\/\S+$/.test(draft.image_url.trim())) errors.image_url = "El enlace de la foto debe empezar por https://";
+  // La tienda solo muestra fotos guardadas en la tienda (next/image): un enlace
+  // de otro sitio se guardaba bien y en el catálogo salía «Foto no disponible».
+  else if (!isAllowedPhotoUrl(draft.image_url.trim())) errors.image_url = PHOTO_URL_HINT;
   if (name.length < 2) errors.name = "Escribe el nombre del diseño (mínimo 2 letras).";
   if (!draft.brand_id) errors.brand_id = "Elige la marca de la moto.";
   if (draft.short_description.length > DESCRIPTION_MAX) errors.short_description = `Máximo ${DESCRIPTION_MAX} caracteres.`;
@@ -245,6 +253,15 @@ function DesignDialog({ target, open }: { target: string; open: boolean }) {
     setErrors(found);
     const first = FIELD_ORDER.find((key) => found[key]);
     if (first) {
+      // Una rebaja o fechas guardadas con la promoción apagada también se
+      // validan, pero esos campos están ocultos: se abre la promoción para que
+      // el error se vea en vez de que «Guardar» parezca no hacer nada.
+      if (PROMO_FIELDS.includes(first) && !draft.promotion_active) {
+        update({ promotion_active: true });
+        notify("error", `${found[first]} Revisa la promoción o bórrala.`);
+        requestAnimationFrame(() => document.getElementById(ids[first as keyof typeof ids])?.focus());
+        return;
+      }
       if (first === "image_url" && !draft.image_url) {
         photoRef.current?.focus();
         photoRef.current?.scrollIntoView({ block: "nearest" });
@@ -331,6 +348,9 @@ function DesignDialog({ target, open }: { target: string; open: boolean }) {
           <div
             ref={photoRef}
             tabIndex={-1}
+            role="group"
+            aria-label="Foto principal"
+            aria-describedby={errors.image_url ? `${ids.image_url}-error` : undefined}
             className="grid gap-3 rounded-lg outline-none sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)] sm:items-start"
           >
             {draft.image_url ? (
@@ -349,7 +369,7 @@ function DesignDialog({ target, open }: { target: string; open: boolean }) {
                 </p>
               ) : null}
               {errors.image_url ? (
-                <p id={`${ids.image_url}-error`} className="text-sm font-medium text-danger">
+                <p id={`${ids.image_url}-error`} role="alert" className="text-sm font-medium text-danger">
                   {errors.image_url}
                 </p>
               ) : null}

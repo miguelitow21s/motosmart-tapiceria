@@ -1,4 +1,4 @@
-import { MAX_PRICE } from "@/lib/price-limits";
+import { MAX_PRICE, MIN_PRICE, priceLooksIncomplete } from "@/lib/price-limits";
 
 const thousands = new Intl.NumberFormat("es-CO", { maximumFractionDigits: 0 });
 
@@ -13,16 +13,10 @@ export function parseDigits(text: string): number | null {
   return digits ? Number(digits) : null;
 }
 
-/**
- * Ninguna silla cuesta menos de mil pesos: un precio así casi siempre es uno
- * al que le faltaron los miles ($148 en lugar de $148.000).
- */
-export const MIN_PRICE = 1000;
+// Los límites viven en lib/price-limits.ts: la tienda usa los mismos para no
+// mostrar un precio mal escrito.
+export { MIN_PRICE, priceLooksIncomplete };
 export const INCOMPLETE_PRICE_TEXT = "El precio parece incompleto: escríbelo completo en pesos, por ejemplo 148.000.";
-
-export function priceLooksIncomplete(price: number | null | undefined) {
-  return price != null && price > 0 && price < MIN_PRICE;
-}
 
 /** Tope contra ceros de más; la API rechaza lo mismo (ver lib/price-limits.ts). */
 export { MAX_PRICE };

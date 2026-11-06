@@ -1,8 +1,14 @@
 import { containerClasses } from "@/components/shared/section";
 import { cn } from "@/lib/utils";
 
-/** Esqueleto con la forma real de las páginas de la tienda: título y grilla de sillas 3:4. */
-export default function GlobalLoading() {
+/**
+ * Esqueleto con la forma real de las páginas de la tienda: título y grilla de
+ * sillas 3:4. No va en app/loading.tsx: un loading en la raíz (o en /marca)
+ * abre el streaming antes de notFound() y una marca que no existe respondía
+ * 200 en vez de 404. Las páginas son estáticas y llegan precargadas, así que
+ * solo lo usan las rutas donde aún puede verse.
+ */
+export function PageSkeleton() {
   return (
     <div className={cn(containerClasses, "pt-6 pb-16 md:pt-10")} aria-busy="true">
       <span className="sr-only" role="status">

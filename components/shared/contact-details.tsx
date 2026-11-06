@@ -46,7 +46,7 @@ export async function ContactDetails({ tone = "light", className }: { tone?: "li
               {href ? (
                 <a
                   href={href}
-                  className="link-underline"
+                  className="link-underline inline-flex min-h-11 items-center wrap-anywhere"
                   {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
                 >
                   {value}

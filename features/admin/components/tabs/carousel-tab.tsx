@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, GalleryHorizontalEnd, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,7 +28,7 @@ import { confirmAction, notify, runBusy } from "@/features/admin/lib/feedback";
 import { fileBaseName } from "@/features/admin/lib/format";
 import { useCarouselImages } from "@/features/admin/lib/selectors";
 import { tabHref } from "@/features/admin/lib/tabs";
-import { rowTransitionName, withViewTransition } from "@/features/admin/lib/view-transition";
+import { keepMoveFocus, rowTransitionName, withViewTransition } from "@/features/admin/lib/view-transition";
 import { loadData, retry, useAdminData } from "@/features/admin/store/admin-data";
 import type { AdminImage } from "@/features/admin/types";
 
@@ -39,15 +39,25 @@ export function CarouselTab() {
   const slides = useCarouselImages();
   const [announcement, setAnnouncement] = useState("");
   const full = slides.length >= CAROUSEL_MAX;
+  // Un movimiento a la vez: dos toques rápidos mandaban dos órdenes que podían
+  // llegar al servidor al revés.
+  const moving = useRef(false);
 
   async function move(image: AdminImage, direction: "up" | "down") {
     const index = slides.findIndex((slide) => slide.id === image.id);
     const target = direction === "up" ? index - 1 : index + 1;
-    if (index < 0 || target < 0 || target >= slides.length) return;
+    if (moving.current || index < 0 || target < 0 || target >= slides.length) return;
     const ids = slides.map((slide) => slide.id);
     [ids[index], ids[target]] = [ids[target], ids[index]];
-    // Sin aviso por cada movimiento: el cambio de lugar ya es la respuesta.
-    if (await withViewTransition(() => saveCarouselOrder(ids))) setAnnouncement(`Foto movida al puesto ${target + 1} de ${slides.length}.`);
+    moving.current = true;
+    try {
+      // Sin aviso por cada movimiento: el cambio de lugar ya es la respuesta.
+      const saved = await withViewTransition(() => saveCarouselOrder(ids));
+      keepMoveFocus(image.id, direction);
+      if (saved) setAnnouncement(`Foto movida al puesto ${target + 1} de ${slides.length}.`);
+    } finally {
+      moving.current = false;
+    }
   }
 
   async function removeFromCarousel(image: AdminImage) {
@@ -195,10 +205,20 @@ function CarouselRow({
         </Field>
       </div>
       <div className="col-span-2 flex items-center gap-1 sm:col-span-1">
-        <IconButton label={`Subir al puesto ${position - 1}`} disabled={position === 1} onClick={() => onMove("up")}>
+        <IconButton
+          label={`Subir al puesto ${position - 1}`}
+          disabled={position === 1}
+          data-move={`${image.id}:up`}
+          onClick={() => onMove("up")}
+        >
           <ArrowUp aria-hidden="true" />
         </IconButton>
-        <IconButton label={`Bajar al puesto ${position + 1}`} disabled={position === total} onClick={() => onMove("down")}>
+        <IconButton
+          label={`Bajar al puesto ${position + 1}`}
+          disabled={position === total}
+          data-move={`${image.id}:down`}
+          onClick={() => onMove("down")}
+        >
           <ArrowDown aria-hidden="true" />
         </IconButton>
         <Button variant="secondary" size="sm" onClick={onRemoveFromCarousel} className="ml-auto sm:ml-2">

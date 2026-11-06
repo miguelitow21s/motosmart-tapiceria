@@ -1,5 +1,5 @@
-import { z } from "zod";
-import type { SiteSettings } from "@/lib/settings-defaults";
+import { OPTIONAL_SETTING_KEYS, type SiteSettings } from "@/lib/settings-defaults";
+import { isWebUrl } from "@/lib/url";
 
 /*
   Textos que la administradora edita en "Textos". Agrupados por la parte de
@@ -14,8 +14,6 @@ export type SettingField = {
   label: string;
   hint?: string;
   kind: SettingKind;
-  /** Se puede dejar vacío: la tienda oculta ese dato. */
-  optional?: boolean;
   min?: number;
   max: number;
 };
@@ -34,7 +32,7 @@ export const SETTING_GROUPS: SettingGroup[] = [
       { key: "hero_tagline", label: "Título de la portada", kind: "text", min: 2, max: 180 },
       { key: "hero_description", label: "Texto bajo el título", kind: "textarea", min: 10, max: 500 },
       { key: "hero_cta_text", label: "Texto del botón principal", kind: "text", min: 2, max: 80 },
-      { key: "hero_note", label: "Nota corta bajo el botón", hint: EMPTY_HIDES, kind: "text", optional: true, max: 120 }
+      { key: "hero_note", label: "Nota corta bajo el botón", hint: EMPTY_HIDES, kind: "text", max: 120 }
     ]
   },
   {
@@ -63,7 +61,6 @@ export const SETTING_GROUPS: SettingGroup[] = [
         label: "Barrio o sector",
         hint: `Sin la dirección exacta. ${EMPTY_HIDES}`,
         kind: "text",
-        optional: true,
         max: 80
       },
       {
@@ -71,7 +68,6 @@ export const SETTING_GROUPS: SettingGroup[] = [
         label: "Horario de atención",
         hint: `Ej.: Lunes a sábado, 8 a. m. a 6 p. m. ${EMPTY_HIDES}`,
         kind: "text",
-        optional: true,
         max: 160
       },
       {
@@ -79,7 +75,6 @@ export const SETTING_GROUPS: SettingGroup[] = [
         label: "Enlace de Instagram",
         hint: `Ej.: https://instagram.com/tu_cuenta. ${EMPTY_HIDES}`,
         kind: "url",
-        optional: true,
         max: 200
       }
     ]
@@ -136,17 +131,30 @@ export const SETTING_GROUPS: SettingGroup[] = [
 
 export const SETTING_FIELDS: SettingField[] = SETTING_GROUPS.flatMap((group) => group.fields);
 
+export const SETTING_FIELD_BY_KEY = new Map<string, SettingField>(SETTING_FIELDS.map((field) => [field.key, field]));
+
 export const SETTING_LABELS = new Map<string, string>(SETTING_FIELDS.map((field) => [field.key, field.label]));
 
-/** Mensaje de error de un campo, o null si está bien. */
+/**
+ * Se puede dejar vacío: la tienda oculta ese dato. La lista vive en
+ * lib/settings-defaults.ts, la misma que usa la tienda al leer.
+ */
+export function isOptionalSetting(field: SettingField) {
+  return OPTIONAL_SETTING_KEYS.has(field.key);
+}
+
+/**
+ * Mensaje de error de un campo, o null si está bien. Lo usan el panel (al
+ * escribir) y la API de settings (al guardar): una sola regla.
+ */
 export function validateSetting(field: SettingField, raw: string): string | null {
   const value = raw.trim();
-  if (field.optional && value === "") return null;
+  if (isOptionalSetting(field) && value === "") return null;
   if (field.min && value.length < field.min) {
     return value === "" ? "Este texto no puede quedar vacío." : `Escribe al menos ${field.min} caracteres.`;
   }
   if (value.length > field.max) return `Máximo ${field.max} caracteres (llevas ${value.length}).`;
-  if (field.kind === "url" && !z.string().url().safeParse(value).success) {
+  if (field.kind === "url" && !isWebUrl(value)) {
     return "Pega el enlace completo, empezando por https://";
   }
   if (field.kind === "tel" && !/^\+?[\d\s-]+$/.test(value)) return "Escribe solo números.";

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+import { readJson } from "@/lib/api-response";
 
 const eventSchema = z.object({
   name: z.string().min(2).max(100),
@@ -8,7 +9,7 @@ const eventSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const parsed = eventSchema.safeParse(await request.json());
+  const parsed = eventSchema.safeParse(await readJson(request));
   if (!parsed.success) return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
 
   // Antes usaba el cliente anon: con RLS "with check (true)" y grant insert a

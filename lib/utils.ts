@@ -60,16 +60,3 @@ export function getPromotionMeta(
     status: "live" as const
   };
 }
-
-export function formatDateTimeShort(value: string | null | undefined) {
-  if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
-  return new Intl.DateTimeFormat("es-CO", {
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: TIME_ZONE
-  }).format(date);
-}

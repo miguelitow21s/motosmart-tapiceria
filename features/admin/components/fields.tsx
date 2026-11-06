@@ -54,7 +54,7 @@ export function Field({
 export function Select({ className, children, ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
   return (
     <div className={cn("relative", className)}>
-      <select {...props} className={cn(fieldClasses, "h-12 appearance-none truncate pr-10")}>
+      <select {...props} className={cn(fieldClasses, "h-12 appearance-none truncate pr-9 pl-3")}>
         {children}
       </select>
       <ChevronDown aria-hidden="true" className="pointer-events-none absolute top-1/2 right-3 size-5 -translate-y-1/2 text-ink-2" />

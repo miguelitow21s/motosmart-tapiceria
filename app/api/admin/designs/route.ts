@@ -4,7 +4,7 @@ import { canAccessAdmin, getCurrentUserRole } from "@/lib/auth";
 import { logAdminActivity } from "@/lib/admin-activity";
 import { assertCsrf, sanitizeText } from "@/lib/security";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
-import { invalidPayload, internalError } from "@/lib/api-response";
+import { invalidPayload, internalError, readJson } from "@/lib/api-response";
 import { MAX_PRICE } from "@/lib/price-limits";
 
 // Postgres/PostgREST devuelve timestamptz como "2026-09-29T20:00:00+00:00".
@@ -157,7 +157,7 @@ export async function POST(request: Request) {
   const { role } = await getCurrentUserRole();
   if (!canAccessAdmin(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const parsed = designSchema.safeParse(await request.json());
+  const parsed = designSchema.safeParse(await readJson(request));
   if (!parsed.success) return invalidPayload(parsed.error);
 
   const supabase = createAdminSupabaseClient();
@@ -186,7 +186,7 @@ export async function PATCH(request: Request) {
   const { role } = await getCurrentUserRole();
   if (!canAccessAdmin(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const payload = await request.json();
+  const payload = await readJson(request);
   const parsedId = z.object({ id: z.string().uuid() }).safeParse(payload);
   if (!parsedId.success) return invalidPayload(parsedId.error);
 
@@ -232,7 +232,7 @@ export async function DELETE(request: Request) {
   const { role } = await getCurrentUserRole();
   if (!canAccessAdmin(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const parsed = deleteDesignSchema.safeParse(await request.json());
+  const parsed = deleteDesignSchema.safeParse(await readJson(request));
   if (!parsed.success) return invalidPayload(parsed.error);
 
   const supabase = createAdminSupabaseClient();

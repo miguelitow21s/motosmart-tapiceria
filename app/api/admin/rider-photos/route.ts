@@ -5,7 +5,7 @@ import { logAdminActivity } from "@/lib/admin-activity";
 import { isFeatureEnabled } from "@/lib/feature-flags";
 import { assertCsrf, sanitizeText } from "@/lib/security";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
-import { invalidPayload, internalError } from "@/lib/api-response";
+import { invalidPayload, internalError, readJson } from "@/lib/api-response";
 
 const ALLOWED_IMAGE_TYPES: Record<string, string> = {
   "image/jpeg": "jpg",
@@ -92,7 +92,9 @@ export async function POST(request: Request) {
   const path = `catalog/riders/${crypto.randomUUID()}.${ext}`;
   const { error: uploadError } = await adminClient.storage.from("catalog").upload(path, file, {
     upsert: false,
-    contentType: file.type
+    contentType: file.type,
+    // Nombre UUID que nunca se reescribe: la foto se puede guardar en caché un año.
+    cacheControl: "31536000"
   });
   if (uploadError) return internalError("rider-photos POST upload", uploadError);
 
@@ -126,7 +128,7 @@ export async function PATCH(request: Request) {
   const { role } = await getCurrentUserRole();
   if (!canAccessAdmin(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const parsed = updateSchema.safeParse(await request.json());
+  const parsed = updateSchema.safeParse(await readJson(request));
   if (!parsed.success) return invalidPayload(parsed.error);
 
   const payload: Record<string, string | number | boolean> = {};
@@ -159,7 +161,7 @@ export async function DELETE(request: Request) {
   const { role } = await getCurrentUserRole();
   if (!canAccessAdmin(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const parsed = deleteSchema.safeParse(await request.json());
+  const parsed = deleteSchema.safeParse(await readJson(request));
   if (!parsed.success) return invalidPayload(parsed.error);
 
   const supabase = createAdminSupabaseClient();

@@ -24,19 +24,25 @@ const csp = [
 
 const nextConfig: NextConfig = {
   images: {
+    // Las fotos se guardan con nombre UUID y no se reescriben (upsert: false):
+    // una variante optimizada vale 31 días, no 1 hora como dice Storage.
+    minimumCacheTTL: 2678400,
     remotePatterns: [
       {
         protocol: "https",
         hostname: "**.supabase.co"
-      },
-      {
-        protocol: "https",
-        hostname: "images.unsplash.com"
       }
+      // Sin images.unsplash.com: las fotos de stock del seed ya no se muestran
+      // en la tienda (lib/photos.ts) y nada más las pide a next/image.
     ],
     formats: ["image/avif", "image/webp"]
   },
   reactStrictMode: true,
+  // El personalizador ya no existe: una redirección permanente de verdad (308)
+  // en vez de una página que respondía 200 con el título del inicio.
+  async redirects() {
+    return [{ source: "/personalizador", destination: "/catalogo", permanent: true }];
+  },
   async headers() {
     return [
       {

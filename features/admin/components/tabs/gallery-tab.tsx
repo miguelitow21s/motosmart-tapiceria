@@ -112,7 +112,7 @@ export function GalleryTab() {
       >
         <div className="space-y-4">
           {queue.length > 0 ? (
-            <ul className="grid gap-4 md:grid-cols-2">
+            <ul className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {queue.map((item) => (
                 <QueueCard key={item.id} item={item} carouselFull={carousel.length >= CAROUSEL_MAX} />
               ))}
@@ -199,7 +199,7 @@ export function GalleryTab() {
                       <button
                         type="button"
                         onClick={() => openPhoto(image)}
-                        aria-label={`Abrir foto: ${image.alt || linked}`}
+                        aria-label={`Abrir foto ${design || brand ? `de ${linked}` : "sin vincular"}${image.alt ? `: ${image.alt}` : ""}`}
                         className="group block w-full text-left"
                       >
                         <span className="relative block overflow-hidden rounded-lg">
@@ -257,7 +257,7 @@ function QueueCard({ item, carouselFull }: { item: UploadDraft; carouselFull: bo
   }
 
   return (
-    <li className={cn("rounded-lg border p-3", item.error ? "border-danger" : "border-line")}>
+    <li className={cn("min-w-0 rounded-lg border p-3", item.error ? "border-danger" : "border-line")}>
       <div className="flex gap-3">
         <Thumb src={item.preview} alt="" className="aspect-[4/3] w-28 shrink-0 rounded-md sm:w-36" />
         <div className="min-w-0 flex-1">

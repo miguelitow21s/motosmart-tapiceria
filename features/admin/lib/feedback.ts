@@ -9,10 +9,14 @@ import { create } from "zustand";
   sin pasar funciones por props.
 */
 
-/** Éxito: 4 s. Error: 10 s, para que dé tiempo a leerlo. */
+/**
+ * Éxito: 4 s. Error: 10 s, para que dé tiempo a leerlo. El texto es el id:
+ * el mismo aviso repetido (cuatro cargas que fallan sin internet) actualiza
+ * el que ya está en pantalla en vez de apilar copias.
+ */
 export function notify(type: "success" | "error", text: string) {
-  if (type === "success") toast.success(text, { duration: 4000 });
-  else toast.error(text, { duration: 10000 });
+  if (type === "success") toast.success(text, { id: text, duration: 4000 });
+  else toast.error(text, { id: text, duration: 10000 });
 }
 
 type BusyState = { text: string | null };
@@ -22,10 +26,6 @@ export const useBusyStore = create<BusyState>(() => ({ text: null }));
 // El ref evita el doble toque: dos toques seguidos llegan antes de que React
 // pinte la pantalla de espera, y con solo el estado ambos verían "libre".
 let busy = false;
-
-export function isBusy() {
-  return busy;
-}
 
 /** Todo guardado o subida pasa por aquí: bloquea la pantalla y descarta toques repetidos. */
 export async function runBusy(text: string, task: () => Promise<unknown>) {

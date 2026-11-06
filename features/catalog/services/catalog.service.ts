@@ -1,8 +1,9 @@
 import { cache } from "react";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createPublicSupabaseClient } from "@/lib/supabase/public";
 import { CAROUSEL_MAX, parseCarouselOrder, sortByCarouselOrder } from "@/lib/carousel-order";
 import type { Brand, Design } from "@/types";
 import { getPromotionMeta } from "@/lib/utils";
+import { ownPhoto } from "@/lib/photos";
 
 const DESIGN_FIELDS =
   "id,brand_id,name,slug,short_description,image_url,is_active,base_price,discount_price,promotion_label,promotion_active,promotion_starts_at,promotion_ends_at";
@@ -18,13 +19,12 @@ function one<T>(value: T | T[] | null | undefined): T | null {
 }
 
 /**
- * Las filas de prueba del seed traen una foto de stock de Unsplash. La tienda
- * no la muestra como si fuera un trabajo propio: queda como "sin foto" y se
- * reemplaza subiendo la real desde el panel.
+ * Un error de la base no es "no hay datos": se lanza para que lo atrape
+ * app/error.tsx ("No pudimos cargar esta página") en vez de mostrar una
+ * tienda vacía o un 404 que Google tomaría por definitivo.
  */
-function ownPhoto(url: string | null | undefined) {
-  if (!url || /^https?:\/\/images\.unsplash\.com\//i.test(url)) return "";
-  return url;
+function fail(where: string, message: string): never {
+  throw new Error(`${where}: ${message}`);
 }
 
 /** Con foto propia primero; el resto conserva su orden. */
@@ -60,22 +60,44 @@ function withBrand(row: Design & { brands?: BrandJoin }): DesignWithBrand {
 }
 
 export const getBrands = cache(async (): Promise<Brand[]> => {
-  const supabase = await createServerSupabaseClient();
+  const supabase = createPublicSupabaseClient();
   const { data, error } = await supabase
     .from("brands")
     .select("id,name,slug,description,logo_url,is_active")
     .eq("is_active", true)
     .order("name", { ascending: true });
-  if (error) {
-    console.error("getBrands", error.message);
-    return [];
-  }
+  if (error) fail("getBrands", error.message);
   return data ?? [];
 });
 
-/** Todos los diseños activos de marcas activas, ordenados por nombre. */
+/**
+ * Fotos cuyo archivo ya no está en Storage (se borró a mano en Supabase y el
+ * diseño lo sigue apuntando). Storage responde 400 a un objeto que no existe.
+ * Si no responde o tarda, la foto se deja como está: nunca se quita una foto
+ * por un fallo de red. Corre al regenerar la página (ISR), no en cada visita.
+ */
+async function findMissingPhotos(urls: string[]): Promise<Set<string>> {
+  const unique = [...new Set(urls.filter(Boolean))];
+  const missing = await Promise.all(
+    unique.map(async (url) => {
+      try {
+        const res = await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(3000) });
+        return res.status === 400 || res.status === 404 ? url : null;
+      } catch {
+        return null;
+      }
+    })
+  );
+  return new Set(missing.filter((url): url is string => url !== null));
+}
+
+/**
+ * Todos los diseños activos de marcas activas, ordenados por nombre. Uno con
+ * la foto perdida queda "sin foto": así no ocupa los primeros puestos (van
+ * primero los que tienen foto) mostrando un hueco.
+ */
 export const getActiveDesigns = cache(async (): Promise<DesignWithBrand[]> => {
-  const supabase = await createServerSupabaseClient();
+  const supabase = createPublicSupabaseClient();
   const { data, error } = await supabase
     .from("designs")
     .select(`${DESIGN_FIELDS},brands!inner(name,slug,is_active)`)
@@ -83,11 +105,11 @@ export const getActiveDesigns = cache(async (): Promise<DesignWithBrand[]> => {
     .eq("brands.is_active", true)
     .order("name", { ascending: true });
 
-  if (error) {
-    console.error("getActiveDesigns", error.message);
-    return [];
-  }
-  return ((data ?? []) as Array<Design & { brands?: BrandJoin }>).map(withBrand);
+  if (error) fail("getActiveDesigns", error.message);
+  const designs = ((data ?? []) as Array<Design & { brands?: BrandJoin }>).map(withBrand);
+  const missing = await findMissingPhotos(designs.map((design) => design.image_url ?? ""));
+  if (!missing.size) return designs;
+  return designs.map((design) => (design.image_url && missing.has(design.image_url) ? { ...design, image_url: "" } : design));
 });
 
 // Inicio: un diseño real por marca activa (con foto propia si la marca tiene),
@@ -110,36 +132,6 @@ export async function getFeaturedDesigns(limit = 8): Promise<DesignWithBrand[]> 
   return featured;
 }
 
-/** Marca activa por slug. null si no existe o está oculta: la página responde 404. */
-export const getBrandBySlug = cache(async (slug: string): Promise<Brand | null> => {
-  const supabase = await createServerSupabaseClient();
-  const { data, error } = await supabase
-    .from("brands")
-    .select("id,name,slug,description,logo_url,is_active")
-    .eq("slug", slug)
-    .eq("is_active", true)
-    .maybeSingle();
-  if (error) {
-    console.error("getBrandBySlug", error.message);
-    return null;
-  }
-  return data;
-});
-
-export async function getDesignsByBrand(brand: Pick<Brand, "id" | "name" | "slug">): Promise<DesignWithBrand[]> {
-  const supabase = await createServerSupabaseClient();
-  const { data, error } = await supabase
-    .from("designs")
-    .select(DESIGN_FIELDS)
-    .eq("brand_id", brand.id)
-    .eq("is_active", true)
-    .order("name", { ascending: true });
-  if (error) {
-    console.error("getDesignsByBrand", error.message);
-    return [];
-  }
-  return ((data ?? []) as Design[]).map((design) => ({ ...design, brand_name: brand.name, brand_slug: brand.slug }));
-}
 
 type SlideDesign = Pick<
   Design,
@@ -173,7 +165,7 @@ export type CarouselSlide = {
  * pedía después de cargar y mientras tanto mostraba fotos de stock).
  */
 export const getCarouselSlides = cache(async (): Promise<CarouselSlide[]> => {
-  const supabase = await createServerSupabaseClient();
+  const supabase = createPublicSupabaseClient();
   const [{ data, error }, { data: orderSetting, error: orderError }] = await Promise.all([
     supabase
       .from("images")
@@ -186,10 +178,7 @@ export const getCarouselSlides = cache(async (): Promise<CarouselSlide[]> => {
     supabase.from("settings").select("value").eq("key", "carousel_order").maybeSingle()
   ]);
 
-  if (error) {
-    console.error("getCarouselSlides", error.message);
-    return [];
-  }
+  if (error) fail("getCarouselSlides", error.message);
   // Sin el orden guardado se cae al orden por fecha: nunca vaciar el carrusel por esto.
   if (orderError) console.error("getCarouselSlides order", orderError.message);
 

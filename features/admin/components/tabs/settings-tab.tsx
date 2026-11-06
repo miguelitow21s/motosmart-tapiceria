@@ -9,7 +9,7 @@ import { ErrorState, Loading, Panel, SkeletonList, TabHeader } from "@/features/
 import { saveSettings } from "@/features/admin/lib/actions";
 import { confirmAction, runBusy } from "@/features/admin/lib/feedback";
 import { plural } from "@/features/admin/lib/format";
-import { SETTING_FIELDS, SETTING_GROUPS, validateSetting, type SettingField } from "@/features/admin/lib/settings-keys";
+import { isOptionalSetting, SETTING_FIELDS, SETTING_GROUPS, type SettingField, validateSetting } from "@/features/admin/lib/settings-keys";
 import { retry, setAdminState, useAdminData, useAdminStore } from "@/features/admin/store/admin-data";
 import { DEFAULT_SETTINGS } from "@/lib/settings-defaults";
 
@@ -109,11 +109,13 @@ export function SettingsTab() {
                   </span>
                 ) : null}
               </p>
-              <div className="flex gap-2 *:flex-1 sm:*:flex-none">
-                <Button variant="secondary" onClick={() => void discard()}>
+              {/* A 320 px, «Guardar cambios» no cabía con px-5: Descartar toma su
+                  ancho justo y la acción principal se queda con el resto. */}
+              <div className="flex gap-2 sm:*:px-5">
+                <Button variant="secondary" className="shrink-0 px-3" onClick={() => void discard()}>
                   Descartar
                 </Button>
-                <Button variant="dark" onClick={() => void save()}>
+                <Button variant="dark" className="min-w-0 flex-1 px-3 sm:flex-none" onClick={() => void save()}>
                   Guardar cambios
                 </Button>
               </div>
@@ -157,7 +159,7 @@ function SettingInput({
     <Field
       id={id}
       label={field.label}
-      optional={field.optional}
+      optional={isOptionalSetting(field)}
       hint={hint}
       error={error}
       className={field.kind === "textarea" ? "sm:col-span-2" : undefined}

@@ -3,18 +3,21 @@
 import { useMemo } from "react";
 import { ArrowRight, CheckCircle2, ImagePlus, Plus, Type } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Panel, TabHeader } from "@/features/admin/components/primitives";
+import { ErrorState, Panel, TabHeader } from "@/features/admin/components/primitives";
 import { CAROUSEL_MAX } from "@/features/admin/lib/actions";
 import { describeActivity } from "@/features/admin/lib/activity-text";
 import { formatRelative, plural, priceNeedsReview } from "@/features/admin/lib/format";
 import { promoState } from "@/features/admin/lib/promo";
 import { useCarouselImages } from "@/features/admin/lib/selectors";
 import { goToTab, tabHref } from "@/features/admin/lib/tabs";
-import { setAdminState, useAdminData, useAdminStore } from "@/features/admin/store/admin-data";
+import { retry, setAdminState, useAdminData, useAdminStore } from "@/features/admin/store/admin-data";
 import type { TabKey } from "@/features/admin/types";
+import { ownPhoto } from "@/lib/photos";
 import { cn } from "@/lib/utils";
 
 type Pending = { id: string; text: string; action: string; onClick: () => void };
+
+const SUMMARY_KEYS = ["designs", "brands", "images", "settings"] as const;
 
 function showDesigns(filter: "no-photo" | "promo" | "hidden" | "check-price") {
   setAdminState({ designFilter: filter, designQuery: "", designBrand: "all" });
@@ -52,7 +55,8 @@ export function OverviewTab() {
     }
     if (designsReady) {
       const now = new Date();
-      const noPhoto = designs.filter((design) => !design.image_url).length;
+      // Las fotos de stock del seed no cuentan: la tienda no las muestra.
+      const noPhoto = designs.filter((design) => !ownPhoto(design.image_url)).length;
       const states = designs.map((design) => promoState(design, now).state);
       const expired = states.filter((state) => state === "expired").length;
       const incomplete = states.filter((state) => state === "incomplete").length;
@@ -103,27 +107,41 @@ export function OverviewTab() {
     return list;
   }, [designs, designsReady, brands.length, status.brands, carousel.length, carouselReady]);
 
-  const stats: { label: string; value: string; detail?: string; tab: TabKey; ready: boolean }[] = [
+  // Lo que no cargó se dice y se puede reintentar: antes el resumen se quedaba
+  // en «Revisando la tienda…» y con las cifras parpadeando para siempre.
+  const failed = SUMMARY_KEYS.filter((key) => status[key] === "error");
+  const failedSet = new Set<string>(failed);
+
+  const stats: { label: string; value: string; detail?: string; tab: TabKey; ready: boolean; error?: boolean }[] = [
     {
       label: "Diseños visibles",
       value: String(designs.filter((design) => design.is_active).length),
       detail: `de ${designs.length}`,
       tab: "catalog",
-      ready: designsReady
+      ready: designsReady,
+      error: failedSet.has("designs")
     },
     {
       label: "En promoción",
       value: String(designs.filter((design) => promoState(design).state === "live").length),
       tab: "catalog",
-      ready: designsReady
+      ready: designsReady,
+      error: failedSet.has("designs")
     },
-    { label: "Marcas", value: String(brands.length), tab: "brands", ready: status.brands === "ready" },
-    { label: "Fotos", value: String(images.length), tab: "gallery", ready: status.images === "ready" },
-    { label: "Carrusel", value: String(carousel.length), detail: `de ${CAROUSEL_MAX}`, tab: "carousel", ready: carouselReady }
+    { label: "Marcas", value: String(brands.length), tab: "brands", ready: status.brands === "ready", error: failedSet.has("brands") },
+    { label: "Fotos", value: String(images.length), tab: "gallery", ready: status.images === "ready", error: failedSet.has("images") },
+    {
+      label: "Carrusel",
+      value: String(carousel.length),
+      detail: `de ${CAROUSEL_MAX}`,
+      tab: "carousel",
+      ready: carouselReady,
+      error: failedSet.has("images") || failedSet.has("settings")
+    }
   ];
 
   const recent = activity.slice(0, 5);
-  const checking = !designsReady || !carouselReady;
+  const checking = !designsReady || !carouselReady || status.brands !== "ready";
 
   return (
     <div className="space-y-6">
@@ -145,6 +163,9 @@ export function OverviewTab() {
       </div>
 
       <Panel title="Pendientes">
+        {failed.length > 0 ? (
+          <ErrorState onRetry={() => retry(failed)}>No se pudo revisar toda la tienda.</ErrorState>
+        ) : null}
         {pending.length > 0 ? (
           // Cada pendiente es una fila entera que se toca: lleva directo a lo que hay que arreglar.
           <ul className="-mx-4 -my-4 divide-y divide-line sm:-mx-5 sm:-my-5">
@@ -165,7 +186,7 @@ export function OverviewTab() {
               </li>
             ))}
           </ul>
-        ) : checking ? (
+        ) : failed.length > 0 ? null : checking ? (
           <p className="text-ink-2" role="status">
             Revisando la tienda…
           </p>
@@ -189,7 +210,9 @@ export function OverviewTab() {
                 className="block h-full rounded-lg border border-line px-4 py-3.5 transition-colors duration-150 hover:border-line-strong hover:bg-surface/60"
               >
                 <span className="block text-sm font-medium text-ink-2">{stat.label}</span>
-                {stat.ready ? (
+                {stat.error ? (
+                  <span className="mt-1 block text-sm text-ink-3">Sin datos</span>
+                ) : stat.ready ? (
                   <span className="mt-1 flex items-baseline gap-1.5">
                     <span className="tabular text-3xl font-semibold leading-none">{stat.value}</span>
                     {stat.detail ? <span className="text-sm text-ink-3">{stat.detail}</span> : null}

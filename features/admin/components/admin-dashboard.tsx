@@ -72,7 +72,8 @@ export function AdminDashboard({ roleLabel, canPurge }: { roleLabel: string; can
 
   return (
     <>
-      <div className="lg:grid lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-10">
+      {/* data-admin-shell: globals.css deja aire bajo la barra inferior al hacer scroll con Tab. */}
+      <div data-admin-shell className="lg:grid lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-10">
         <AdminSideNav active={active} roleLabel={roleLabel} />
         <div className="min-w-0">
           {mounted ? (
@@ -97,7 +98,9 @@ export function AdminDashboard({ roleLabel, canPurge }: { roleLabel: string; can
         mobileOffset={{ top: 64, left: 16, right: 16 }}
         // Con un diálogo abierto, Radix desactiva los toques fuera de él: los avisos los recuperan.
         style={{ pointerEvents: "auto", fontFamily: "var(--font-sans)" }}
-        toastOptions={{ style: { fontSize: "0.9375rem" } }}
+        // Sonner trae estos nombres en inglés ("Notifications", "Close toast").
+        containerAriaLabel="Avisos"
+        toastOptions={{ style: { fontSize: "0.9375rem" }, closeButtonAriaLabel: "Cerrar aviso" }}
       />
     </>
   );

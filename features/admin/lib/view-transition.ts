@@ -26,6 +26,23 @@ export function withViewTransition<T>(run: () => Promise<T>): Promise<T> {
   });
 }
 
+/**
+ * Tras mover una fila con las flechas, el foco sigue en la flecha pulsada. Si
+ * esa flecha quedó deshabilitada (la fila llegó al borde), el navegador lo
+ * suelta al <body> y quien usa teclado o lector pierde su lugar: se pasa a la
+ * otra flecha de la misma fila. Las flechas llevan data-move="<id>:<up|down>".
+ */
+export function keepMoveFocus(id: string, direction: "up" | "down") {
+  requestAnimationFrame(() => {
+    const active = document.activeElement;
+    if (active && active !== document.body) return;
+    const find = (dir: string) => document.querySelector<HTMLButtonElement>(`[data-move="${CSS.escape(`${id}:${dir}`)}"]`);
+    const same = find(direction);
+    const other = find(direction === "up" ? "down" : "up");
+    (same && !same.disabled ? same : other)?.focus({ preventScroll: true });
+  });
+}
+
 /** Nombre de transición para una fila: debe ser un identificador CSS válido y único en la página. */
 export function rowTransitionName(prefix: string, id: string) {
   return `${prefix}-${id.replace(/[^a-zA-Z0-9_-]/g, "")}`;

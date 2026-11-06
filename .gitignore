@@ -13,3 +13,6 @@ tsconfig.tsbuildinfo
 # Cache local del CLI de Supabase (project ref, urls de conexion sin credenciales,
 # versiones de servicios): se regenera con `supabase link`, no es codigo del proyecto.
 supabase/.temp
+
+# Capturas de revisión de diseño (impeccable): se regeneran, pesan ~16 MB.
+.impeccable/review/

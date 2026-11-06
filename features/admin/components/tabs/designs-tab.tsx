@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Pencil, Plus, Search, Tags } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { fieldClasses } from "@/components/ui/input";
@@ -29,6 +29,7 @@ import { PROMO_LABELS, promoState } from "@/features/admin/lib/promo";
 import { goToTab } from "@/features/admin/lib/tabs";
 import { retry, setAdminState, useAdminData, useAdminStore } from "@/features/admin/store/admin-data";
 import type { Design } from "@/features/admin/types";
+import { ownPhoto } from "@/lib/photos";
 import { cn, formatCOP } from "@/lib/utils";
 
 // Textos cortos: en el teléfono los dos filtros van lado a lado.
@@ -38,7 +39,7 @@ const FILTER_LABELS = {
   hidden: "Ocultos",
   promo: "En promoción",
   "no-photo": "Sin foto",
-  "check-price": "Precio por revisar"
+  "check-price": "Revisar precio"
 } as const;
 
 export function DesignsTab() {
@@ -60,7 +61,7 @@ export function DesignsTab() {
       if (filter === "active" && !design.is_active) return false;
       if (filter === "hidden" && design.is_active) return false;
       if (filter === "promo" && !design.promotion_active) return false;
-      if (filter === "no-photo" && design.image_url) return false;
+      if (filter === "no-photo" && ownPhoto(design.image_url)) return false;
       if (filter === "check-price" && !designPriceNeedsReview(design)) return false;
       return true;
     });
@@ -194,7 +195,7 @@ export function DesignsTab() {
                   designSort: event.target.value as "name" | "price" | "recent"
                 })
               }
-              className="w-48"
+              className="w-52"
             >
               <option value="name">Orden: nombre</option>
               <option value="price">Orden: precio</option>
@@ -206,7 +207,7 @@ export function DesignsTab() {
             <EmptyState title="Ningún diseño coincide">Prueba con otra palabra o quita los filtros.</EmptyState>
           ) : (
             <>
-              <ul className="divide-y divide-line rounded-lg border border-line lg:hidden">
+              <ul className="divide-y divide-line rounded-lg border border-line xl:hidden">
                 {filtered.map((design) => (
                   <DesignRow key={design.id} design={design} brandName={brandNames.get(design.brand_id)} />
                 ))}
@@ -230,7 +231,7 @@ function StatusBadges({ design, showHidden = false }: { design: Design; showHidd
     <>
       {showHidden && !design.is_active ? <Badge>Oculto</Badge> : null}
       {designPriceNeedsReview(design) ? <Badge tone="warning">Revisar precio</Badge> : null}
-      {!design.image_url ? <Badge tone="warning">Sin foto</Badge> : null}
+      {!ownPhoto(design.image_url) ? <Badge tone="warning">Sin foto</Badge> : null}
       {promo.state === "live" ? <Badge tone="success">Promo −{promo.percentOff}%</Badge> : null}
       {promo.state !== "live" && promo.state !== "none" ? <Badge tone="warning">{PROMO_LABELS[promo.state]}</Badge> : null}
     </>
@@ -259,10 +260,14 @@ function DesignRow({ design, brandName }: { design: Design; brandName?: string }
         aria-label={`Editar ${design.name}`}
         className="shrink-0 self-start rounded-md"
       >
-        <Thumb src={design.image_url} alt="" className="size-18 rounded-md" />
+        <Thumb src={ownPhoto(design.image_url)} alt="" className="size-18 rounded-md" />
       </button>
       <div className="min-w-0 flex-1">
-        <button type="button" onClick={() => editDesign(design)} className="block w-full text-left font-semibold leading-snug">
+        <button
+          type="button"
+          onClick={() => editDesign(design)}
+          className="flex min-h-11 w-full items-center text-left font-semibold leading-snug"
+        >
           <span className="line-clamp-2 wrap-anywhere">{design.name}</span>
         </button>
         <p className="truncate text-sm text-ink-2">{brandName ?? "Sin marca"}</p>
@@ -290,7 +295,7 @@ function DesignRow({ design, brandName }: { design: Design; brandName?: string }
 /** Escritorio: tabla de una línea por diseño. */
 function DesignTable({ designs, brandNames }: { designs: Design[]; brandNames: Map<string, string> }) {
   return (
-    <div className="hidden overflow-hidden rounded-lg border border-line lg:block">
+    <div className="hidden overflow-hidden rounded-lg border border-line xl:block">
       <table className="w-full text-left">
         <thead className="bg-surface text-sm text-ink-2">
           <tr>
@@ -324,12 +329,12 @@ function DesignTable({ designs, brandNames }: { designs: Design[]; brandNames: M
                   aria-label={`Editar ${design.name}`}
                   className="block rounded-md"
                 >
-                  <Thumb src={design.image_url} alt="" className="size-14 rounded-md" />
+                  <Thumb src={ownPhoto(design.image_url)} alt="" className="size-14 rounded-md" />
                 </button>
               </td>
               <td className="max-w-0 px-3 py-2">
-                <button type="button" onClick={() => editDesign(design)} className="block max-w-full text-left">
-                  <span className="block truncate font-semibold hover:underline">{design.name}</span>
+                <button type="button" onClick={() => editDesign(design)} className="flex min-h-11 max-w-full items-center text-left">
+                  <span className="min-w-0 truncate font-semibold hover:underline">{design.name}</span>
                 </button>
                 <span className="block truncate text-sm text-ink-2">{brandNames.get(design.brand_id) ?? "Sin marca"}</span>
               </td>
@@ -339,7 +344,10 @@ function DesignTable({ designs, brandNames }: { designs: Design[]; brandNames: M
               <td className="px-3 py-2">
                 <div className="flex flex-wrap gap-1">
                   <StatusBadges design={design} />
-                  {design.image_url && promoState(design).state === "none" ? <span className="text-sm text-ink-3">—</span> : null}
+                  {/* La raya solo cuando no hay ninguna etiqueta. */}
+                  {ownPhoto(design.image_url) && promoState(design).state === "none" && !designPriceNeedsReview(design) ? (
+                    <span className="text-sm text-ink-3">—</span>
+                  ) : null}
                 </div>
               </td>
               <td className="px-3 py-2">
@@ -370,6 +378,16 @@ function DesignTable({ designs, brandNames }: { designs: Design[]; brandNames: M
 function InlinePrice({ design }: { design: Design }) {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState<number | null>(design.base_price);
+  // Con Enter o Escape el campo desaparece y el foco caía al <body>: vuelve al
+  // botón del precio. Si se sale tocando otra cosa, el foco se queda allá.
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const refocus = useRef(false);
+
+  useEffect(() => {
+    if (editing || !refocus.current) return;
+    refocus.current = false;
+    buttonRef.current?.focus();
+  }, [editing]);
 
   function start() {
     setValue(design.base_price);
@@ -410,8 +428,12 @@ function InlinePrice({ design }: { design: Design }) {
         autoFocus
         onBlur={() => void commit()}
         onKeyDown={(event) => {
-          if (event.key === "Enter") event.currentTarget.blur();
+          if (event.key === "Enter") {
+            refocus.current = true;
+            event.currentTarget.blur();
+          }
           if (event.key === "Escape") {
+            refocus.current = true;
             setValue(design.base_price);
             setEditing(false);
           }
@@ -423,10 +445,11 @@ function InlinePrice({ design }: { design: Design }) {
 
   return (
     <button
+      ref={buttonRef}
       type="button"
       onClick={start}
       aria-label={`Cambiar precio de ${design.name}: ${formatCOP(design.base_price)}`}
-      className="-mx-2 inline-flex h-11 items-center rounded-md px-2 font-semibold tabular decoration-line-strong decoration-dashed underline-offset-4 hover:bg-surface hover:underline"
+      className="-mx-2 inline-flex h-11 min-w-11 items-center justify-center rounded-md px-2 font-semibold tabular decoration-line-strong decoration-dashed underline-offset-4 hover:bg-surface hover:underline"
     >
       {formatCOP(design.base_price)}
     </button>

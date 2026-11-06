@@ -160,7 +160,11 @@ export function PhotoDialog({
               Es la que se ve en el catálogo para «{design.name}».
             </p>
           ) : (
-            <Button variant="secondary" onClick={() => void makeMain()} className="w-full sm:w-auto">
+            <Button
+              variant="secondary"
+              onClick={() => void makeMain()}
+              className="h-auto min-h-12 w-full py-2 text-center whitespace-normal sm:w-auto"
+            >
               <Star aria-hidden="true" />
               Usar como foto principal de «{design.name}»
             </Button>

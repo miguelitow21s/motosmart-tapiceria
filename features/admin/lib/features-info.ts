@@ -1,5 +1,9 @@
-/** Nombre y efecto de cada módulo, en palabras de la tienda (no de la base de datos). */
-export const FEATURE_INFO: Record<string, { label: string; description: string; order: number }> = {
+/**
+ * Nombre y efecto de cada módulo, en palabras de la tienda (no de la base de
+ * datos). `retired`: ya no controla nada; no se muestra en «Módulos», pero su
+ * nombre sigue sirviendo para leer la actividad vieja.
+ */
+export const FEATURE_INFO: Record<string, { label: string; description: string; order: number; retired?: boolean }> = {
   catalog_enabled: {
     label: "Catálogo",
     description: "La página «Catálogo» con todos los diseños. Apagado, quien la abra vuelve al inicio.",
@@ -22,7 +26,8 @@ export const FEATURE_INFO: Record<string, { label: string; description: string; 
   },
   customizer_enabled: {
     label: "Personalizador",
-    description: "La tienda ya no lo usa. Puedes dejarlo como esté.",
-    order: 5
+    description: "La tienda ya no lo usa.",
+    order: 5,
+    retired: true
   }
 };

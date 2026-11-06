@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, Trash2, Users, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,7 +17,7 @@ import {
 } from "@/features/admin/components/primitives";
 import { deleteRiderPhoto, moveRiderPhoto, patchRiderPhoto, uploadRiderPhoto } from "@/features/admin/lib/actions";
 import { confirmAction, notify, runBusy } from "@/features/admin/lib/feedback";
-import { rowTransitionName, withViewTransition } from "@/features/admin/lib/view-transition";
+import { keepMoveFocus, rowTransitionName, withViewTransition } from "@/features/admin/lib/view-transition";
 import { retry, useAdminData, useAdminStore } from "@/features/admin/store/admin-data";
 import type { RiderPhoto } from "@/features/admin/types";
 
@@ -28,10 +28,20 @@ export function RidersTab() {
   const status = useAdminData(["riders"]);
   const riders = useAdminStore((state) => state.riders);
   const [announcement, setAnnouncement] = useState("");
+  // Un movimiento a la vez: dos toques rápidos mandaban dos órdenes que podían
+  // llegar al servidor al revés.
+  const moving = useRef(false);
 
   async function move(photo: RiderPhoto, index: number, direction: "up" | "down") {
-    await withViewTransition(() => moveRiderPhoto(photo.id, direction));
-    setAnnouncement(`Foto de ${photo.rider_name} movida al puesto ${direction === "up" ? index : index + 2}.`);
+    if (moving.current) return;
+    moving.current = true;
+    try {
+      const saved = await withViewTransition(() => moveRiderPhoto(photo.id, direction));
+      keepMoveFocus(photo.id, direction);
+      if (saved) setAnnouncement(`Foto de ${photo.rider_name} movida al puesto ${direction === "up" ? index : index + 2}.`);
+    } finally {
+      moving.current = false;
+    }
   }
 
   async function remove(photo: RiderPhoto) {
@@ -175,10 +185,20 @@ function RiderCard({
           }
         />
         <div className="mt-auto flex items-center gap-1 border-t border-line pt-3">
-          <IconButton label={`Mover al puesto ${position - 1}`} disabled={position === 1} onClick={() => onMove("up")}>
+          <IconButton
+            label={`Mover al puesto ${position - 1}`}
+            disabled={position === 1}
+            data-move={`${photo.id}:up`}
+            onClick={() => onMove("up")}
+          >
             <ArrowUp aria-hidden="true" />
           </IconButton>
-          <IconButton label={`Mover al puesto ${position + 1}`} disabled={position === total} onClick={() => onMove("down")}>
+          <IconButton
+            label={`Mover al puesto ${position + 1}`}
+            disabled={position === total}
+            data-move={`${photo.id}:down`}
+            onClick={() => onMove("down")}
+          >
             <ArrowDown aria-hidden="true" />
           </IconButton>
           <IconButton

@@ -189,8 +189,18 @@ export async function patchImage(id: string, changes: ImageChanges, successText 
     return false;
   }
   notify("success", successText);
+  if (changes.is_carousel === false) await dropFromCarouselOrder(id);
   void refreshLoaded("activity");
   return true;
+}
+
+/**
+ * Una foto que sale del carrusel (o se borra) sale también del orden guardado:
+ * si no, al volver a marcarla reaparecía en su puesto viejo y no "al final".
+ */
+async function dropFromCarouselOrder(id: string) {
+  const order = getAdminState().carouselOrder;
+  if (order.includes(id)) await saveCarouselOrder(order.filter((item) => item !== id));
 }
 
 /** Pone la foto como principal del diseño elegido (la que se ve en el catálogo). */
@@ -223,6 +233,7 @@ export async function deleteImage(image: AdminImage) {
   }
   setAdminState((state) => ({ images: state.images.filter((item) => item.id !== image.id) }));
   notify("success", "Foto eliminada");
+  await dropFromCarouselOrder(image.id);
   void refreshLoaded("activity");
   return true;
 }
@@ -314,8 +325,7 @@ export async function clearCarousel(images: AdminImage[]) {
   const failed = results.filter((res) => !res.ok).length;
   if (failed > 0) {
     notify("error", `No se pudieron quitar ${failed} de ${results.length} fotos. Intenta de nuevo.`);
-  } else {
-    await saveCarouselOrder([]);
+  } else if (await saveCarouselOrder([])) {
     notify("success", "Carrusel vacío. Las fotos siguen en «Fotos».");
   }
   await Promise.all([loadData("images", { force: true }), refreshLoaded("activity")]);
@@ -509,11 +519,12 @@ export async function patchRiderPhoto(id: string, changes: RiderChanges, success
 }
 
 /** Intercambia dos fotos y guarda solo las posiciones que cambiaron, con un único aviso. */
+/** true si el nuevo orden quedó guardado. */
 export async function moveRiderPhoto(id: string, direction: "up" | "down") {
   const photos = getAdminState().riders;
   const index = photos.findIndex((photo) => photo.id === id);
   const target = direction === "up" ? index - 1 : index + 1;
-  if (index < 0 || target < 0 || target >= photos.length) return;
+  if (index < 0 || target < 0 || target >= photos.length) return false;
 
   const reordered = [...photos];
   [reordered[index], reordered[target]] = [reordered[target], reordered[index]];
@@ -529,9 +540,13 @@ export async function moveRiderPhoto(id: string, direction: "up" | "down") {
   );
   const failure = results.find((res) => !res.ok);
   if (failure && !failure.ok) {
-    setAdminState({ riders: photos });
+    // Son dos cambios: si uno entró y el otro no, el orden guardado ya no es
+    // el de antes. Se vuelve a leer del servidor en vez de suponerlo.
     notify("error", failure.error);
+    await loadData("riders", { force: true });
+    return false;
   }
+  return true;
 }
 
 export async function deleteRiderPhoto(photo: RiderPhoto) {

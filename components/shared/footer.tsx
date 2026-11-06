@@ -13,7 +13,7 @@ const shopLinks = [
 ];
 
 // Pie negro, igual que la cabecera: el logo solo se lee sobre negro.
-export async function Footer({ isAuthenticated = false }: { isAuthenticated?: boolean }) {
+export async function Footer() {
   const settings = await getSiteSettings();
   const year = new Date().getFullYear();
 
@@ -56,11 +56,9 @@ export async function Footer({ isAuthenticated = false }: { isAuthenticated?: bo
           <p>
             © {year} {settings.business_name}
           </p>
-          <Link
-            href={isAuthenticated ? "/admin" : "/login"}
-            className="link-underline inline-flex min-h-11 items-center hover:text-white"
-          >
-            {isAuthenticated ? "Panel administrador" : "Acceso administrador"}
+          {/* Con sesión entra directo al panel; sin ella, middleware.ts lleva al login. */}
+          <Link href="/admin" prefetch={false} className="link-underline inline-flex min-h-11 items-center hover:text-white">
+            Acceso administrador
           </Link>
         </div>
       </div>

@@ -4,6 +4,7 @@ import { assertCsrf, loginSchema } from "@/lib/security";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { createRouteHandlerSupabaseClient } from "@/lib/supabase/route-handler";
 import { parseRoleRow } from "@/lib/role";
+import { readJson } from "@/lib/api-response";
 
 // NO añadir aqui credenciales de bootstrap ni rutas de recuperacion de admin.
 // El alta de administradores se hace desde el Dashboard de Supabase
@@ -58,7 +59,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "CSRF invalido" }, { status: 403 });
   }
 
-  const payload = await request.json();
+  const payload = await readJson(request);
   const parsed = loginSchema.safeParse(payload);
 
   if (!parsed.success) {

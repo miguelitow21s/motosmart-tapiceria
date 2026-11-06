@@ -18,6 +18,9 @@ export function ConfirmHost() {
       open={Boolean(request)}
       onClose={() => settleConfirm(false)}
       title={shown?.title ?? ""}
+      // Como descripción del diálogo, el lector la lee junto al título al abrir.
+      description={shown?.description}
+      descriptionPlacement="body"
       role="alertdialog"
       footer={
         <>
@@ -29,8 +32,6 @@ export function ConfirmHost() {
           </Button>
         </>
       }
-    >
-      <p className="text-ink-2">{shown?.description}</p>
-    </Modal>
+    />
   );
 }

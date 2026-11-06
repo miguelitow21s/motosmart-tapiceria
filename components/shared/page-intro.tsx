@@ -27,7 +27,8 @@ export function PageIntro({
               <li key={crumb.label} className="flex items-center gap-2">
                 {index > 0 ? <span aria-hidden="true">/</span> : null}
                 {crumb.href ? (
-                  <Link href={crumb.href} className="link-underline text-ink-2">
+                  // -my-3 + min-h-11: zona de toque de 44 px sin empujar el título.
+                  <Link href={crumb.href} className="link-underline -my-3 inline-flex min-h-11 items-center text-ink-2">
                     {crumb.label}
                   </Link>
                 ) : (

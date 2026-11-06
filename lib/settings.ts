@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createPublicSupabaseClient } from "@/lib/supabase/public";
 import { DEFAULT_SETTINGS, OPTIONAL_SETTING_KEYS, type SiteSettings } from "@/lib/settings-defaults";
 
 export {
@@ -24,7 +24,7 @@ function readText(value: unknown): string | null {
  * y la página piden los settings y solo se hace un viaje a Supabase.
  */
 export const getSiteSettings = cache(async (): Promise<SiteSettings> => {
-  const supabase = await createServerSupabaseClient();
+  const supabase = createPublicSupabaseClient();
   const { data, error } = await supabase.from("settings").select("key,value");
 
   if (error) {

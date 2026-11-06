@@ -110,8 +110,12 @@ export function BrandsTab() {
                 <Thumb src={brand.image_url} alt="" fit="contain" emptyLabel="Sin logo" className="size-14 shrink-0 rounded-md border border-line bg-bg" />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <button type="button" onClick={() => open(brand.id)} className="max-w-full truncate text-left font-semibold hover:underline">
-                      {brand.name}
+                    <button
+                      type="button"
+                      onClick={() => open(brand.id)}
+                      className="-my-2.5 flex min-h-11 max-w-full items-center text-left font-semibold hover:underline"
+                    >
+                      <span className="min-w-0 truncate">{brand.name}</span>
                     </button>
                     {!brand.is_active ? <Badge>Oculta</Badge> : null}
                   </div>

@@ -1,12 +1,19 @@
+import { isShowablePrice } from "@/lib/price-limits";
 import { cn, formatCOP, formatDateShort, getPromotionMeta } from "@/lib/utils";
 import type { Design } from "@/types";
+
+const ASK_PRICE = "Consultar precio";
 
 type PriceSource = Pick<
   Design,
   "base_price" | "discount_price" | "promotion_active" | "promotion_starts_at" | "promotion_ends_at" | "promotion_label"
 >;
 
-/** Precio que ve el cliente hoy: el de promoción si está vigente, si no el base. */
+/**
+ * Precio que ve el cliente hoy: el de promoción si está vigente, si no el base.
+ * `showable` es falso si está mal escrito ($148): la tienda dice "Consultar
+ * precio" y no lo pone en el mensaje de WhatsApp.
+ */
 export function currentPrice(design: PriceSource, now: Date = new Date()) {
   const promo = getPromotionMeta(
     design.base_price,
@@ -17,12 +24,13 @@ export function currentPrice(design: PriceSource, now: Date = new Date()) {
     now
   );
   const value = promo.hasPromotion && design.discount_price != null ? design.discount_price : design.base_price;
-  return { value, promo };
+  return { value, promo, showable: isShowablePrice(value) };
 }
 
 /** Precio corto para pies de foto y etiquetas: "Desde $145.000" en una línea. */
 export function InlinePrice({ design, className }: { design: PriceSource; className?: string }) {
-  const { value, promo } = currentPrice(design);
+  const { value, promo, showable } = currentPrice(design);
+  if (!showable) return <p className={cn("text-sm font-semibold text-ink-2", className)}>{ASK_PRICE}</p>;
   return (
     <p className={cn("tabular text-sm text-ink-2", className)}>
       Desde{" "}
@@ -51,8 +59,19 @@ export function Price({
   compact?: boolean;
   className?: string;
 }) {
-  const { value, promo } = currentPrice(design);
+  const { value, promo, showable } = currentPrice(design);
   const big = size === "lg";
+
+  if (!showable) {
+    // Misma altura de línea que el precio para que las tarjetas no salten.
+    return (
+      <p className={cn("flex items-center font-semibold text-ink-2", big ? "min-h-7" : "min-h-[1.375rem]", className)}>
+        {ASK_PRICE}
+      </p>
+    );
+  }
+  // Sin "antes" ni "ahorras" si el precio base es el mal escrito.
+  const showBase = promo.hasPromotion && isShowablePrice(design.base_price);
 
   return (
     <div className={cn("tabular", className)}>
@@ -68,7 +87,7 @@ export function Price({
         >
           {formatCOP(value)}
         </data>
-        {promo.hasPromotion ? (
+        {showBase ? (
           <s className="text-sm text-ink-3">
             <span className="sr-only">Antes </span>
             {formatCOP(design.base_price)}
@@ -78,7 +97,7 @@ export function Price({
       {promo.hasPromotion ? (
         <p className="mt-1 text-sm font-semibold text-brand">
           {design.promotion_label || "Promoción"}
-          {compact ? null : ` · ahorras ${formatCOP(promo.savings)}`}
+          {compact || !showBase ? null : ` · ahorras ${formatCOP(promo.savings)}`}
           {design.promotion_ends_at ? (
             <span className="font-normal text-ink-3"> · hasta el {formatDateShort(design.promotion_ends_at)}</span>
           ) : null}

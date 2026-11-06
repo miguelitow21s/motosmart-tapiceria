@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { trackEvent } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
@@ -20,6 +21,21 @@ export function BrandBar({
   /** Slug de la marca abierta, o "all" en el catálogo completo. */
   active?: string;
 }) {
+  const rowRef = useRef<HTMLDivElement>(null);
+
+  // En el teléfono la fila se desplaza de lado: si la marca abierta quedó
+  // fuera de la vista (Yamaha es la última), se centra. Solo se mueve la fila,
+  // nunca la página.
+  useEffect(() => {
+    const row = rowRef.current;
+    const current = row?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (!row || !current) return;
+    const start = current.offsetLeft;
+    const end = start + current.offsetWidth;
+    if (start >= row.scrollLeft && end <= row.scrollLeft + row.clientWidth) return;
+    row.scrollLeft = Math.max(0, start - (row.clientWidth - current.offsetWidth) / 2);
+  }, [active]);
+
   if (!brands.length) return null;
 
   const link = (href: string, label: string, isActive: boolean, slug?: string) => (
@@ -39,7 +55,7 @@ export function BrandBar({
       aria-label="Elige tu marca"
       className="sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-30 border-y border-line bg-bg"
     >
-      <div className="bleed-row no-scrollbar flex items-center gap-2 overflow-x-auto py-2.5">
+      <div ref={rowRef} className="bleed-row no-scrollbar relative flex items-center gap-2 overflow-x-auto py-2.5">
         <span className="shrink-0 pr-1 text-sm font-semibold text-ink-2">Elige tu marca</span>
         {link("/catalogo", "Todas", active === "all")}
         {brands.map((brand) => link(`/marca/${brand.slug}`, brand.name, active === brand.slug, brand.slug))}

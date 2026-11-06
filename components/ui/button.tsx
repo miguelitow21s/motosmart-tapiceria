@@ -17,6 +17,8 @@ const buttonVariants = cva(
     "relative inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-lg font-semibold",
     "transition-[background-color,border-color,color,transform] duration-150 ease-(--ease-out)",
     "active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50",
+    // aria-disabled: se ve apagado pero conserva el foco (ver ScrollRow).
+    "aria-disabled:cursor-default aria-disabled:opacity-50 aria-disabled:active:scale-100",
     "[&_svg]:size-5 [&_svg]:shrink-0"
   ],
   {

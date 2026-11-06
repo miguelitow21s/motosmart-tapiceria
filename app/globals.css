@@ -6,7 +6,8 @@
 
   Los colores son tokens semánticos (fondo, superficie, tinta, línea, marca):
   las utilidades leen variables CSS. La tienda y el panel usan el mismo tema
-  claro; la cabecera negra es la única superficie oscura (el logo lo pide).
+  claro; la cabecera y el pie negros son las únicas superficies oscuras (el
+  logo lo pide).
 */
 
 @theme inline {
@@ -21,6 +22,7 @@
   --color-ink-3: var(--ink-3);
   --color-line: var(--line);
   --color-line-strong: var(--line-strong);
+  --color-line-field: var(--line-field);
   --color-brand: var(--brand);
   --color-brand-hover: var(--brand-hover);
   --color-brand-ink: var(--brand-ink);
@@ -65,13 +67,16 @@
   --ink-3: #6b6b6b;
   --line: #e2e2df;
   --line-strong: #c9c9c5;
+  /* Borde de campos: 3.7:1 sobre blanco (WCAG 1.4.11 pide 3:1 para ver dónde se escribe). */
+  --line-field: #858581;
   /* Rojo de marca: 5.9:1 con texto blanco; el hover oscurece (7.8:1). */
   --brand: #c8102e;
   --brand-hover: #a50d26;
   --brand-ink: #ffffff;
   --danger: #b3261e;
   --danger-hover: #8f1e18;
-  --success: #1e7b3c;
+  /* 6.3:1 sobre blanco; la insignia sobre su tinte, con hover de fila, queda en 5.2:1. */
+  --success: #1a6e35;
   --warning: #8a5300;
   /* El logo es un recorte transparente con letras blancas: solo se lee sobre negro. */
   --header: #000000;
@@ -91,7 +96,16 @@
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
     -webkit-tap-highlight-color: transparent;
-    scroll-padding-top: 5rem;
+    /* Cabecera (56 px) + barra de marcas pegajosa (66 px) + aire: el foco con
+       Tab y los anclajes nunca quedan debajo de las barras. */
+    scroll-padding-top: 8.5rem;
+  }
+
+  /* Panel en teléfono y tableta: la barra inferior fija mide 64 px. */
+  @media (width < 64rem) {
+    html:has([data-admin-shell]) {
+      scroll-padding-bottom: 5.5rem;
+    }
   }
 
   body {
@@ -113,6 +127,8 @@
     font-stretch: 75%;
     font-weight: 800;
     letter-spacing: -0.01em;
+    /* Condensada y pesada, el espacio entre palabras queda corto. */
+    word-spacing: 0.06em;
     line-height: 1.08;
     text-wrap: balance;
   }
@@ -154,9 +170,10 @@
     outline-offset: 2px;
   }
 
+  /* Tinta, no rojo: el rojo es solo para acciones y precios en promoción. */
   ::selection {
-    background-color: var(--brand);
-    color: var(--brand-ink);
+    background-color: var(--ink);
+    color: var(--bg);
   }
 
   * {
@@ -247,6 +264,7 @@
   font-stretch: 75%;
   font-weight: 800;
   letter-spacing: -0.01em;
+  word-spacing: 0.06em;
 }
 
 /*

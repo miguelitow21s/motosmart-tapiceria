@@ -1,8 +1,10 @@
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { cache } from "react";
+import { createPublicSupabaseClient } from "@/lib/supabase/public";
 import type { RiderPhoto } from "@/types";
 
-export async function getRiderPhotos(): Promise<RiderPhoto[]> {
-  const supabase = await createServerSupabaseClient();
+/** cache(): la metadata y la página piden las mismas fotos en un solo viaje. */
+export const getRiderPhotos = cache(async (): Promise<RiderPhoto[]> => {
+  const supabase = createPublicSupabaseClient();
   const { data, error } = await supabase
     .from("rider_photos")
     .select("id,storage_path,rider_name,moto_info,is_active,display_order,created_at")
@@ -11,9 +13,7 @@ export async function getRiderPhotos(): Promise<RiderPhoto[]> {
     .order("created_at", { ascending: false })
     .limit(200);
 
-  if (error) {
-    console.error("getRiderPhotos", error.message);
-    return [];
-  }
+  // Un error de la base no es "no hay fotos": lo atrapa app/error.tsx.
+  if (error) throw new Error(`getRiderPhotos: ${error.message}`);
   return data ?? [];
-}
+});

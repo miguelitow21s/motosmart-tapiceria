@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronRight, Menu, X } from "lucide-react";
@@ -33,13 +33,25 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function Navbar({
-  isAuthenticated = false,
-  whatsappHref
-}: {
-  isAuthenticated?: boolean;
-  whatsappHref: string;
-}) {
+/*
+  La tienda se sirve desde caché (igual para todos), así que el servidor no
+  sabe quién mira. El enlace al panel se decide aquí, con la cookie de sesión
+  de Supabase (no es httpOnly). Solo muestra un enlace: quién entra al panel
+  lo sigue decidiendo middleware.ts con el rol guardado en la base.
+*/
+const SESSION_COOKIE = /(?:^|;\s*)sb-[^=;]+-auth-token(?:\.0)?=/;
+const noSubscribe = () => () => {};
+
+function useHasSession() {
+  return useSyncExternalStore(
+    noSubscribe,
+    () => SESSION_COOKIE.test(document.cookie),
+    () => false
+  );
+}
+
+export function Navbar({ whatsappHref }: { whatsappHref: string }) {
+  const isAuthenticated = useHasSession();
   const pathname = usePathname();
   const inAdmin = isAdminPath(pathname);
   const links = publicLinks;
@@ -47,13 +59,18 @@ export function Navbar({
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const firstLinkRef = useRef<HTMLAnchorElement>(null);
 
-  // Menú abierto: la página de atrás no se desplaza, Escape lo cierra y, si
-  // la pantalla se ensancha a escritorio, se cierra solo.
+  // Menú abierto: la página de atrás no se desplaza ni recibe foco (Tab y el
+  // lector de pantalla se quedan en el menú), Escape lo cierra y, si la
+  // pantalla se ensancha a escritorio, se cierra solo.
   useEffect(() => {
     if (!open) return;
     const root = document.documentElement;
     const previousOverflow = root.style.overflow;
     root.style.overflow = "hidden";
+    const behind = [document.getElementById("contenido"), document.querySelector("body > footer")].filter(
+      (node): node is HTMLElement => node instanceof HTMLElement
+    );
+    for (const node of behind) node.inert = true;
     firstLinkRef.current?.focus();
 
     const desktop = window.matchMedia("(min-width: 48rem)");
@@ -71,6 +88,7 @@ export function Navbar({
     desktop.addEventListener("change", onResize);
     return () => {
       root.style.overflow = previousOverflow;
+      for (const node of behind) node.inert = false;
       document.removeEventListener("keydown", onKey);
       desktop.removeEventListener("change", onResize);
     };
@@ -99,7 +117,8 @@ export function Navbar({
                     className={cn(
                       "relative inline-flex h-11 items-center rounded-md px-3 text-[0.9375rem] font-medium transition-colors duration-150",
                       active
-                        ? "text-white after:absolute after:inset-x-3 after:bottom-1 after:h-0.5 after:bg-brand"
+                        ? // Subrayado blanco: el rojo queda para acciones y precios en promoción.
+                          "text-white after:absolute after:inset-x-3 after:bottom-1 after:h-0.5 after:bg-white"
                         : "text-white/75 hover:text-white"
                     )}
                   >
@@ -188,7 +207,7 @@ export function Navbar({
                       aria-current={active ? "page" : undefined}
                       className="type-display flex h-16 items-center justify-between text-2xl"
                     >
-                      <span className={cn(active && "underline decoration-brand decoration-2 underline-offset-8")}>{link.label}</span>
+                      <span className={cn(active && "underline decoration-current decoration-2 underline-offset-8")}>{link.label}</span>
                       <ChevronRight aria-hidden="true" className="size-5 text-ink-3" />
                     </Link>
                   </li>

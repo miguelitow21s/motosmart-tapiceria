@@ -1,17 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AdminDashboard } from "@/features/admin/components/admin-dashboard";
-import { setAdminTransport } from "@/features/admin/lib/admin-fetch";
+import { resetAdminTransport, setAdminTransport } from "@/features/admin/lib/admin-fetch";
 import { createDemoTransport } from "@/features/admin/demo/demo-transport";
 import type { DemoSeed } from "@/features/admin/demo/demo-seed";
+import { resetAdminState } from "@/features/admin/store/admin-data";
 
+/*
+  El panel se monta solo después de instalar el transporte en memoria: así
+  ninguna petición llega a /api/admin. Al salir (por ejemplo a la tienda y de
+  ahí a «Panel» sin recargar), se devuelven la red y el estado inicial, para
+  que /admin nunca muestre datos de demostración ni guarde en memoria.
+*/
 export function DemoClient({ seed }: { seed: DemoSeed }) {
-  // El transporte en memoria se instala antes del primer render: así ninguna
-  // petición del panel llega a /api/admin.
-  useState(() => {
-    if (typeof window !== "undefined") setAdminTransport(createDemoTransport(seed));
-    return null;
-  });
-  return <AdminDashboard roleLabel="administrador (demostración)" canPurge />;
+  const [installed, setInstalled] = useState(false);
+
+  useEffect(() => {
+    setAdminTransport(createDemoTransport(seed));
+    setInstalled(true);
+    return () => {
+      resetAdminTransport();
+      resetAdminState();
+    };
+  }, [seed]);
+
+  return installed ? <AdminDashboard roleLabel="administrador (demostración)" canPurge /> : null;
 }

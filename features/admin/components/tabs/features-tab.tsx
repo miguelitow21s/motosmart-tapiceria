@@ -28,9 +28,10 @@ function featureLabel(feature: Feature) {
 export function FeaturesTab() {
   const status = useAdminData(["features"]);
   const features = useAdminStore((state) => state.features);
-  const sorted = [...features].sort(
-    (a, b) => (FEATURE_INFO[a.name]?.order ?? 99) - (FEATURE_INFO[b.name]?.order ?? 99)
-  );
+  // Un interruptor que no cambia nada no se muestra (p. ej. el personalizador viejo).
+  const sorted = features
+    .filter((feature) => !FEATURE_INFO[feature.name]?.retired)
+    .sort((a, b) => (FEATURE_INFO[a.name]?.order ?? 99) - (FEATURE_INFO[b.name]?.order ?? 99));
 
   return (
     <div className="space-y-6">

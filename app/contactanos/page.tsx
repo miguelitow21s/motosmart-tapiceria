@@ -4,13 +4,17 @@ import { PageIntro } from "@/components/shared/page-intro";
 import { containerClasses } from "@/components/shared/section";
 import { Card } from "@/components/ui/card";
 import { ContactForm } from "@/features/contact/components/contact-form";
+import { pageMetadata } from "@/lib/seo";
 import { getSiteSettings } from "@/lib/settings";
 import { cn } from "@/lib/utils";
 
-export const metadata: Metadata = {
-  title: "Contáctanos - Tapicería para moto en Medellín",
-  description: "Cotiza tu tapicería de moto por WhatsApp: cuéntanos tu marca y modelo y te respondemos con el precio."
-};
+export function generateMetadata(): Promise<Metadata> {
+  return pageMetadata({
+    title: "Contáctanos: tapicería para moto en Medellín",
+    description: "Cotiza tu tapicería de moto por WhatsApp: cuéntanos tu marca y modelo y te respondemos con el precio.",
+    path: "/contactanos"
+  });
+}
 
 export default async function ContactanosPage() {
   const settings = await getSiteSettings();

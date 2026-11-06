@@ -22,7 +22,7 @@ export async function Hero({ featured }: { featured: CarouselSlide | null }) {
       aria-labelledby="titulo-inicio"
       className={cn(
         containerClasses,
-        "pt-7 pb-8 md:pt-10 lg:py-12",
+        "pt-6 pb-7 md:pt-10 md:pb-8 lg:py-12",
         featured && "grid gap-10 lg:grid-cols-[minmax(0,1fr)_26rem] lg:items-center lg:gap-16 xl:grid-cols-[minmax(0,1fr)_30rem]"
       )}
     >
@@ -38,7 +38,10 @@ export async function Hero({ featured }: { featured: CarouselSlide | null }) {
               Cotizar por WhatsApp
             </WhatsAppLink>
           </Button>
-          <Button asChild size="lg" variant="secondary" className="w-full sm:w-auto">
+          {/* En el teléfono no: la barra de marcas, justo debajo, ya lleva al
+              catálogo, y sin este botón la primera foto con precio entra en
+              la primera pantalla. */}
+          <Button asChild size="lg" variant="secondary" className="hidden sm:inline-flex sm:w-auto">
             <Link href="/catalogo">{settings.hero_cta_text}</Link>
           </Button>
         </div>
@@ -47,7 +50,8 @@ export async function Hero({ featured }: { featured: CarouselSlide | null }) {
 
       {featured ? (
         // Solo en escritorio: en el teléfono esta foto abre la fila de trabajos.
-        // Sin priority para que el teléfono no la descargue estando oculta.
+        // Precarga solo en escritorio (es su foto más grande): con priority,
+        // el teléfono la descargaría estando oculta.
         <Link
           href={featured.href}
           className="group relative hidden aspect-3/4 overflow-hidden rounded-lg bg-surface lg:block"
@@ -56,6 +60,7 @@ export async function Hero({ featured }: { featured: CarouselSlide | null }) {
             src={featured.image}
             alt={featured.alt}
             sizes="(min-width: 1280px) 480px, 416px"
+            preloadMedia="(min-width: 1024px)"
             className="transition-transform duration-300 ease-out group-hover:scale-[1.02]"
           />
           <div className="absolute inset-x-3 bottom-3 flex items-end justify-between gap-4 rounded-md bg-bg px-4 py-3">

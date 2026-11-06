@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ClosingCta } from "@/components/shared/closing-cta";
 import { Hero } from "@/components/shared/hero";
@@ -7,8 +8,58 @@ import { BrandBar } from "@/features/catalog/components/brand-bar";
 import { DesignGrid } from "@/features/catalog/components/design-grid";
 import { WeeklyWork } from "@/features/catalog/components/weekly-work";
 import { getBrands, getCarouselSlides, getFeaturedDesigns } from "@/features/catalog/services/catalog.service";
-import { getSiteSettings } from "@/lib/settings";
+import { JsonLd } from "@/components/seo/json-ld";
+import { siteConfig } from "@/config/site";
+import { pageMetadata } from "@/lib/seo";
+import { getSiteSettings, type SiteSettings } from "@/lib/settings";
 import { cn } from "@/lib/utils";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const [settings, slides] = await Promise.all([getSiteSettings(), getCarouselSlides()]);
+  return pageMetadata({
+    title: settings.meta_title,
+    description: settings.meta_description,
+    path: "/",
+    image: slides[0]?.image,
+    imageAlt: slides[0]?.alt,
+    absoluteTitle: true
+  });
+}
+
+/**
+ * Ficha de negocio local para Google. La dirección solo sale si el panel tiene
+ * el barrio: nunca se inventa. Teléfono e Instagram salen de los mismos datos
+ * que ve el cliente.
+ */
+function businessJsonLd(settings: SiteSettings) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    name: settings.business_name,
+    description: settings.meta_description,
+    url: siteConfig.url,
+    image: `${siteConfig.url}/logo-motosmart.png`,
+    logo: `${siteConfig.url}/logo-motosmart.png`,
+    telephone: `+${settings.whatsapp_number.replace(/\D/g, "")}`,
+    currenciesAccepted: "COP",
+    areaServed: [
+      { "@type": "City", name: "Medellín" },
+      { "@type": "Country", name: "Colombia" }
+    ],
+    ...(settings.business_district
+      ? {
+          address: {
+            "@type": "PostalAddress",
+            streetAddress: settings.business_district,
+            addressLocality: "Medellín",
+            addressRegion: "Antioquia",
+            addressCountry: "CO"
+          }
+        }
+      : {}),
+    ...(settings.instagram_url ? { sameAs: [settings.instagram_url] } : {})
+  };
+}
 
 export default async function HomePage() {
   const [brands, featuredDesigns, slides, settings] = await Promise.all([
@@ -30,6 +81,7 @@ export default async function HomePage() {
 
   return (
     <>
+      <JsonLd data={businessJsonLd(settings)} />
       <Hero featured={featured} />
       <BrandBar brands={brands} />
       <WeeklyWork slides={slides} featuredFirst />

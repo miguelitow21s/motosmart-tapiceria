@@ -23,7 +23,7 @@ export function AdminSideNav({ active, roleLabel }: { active: TabKey; roleLabel:
   }));
 
   return (
-    <nav aria-label="Secciones del panel" className="sticky top-20 hidden lg:block">
+    <nav aria-label="Secciones del panel" className="sticky top-20 hidden self-start lg:block">
       <div className="space-y-5">
         {groups.map(({ group, tabs }) => (
           <div key={group}>
@@ -42,7 +42,8 @@ export function AdminSideNav({ active, roleLabel }: { active: TabKey; roleLabel:
                       className={cn(
                         "relative flex h-11 items-center gap-3 rounded-md px-3 font-medium transition-colors duration-150",
                         isActive
-                          ? "bg-surface text-ink before:absolute before:inset-y-2 before:left-0 before:w-0.5 before:rounded-full before:bg-brand"
+                          ? // Activa en tinta, no en rojo: en el panel el rojo es solo para borrar.
+                            "bg-surface-2 font-semibold text-ink"
                           : "text-ink-2 hover:bg-surface hover:text-ink"
                       )}
                     >
@@ -72,7 +73,7 @@ export function AdminBottomNav({ active, roleLabel }: { active: TabKey; roleLabe
     cn(
       "relative flex h-16 flex-1 flex-col items-center justify-center gap-1 text-xs font-semibold transition-colors duration-150",
       isActive
-        ? "text-ink after:absolute after:top-0 after:h-0.5 after:w-8 after:rounded-full after:bg-brand"
+        ? "text-ink after:absolute after:top-0 after:h-0.5 after:w-8 after:rounded-full after:bg-ink"
         : "text-ink-3 active:text-ink"
     );
 
@@ -100,6 +101,9 @@ export function AdminBottomNav({ active, roleLabel }: { active: TabKey; roleLabe
               type="button"
               aria-haspopup="dialog"
               aria-expanded={moreOpen}
+              // El texto visible cambia al nombre de la sección abierta; el
+              // nombre accesible dice además qué hace el botón.
+              aria-label={activeInMore ? `Más secciones, ahora en ${TABS.find((tab) => tab.key === active)?.label}` : undefined}
               onClick={() => setMoreOpen(true)}
               className={itemClasses(activeInMore)}
             >
@@ -124,7 +128,7 @@ export function AdminBottomNav({ active, roleLabel }: { active: TabKey; roleLabe
                   className="flex h-14 items-center gap-3 font-semibold"
                 >
                   <Icon aria-hidden="true" className="size-5 text-ink-2" />
-                  <span className={cn("flex-1", isActive && "underline decoration-brand decoration-2 underline-offset-6")}>
+                  <span className={cn("flex-1", isActive && "underline decoration-current decoration-2 underline-offset-6")}>
                     {tab.label}
                   </span>
                   <ChevronRight aria-hidden="true" className="size-5 text-ink-3" />

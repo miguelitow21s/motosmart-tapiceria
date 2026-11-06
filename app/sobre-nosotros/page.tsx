@@ -5,13 +5,20 @@ import { PageIntro } from "@/components/shared/page-intro";
 import { containerClasses } from "@/components/shared/section";
 import { SmartImage } from "@/components/shared/smart-image";
 import { getCarouselSlides } from "@/features/catalog/services/catalog.service";
+import { pageMetadata } from "@/lib/seo";
 import { getSiteSettings } from "@/lib/settings";
 import { cn } from "@/lib/utils";
 
-export const metadata: Metadata = {
-  title: "Sobre nosotros",
-  description: "Conoce a MotoSmart, tapicería para moto en Medellín: quiénes somos, dónde estamos y cómo cotizar tu silla."
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const slides = await getCarouselSlides();
+  return pageMetadata({
+    title: "Sobre nosotros: tapicería para moto en Medellín",
+    description: "Conoce a MotoSmart, tapicería para moto en Medellín: quiénes somos, dónde estamos y cómo cotizar tu silla.",
+    path: "/sobre-nosotros",
+    image: slides[1]?.image ?? slides[0]?.image,
+    imageAlt: slides[1]?.alt ?? slides[0]?.alt
+  });
+}
 
 export default async function SobreNosotrosPage() {
   const [settings, slides] = await Promise.all([getSiteSettings(), getCarouselSlides()]);

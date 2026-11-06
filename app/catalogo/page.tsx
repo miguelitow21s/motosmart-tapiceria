@@ -8,23 +8,33 @@ import { BrandBar } from "@/features/catalog/components/brand-bar";
 import { DesignGrid } from "@/features/catalog/components/design-grid";
 import { getActiveDesigns, getBrands, sortForStore } from "@/features/catalog/services/catalog.service";
 import { isFeatureEnabled } from "@/lib/feature-flags";
+import { pageMetadata } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 
-export const revalidate = 0;
 
-export const metadata: Metadata = {
-  title: "Catálogo de tapicería para moto por marca",
-  description:
-    "Diseños de tapicería para moto organizados por marca, con precio de referencia. Cotiza tu silla por WhatsApp en Medellín."
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const designs = await getActiveDesigns();
+  const photo = designs.find((design) => design.image_url);
+  return pageMetadata({
+    title: "Catálogo de tapicería para moto por marca",
+    description:
+      "Diseños de tapicería para moto organizados por marca, con precio de referencia. Cotiza tu silla por WhatsApp en Medellín.",
+    path: "/catalogo",
+    image: photo?.image_url,
+    imageAlt: photo ? `Silla de moto ${photo.name} tapizada por MotoSmart` : undefined
+  });
+}
 
 /** Cuántas sillas de cada marca se muestran aquí antes de mandar a la página de la marca. */
 const PER_BRAND = 4;
 
 export default async function CatalogoPage() {
-  const enabled = await isFeatureEnabled("catalog_enabled");
+  const [enabled, brands, designs] = await Promise.all([
+    isFeatureEnabled("catalog_enabled", { onError: "open" }),
+    getBrands(),
+    getActiveDesigns()
+  ]);
   if (!enabled) redirect("/");
-  const [brands, designs] = await Promise.all([getBrands(), getActiveDesigns()]);
 
   const groups = brands
     .map((brand) => ({ brand, designs: sortForStore(designs.filter((design) => design.brand_id === brand.id)) }))
