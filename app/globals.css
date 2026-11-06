@@ -121,6 +121,20 @@
     text-wrap: pretty;
   }
 
+  /* Nombres escritos en el panel: una palabra larguísima sin espacios se
+     parte en vez de salirse de la tarjeta. Solo actúa si no cabe. */
+  h1,
+  h2,
+  h3,
+  h4,
+  p,
+  li,
+  dt,
+  dd,
+  figcaption {
+    overflow-wrap: break-word;
+  }
+
   /* Tailwind 4 ya no pone cursor de mano en los botones. */
   button:not(:disabled),
   [role="button"]:not(:disabled) {

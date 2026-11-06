@@ -17,7 +17,14 @@ import {
 } from "@/features/admin/components/primitives";
 import { patchDesign } from "@/features/admin/lib/actions";
 import { notify } from "@/features/admin/lib/feedback";
-import { INCOMPLETE_PRICE_TEXT, plural, priceLooksIncomplete } from "@/features/admin/lib/format";
+import {
+  INCOMPLETE_PRICE_TEXT,
+  MAX_PRICE,
+  TOO_HIGH_PRICE_TEXT,
+  plural,
+  priceLooksIncomplete,
+  priceNeedsReview
+} from "@/features/admin/lib/format";
 import { PROMO_LABELS, promoState } from "@/features/admin/lib/promo";
 import { goToTab } from "@/features/admin/lib/tabs";
 import { retry, setAdminState, useAdminData, useAdminStore } from "@/features/admin/store/admin-data";
@@ -54,7 +61,7 @@ export function DesignsTab() {
       if (filter === "hidden" && design.is_active) return false;
       if (filter === "promo" && !design.promotion_active) return false;
       if (filter === "no-photo" && design.image_url) return false;
-      if (filter === "check-price" && !designPriceLooksIncomplete(design)) return false;
+      if (filter === "check-price" && !designPriceNeedsReview(design)) return false;
       return true;
     });
     if (sort === "price") return list.sort((a, b) => a.base_price - b.base_price);
@@ -213,8 +220,8 @@ export function DesignsTab() {
   );
 }
 
-function designPriceLooksIncomplete(design: Design) {
-  return priceLooksIncomplete(design.base_price) || priceLooksIncomplete(design.discount_price);
+function designPriceNeedsReview(design: Design) {
+  return priceNeedsReview(design.base_price) || priceNeedsReview(design.discount_price);
 }
 
 function StatusBadges({ design, showHidden = false }: { design: Design; showHidden?: boolean }) {
@@ -222,7 +229,7 @@ function StatusBadges({ design, showHidden = false }: { design: Design; showHidd
   return (
     <>
       {showHidden && !design.is_active ? <Badge>Oculto</Badge> : null}
-      {designPriceLooksIncomplete(design) ? <Badge tone="warning">Revisar precio</Badge> : null}
+      {designPriceNeedsReview(design) ? <Badge tone="warning">Revisar precio</Badge> : null}
       {!design.image_url ? <Badge tone="warning">Sin foto</Badge> : null}
       {promo.state === "live" ? <Badge tone="success">Promo −{promo.percentOff}%</Badge> : null}
       {promo.state !== "live" && promo.state !== "none" ? <Badge tone="warning">{PROMO_LABELS[promo.state]}</Badge> : null}
@@ -378,6 +385,10 @@ function InlinePrice({ design }: { design: Design }) {
     }
     if (priceLooksIncomplete(value)) {
       notify("error", INCOMPLETE_PRICE_TEXT);
+      return;
+    }
+    if (value > MAX_PRICE) {
+      notify("error", TOO_HIGH_PRICE_TEXT);
       return;
     }
     if (design.discount_price != null && value <= design.discount_price) {

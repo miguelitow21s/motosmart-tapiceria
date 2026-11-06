@@ -24,7 +24,11 @@ export function ContactForm({ whatsappNumber }: { whatsappNumber: string }) {
     const moto = String(data.get("moto") ?? "").trim();
     const message = String(data.get("mensaje") ?? "").trim();
 
-    const text = [`Hola MotoSmart, soy ${name}.`, `Mi moto: ${moto}.`, message].filter(Boolean).join("\n");
+    // `required` deja pasar un campo con solo espacios: sin nombre o sin moto,
+    // la línea se omite en vez de mandar "soy ." o "Mi moto: .".
+    const text = [name ? `Hola MotoSmart, soy ${name}.` : "Hola MotoSmart.", moto && `Mi moto: ${moto}.`, message]
+      .filter(Boolean)
+      .join("\n");
     const url = buildWhatsAppUrl(whatsappNumber, text);
 
     void trackEvent("whatsapp_click", { source: "contacto" });
@@ -69,7 +73,7 @@ export function ContactForm({ whatsappNumber }: { whatsappNumber: string }) {
       </Button>
       <p role="status" aria-live="polite" className="text-sm text-ink-2">
         {opened
-          ? "Abrimos WhatsApp con tu mensaje. Si no se abrió, revisa que el navegador permita ventanas nuevas."
+          ? "WhatsApp quedó abierto en otra pestaña con tu mensaje: envíalo desde allá."
           : "Se abre WhatsApp con tu mensaje listo; solo tienes que enviarlo."}
       </p>
     </form>

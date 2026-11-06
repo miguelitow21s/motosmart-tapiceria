@@ -35,7 +35,7 @@ const imageUploadFieldsSchema = z
   .object({
     brand_id: z.string().uuid().nullable(),
     design_id: z.string().uuid().nullable(),
-    alt_text: z.string().max(180, "El texto de la foto admite maximo 180 caracteres").optional().default(""),
+    alt_text: z.string().max(180, "El texto de la foto admite máximo 180 caracteres").optional().default(""),
     is_weekly_highlight: formBoolean,
     set_as_design_image: formBoolean
   })

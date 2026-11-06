@@ -1,3 +1,5 @@
+import { MAX_PRICE } from "@/lib/price-limits";
+
 const thousands = new Intl.NumberFormat("es-CO", { maximumFractionDigits: 0 });
 
 /** "145.000": cifra con puntos de miles, sin signo de pesos (el campo ya lo muestra). */
@@ -20,6 +22,15 @@ export const INCOMPLETE_PRICE_TEXT = "El precio parece incompleto: escríbelo co
 
 export function priceLooksIncomplete(price: number | null | undefined) {
   return price != null && price > 0 && price < MIN_PRICE;
+}
+
+/** Tope contra ceros de más; la API rechaza lo mismo (ver lib/price-limits.ts). */
+export { MAX_PRICE };
+export const TOO_HIGH_PRICE_TEXT = "El precio es demasiado alto: revisa que no sobre un cero.";
+
+/** Precio mal escrito: le faltan los miles o le sobra un cero (datos viejos). */
+export function priceNeedsReview(price: number | null | undefined) {
+  return priceLooksIncomplete(price) || (price != null && price > MAX_PRICE);
 }
 
 export function toSlug(text: string) {

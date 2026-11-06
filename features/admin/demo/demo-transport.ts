@@ -1,6 +1,7 @@
 "use client";
 
 import type { DemoSeed } from "@/features/admin/demo/demo-seed";
+import { MAX_PRICE } from "@/lib/price-limits";
 
 /*
   /api/admin en memoria, para /panel-demo. Responde con las mismas formas y
@@ -68,13 +69,14 @@ export function createDemoTransport(seed: DemoSeed) {
     if (name.length < 2) return "El nombre debe tener al menos 2 caracteres";
     const base = Number(row.base_price ?? 0);
     const discount = row.discount_price;
+    if (base > MAX_PRICE) return "El precio es demasiado alto: revisa que no sobre un cero.";
     if (typeof discount === "number" && discount >= base) return "El precio de rebaja debe ser menor al precio base";
-    if (row.promotion_active && typeof discount !== "number") return "Debes definir precio de descuento cuando la promocion esta activa";
-    if (row.promotion_active && str(row.promotion_label).trim().length < 3) return "La etiqueta de promocion debe tener al menos 3 caracteres";
+    if (row.promotion_active && typeof discount !== "number") return "Debes definir precio de descuento cuando la promoción está activa";
+    if (row.promotion_active && str(row.promotion_label).trim().length < 3) return "La etiqueta de promoción debe tener al menos 3 caracteres";
     const duplicate = db.designs.find(
       (design) => design.id !== row.id && design.brand_id === row.brand_id && design.slug === row.slug
     );
-    if (duplicate) return "Ya existe un diseño con ese nombre (slug) en esta marca. Usa otro nombre.";
+    if (duplicate) return "Ya existe un diseño con esa dirección en esta marca. Usa otro nombre o cambia la dirección.";
     return null;
   }
 

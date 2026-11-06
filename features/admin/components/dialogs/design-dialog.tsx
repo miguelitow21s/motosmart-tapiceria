@@ -10,7 +10,14 @@ import { describedBy, DisclosureSummary, Field, PriceInput, Select, Switch, Uplo
 import { Thumb } from "@/features/admin/components/primitives";
 import { deleteDesign, saveDesign, uploadPhoto, type DesignDraft } from "@/features/admin/lib/actions";
 import { confirmAction, notify, runBusy } from "@/features/admin/lib/feedback";
-import { INCOMPLETE_PRICE_TEXT, priceLooksIncomplete, toDatetimeLocal, toSlug } from "@/features/admin/lib/format";
+import {
+  INCOMPLETE_PRICE_TEXT,
+  MAX_PRICE,
+  TOO_HIGH_PRICE_TEXT,
+  priceLooksIncomplete,
+  toDatetimeLocal,
+  toSlug
+} from "@/features/admin/lib/format";
 import { getAdminState, setAdminState, useAdminData, useAdminStore } from "@/features/admin/store/admin-data";
 import type { Design } from "@/features/admin/types";
 import { cn, formatCOP } from "@/lib/utils";
@@ -92,6 +99,7 @@ function validate(draft: DesignDraft): DraftErrors {
   else if (name.length >= 2 && slug.length < 2) errors.slug = "Escribe una dirección de al menos 2 letras.";
   if (!draft.base_price || draft.base_price <= 0) errors.base_price = "Escribe el precio.";
   else if (priceLooksIncomplete(draft.base_price)) errors.base_price = INCOMPLETE_PRICE_TEXT;
+  else if (draft.base_price > MAX_PRICE) errors.base_price = TOO_HIGH_PRICE_TEXT;
 
   const hasDiscount = draft.discount_price != null;
   if (hasDiscount && draft.base_price && draft.discount_price! >= draft.base_price) {

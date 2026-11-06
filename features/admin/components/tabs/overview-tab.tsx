@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Panel, TabHeader } from "@/features/admin/components/primitives";
 import { CAROUSEL_MAX } from "@/features/admin/lib/actions";
 import { describeActivity } from "@/features/admin/lib/activity-text";
-import { formatRelative, plural, priceLooksIncomplete } from "@/features/admin/lib/format";
+import { formatRelative, plural, priceNeedsReview } from "@/features/admin/lib/format";
 import { promoState } from "@/features/admin/lib/promo";
 import { useCarouselImages } from "@/features/admin/lib/selectors";
 import { goToTab, tabHref } from "@/features/admin/lib/tabs";
@@ -65,12 +65,12 @@ export function OverviewTab() {
         });
       }
       const lowPrice = designs.filter(
-        (design) => priceLooksIncomplete(design.base_price) || priceLooksIncomplete(design.discount_price)
+        (design) => priceNeedsReview(design.base_price) || priceNeedsReview(design.discount_price)
       ).length;
       if (lowPrice) {
         list.push({
           id: "check-price",
-          text: `${plural(lowPrice, "diseño tiene", "diseños tienen")} un precio de menos de $1.000 (¿faltan los miles?)`,
+          text: `${plural(lowPrice, "diseño tiene", "diseños tienen")} un precio que parece mal escrito (le faltan los miles o le sobra un cero)`,
           action: "Revisar",
           onClick: () => showDesigns("check-price")
         });
