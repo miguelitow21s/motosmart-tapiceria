@@ -1,88 +1,135 @@
 @import "tailwindcss";
-@import "../styles/animations.css" layer(base);
 
-/* Fuentes: next/font publica --font-sora y --font-orbitron en <html>.
-   `inline` hace que la utilidad lea esa variable en el propio elemento
-   (si se resolviera en :root, quedaria vacia). */
+/*
+  Sistema de diseño de MotoSmart: la tienda estándar del rubro, hecha bien.
+  Contrato de dirección en .impeccable/surfaces/app-page-tsx.md.
+
+  Los colores son tokens semánticos (fondo, superficie, tinta, línea, marca).
+  Las utilidades leen variables CSS, así que un bloque con data-theme="dark"
+  cambia de tema sin tocar clases. El panel /admin usa ese tema oscuro
+  mientras se reconstruye.
+*/
+
 @theme inline {
-  --font-sans: var(--font-sora), system-ui, sans-serif;
-  --font-display: var(--font-orbitron), system-ui, sans-serif;
+  --font-sans: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-ink: var(--brand-ink);
+  --color-danger: var(--danger);
+  --color-danger-hover: var(--danger-hover);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-header: var(--header);
 }
 
 @theme {
-  --text-sm: var(--font-size-sm);
-  --text-sm--line-height: 1.5;
-  --text-base: var(--font-size-base);
-  --text-base--line-height: 1.6;
-  --text-lg: var(--font-size-lg);
-  --text-lg--line-height: 1.5;
-  --text-xl: var(--font-size-xl);
-  --text-xl--line-height: 1.35;
-  --text-display: var(--font-size-display);
-  --text-display--line-height: 1.1;
+  /* Títulos: Archivo en ancho condensado (eco del "Tapiceria" del logo). */
+  --text-display: clamp(2.125rem, 1.45rem + 2.9vw, 3.75rem);
+  --text-display--line-height: 1;
+  --text-display--letter-spacing: -0.015em;
+  --text-title: clamp(1.75rem, 1.35rem + 1.6vw, 2.625rem);
+  --text-title--line-height: 1.04;
+  --text-title--letter-spacing: -0.012em;
 
-  --color-background: hsl(var(--background));
-  --color-foreground: hsl(var(--foreground));
-  --color-surface: hsl(var(--surface));
-  --color-border: hsl(var(--border));
-  --color-muted: hsl(var(--muted));
-  --color-primary: hsl(var(--primary));
-  --color-primary-foreground: hsl(var(--primary-foreground));
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
 
-  --radius-xl: 0.9rem;
-  --radius-2xl: 1.1rem;
-  --radius-3xl: 1.6rem;
+  /* Sombras con desplazamiento y tinte de la tinta, solo para lo que flota
+     (menús, hojas, toasts). Las tarjetas usan borde, no sombra. */
+  --shadow-float: 0 12px 32px -12px rgb(17 17 17 / 0.28), 0 2px 6px -2px rgb(17 17 17 / 0.12);
 
-  --shadow-card: 0 14px 32px rgba(0, 0, 0, 0.32);
-  --shadow-glow: 0 0 22px rgba(255, 30, 30, 0.45);
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 :root {
-  color-scheme: dark;
-  --background: 0 0% 2%;
-  --foreground: 0 0% 98%;
-  --surface: 240 5% 8%;
-  --border: 0 0% 100% / 0.12;
-  --muted: 240 4% 65%;
-  --primary: 0 100% 56%;
-  --primary-foreground: 0 0% 100%;
-  --honeycomb:
-    radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.04) 2px, transparent 2px),
-    radial-gradient(circle at 75% 75%, rgba(255, 255, 255, 0.03) 2px, transparent 2px),
-    linear-gradient(135deg, rgba(255, 30, 30, 0.12), rgba(5, 5, 5, 0.95));
-  /* spacing + typography rhythm */
-  --space-2: 0.5rem;
-  --space-3: 0.75rem;
-  --space-4: 1rem;
-  --space-6: 1.5rem;
-  --space-8: 2rem;
-  --space-12: 3rem;
-  --space-16: 4rem;
-  --font-size-sm: clamp(0.92rem, 0.36vw + 0.82rem, 1rem);
-  --font-size-base: clamp(1rem, 0.45vw + 0.86rem, 1.12rem);
-  --font-size-lg: clamp(1.15rem, 0.6vw + 0.96rem, 1.35rem);
-  --font-size-xl: clamp(1.35rem, 1vw + 1rem, 1.75rem);
-  --font-size-display: clamp(2.5rem, 2.8vw + 1.8rem, 4.2rem);
-  /* motion tokens */
-  --ease-smooth: cubic-bezier(0.23, 1, 0.32, 1);
-  --ease-emphasized: cubic-bezier(0.22, 1, 0.36, 1);
-  --motion-fast: 0.18s;
-  --motion-normal: 0.32s;
-  --motion-slow: 0.6s;
+  color-scheme: light;
+  --bg: #ffffff;
+  --surface: #f5f5f3;
+  --surface-2: #ebebe8;
+  --ink: #111111;
+  --ink-2: #4d4d4d;
+  --ink-3: #6b6b6b;
+  --line: #e2e2df;
+  --line-strong: #c9c9c5;
+  /* Rojo de marca: 5.9:1 con texto blanco; el hover oscurece (7.8:1). */
+  --brand: #c8102e;
+  --brand-hover: #a50d26;
+  --brand-ink: #ffffff;
+  --danger: #b3261e;
+  --danger-hover: #8f1e18;
+  --success: #1e7b3c;
+  --warning: #8a5300;
+  /* El logo es un recorte transparente con letras blancas: solo se lee sobre negro. */
+  --header: #000000;
+  --focus: #111111;
 }
 
-/* Todo lo que sigue va en capas: en Tailwind 4 las utilidades viven en
-   @layer utilities y cualquier regla sin capa les ganaria (p.ej. `p`
-   pisaria los text-xs/sm). */
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0b0b0b;
+  --surface: #161616;
+  --surface-2: #202020;
+  --ink: #f5f5f5;
+  --ink-2: #c4c4c4;
+  --ink-3: #9a9a9a;
+  --line: #2a2a2a;
+  --line-strong: #3d3d3d;
+  --focus: #ffffff;
+}
+
 @layer base {
-  /* Tailwind 4 cambio el color de borde por defecto a currentcolor; se
-     conserva el de v3 para no alterar bordes sin color explicito. */
   *,
   ::after,
   ::before,
   ::backdrop,
   ::file-selector-button {
-    border-color: var(--color-gray-200, currentcolor);
+    border-color: var(--line);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+    scroll-padding-top: 5rem;
+  }
+
+  body {
+    min-height: 100dvh;
+    background-color: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-synthesis-weight: none;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-stretch: 75%;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    line-height: 1.08;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
   }
 
   /* Tailwind 4 ya no pone cursor de mano en los botones. */
@@ -91,166 +138,57 @@
     cursor: pointer;
   }
 
-  body {
-    @apply bg-background text-foreground antialiased;
-    background-image: var(--honeycomb);
-    background-size: 40px 40px, 40px 40px, cover;
-    min-height: 100dvh;
-    font-size: var(--font-size-base);
+  a,
+  button,
+  [role="button"],
+  label,
+  summary {
+    touch-action: manipulation;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background-color: var(--brand);
+    color: var(--brand-ink);
   }
 
   * {
     scrollbar-width: thin;
-    scrollbar-color: rgba(255, 30, 30, 0.5) rgba(255, 255, 255, 0.08);
-    box-sizing: border-box;
+    scrollbar-color: var(--line-strong) transparent;
   }
 
-  ::selection {
-    background: rgba(255, 30, 30, 0.35);
-    color: #fff7f7;
+  input,
+  textarea,
+  select {
+    caret-color: var(--brand);
   }
 
-  h1,
-  h2,
-  h3,
-  h4 {
-    letter-spacing: -0.02em;
-    font-family: var(--font-orbitron), system-ui, sans-serif;
-  }
-
-  p {
-    line-height: 1.6;
-    font-size: var(--font-size-base);
-  }
-
-  a,
-  button {
-    transition: transform var(--motion-fast) var(--ease-smooth), opacity var(--motion-fast) var(--ease-smooth), box-shadow var(--motion-fast) var(--ease-smooth), color var(--motion-fast) var(--ease-smooth);
-  }
-
-  :focus-visible {
-    outline: 2px solid rgba(255, 30, 30, 0.75);
-    outline-offset: 2px;
-  }
-
-  a:hover {
-    color: #fff;
-  }
-
-  a svg,
-  button svg {
-    transition: transform var(--motion-fast) var(--ease-smooth), opacity var(--motion-fast) var(--ease-smooth);
-  }
-
-  a:hover svg,
-  button:hover svg {
-    transform: translateY(-1px);
-  }
-}
-
-@layer components {
-  .focus-ring {
-    outline: 2px solid rgba(255, 30, 30, 0.65);
-    outline-offset: 2px;
-    box-shadow: 0 0 0 6px rgba(255, 30, 30, 0.12);
-  }
-
-  .btn-ripple::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(circle at var(--ripple-x, 50%) var(--ripple-y, 50%), rgba(255, 255, 255, 0.28), transparent 55%);
-    opacity: 0;
-    transform: scale(0.6);
-    pointer-events: none;
-    transition: opacity var(--motion-fast) var(--ease-smooth), transform var(--motion-normal) var(--ease-emphasized);
-  }
-
-  .btn-ripple:active::after {
-    opacity: 1;
-    transform: scale(1.25);
-  }
-
-  .card-overlay {
-    position: relative;
-    overflow: hidden;
-  }
-
-  .card-overlay::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(145deg, rgba(255, 30, 30, 0.12), transparent 45%);
-    opacity: 0;
-    transition: opacity var(--motion-normal) var(--ease-smooth);
-    pointer-events: none;
-  }
-
-  .card-overlay:hover::after {
-    opacity: 1;
-  }
-
-  /* Glow del logo: el box-shadow final ya esta pintado en el ::after y solo se
-     anima su opacidad (compositable) en vez de interpolar box-shadow entre dos
-     valores, que forzaria repintados continuos en el hilo principal. */
-  .logo-glow {
-    position: relative;
-  }
-
-  .logo-glow::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    box-shadow: 0 0 32px rgba(255, 30, 30, 0.75);
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  @media (prefers-reduced-motion: no-preference) {
-    .logo-glow::after {
-      animation: logo-glow-pulse 2.8s ease-in-out infinite alternate;
-    }
-  }
-
-  [data-animate="fade-up"] {
-    animation: fade-in-up var(--motion-slow) var(--ease-emphasized) both;
-  }
-
-  [data-animate="fade-in"] {
-    animation: fade-in var(--motion-normal) var(--ease-smooth) both;
-  }
-
-  [data-animate="zoom-in"] {
-    animation: zoom-in var(--motion-normal) var(--ease-emphasized) both;
-  }
-
-  [data-animate-stagger] > * {
-    animation: fade-in-up var(--motion-slow) var(--ease-emphasized) both;
-    animation-delay: calc(var(--i, 0) * 0.07s);
-  }
-
-  [data-animate-text] > * {
-    animation: fade-in var(--motion-normal) var(--ease-smooth) both;
-    animation-delay: calc(var(--i, 0) * 0.05s);
+  /* Cifras de ancho fijo en precios y datos: no bailan al cambiar. */
+  data,
+  .tabular {
+    font-variant-numeric: tabular-nums;
   }
 
   @media (prefers-reduced-motion: reduce) {
-    [data-animate="fade-up"],
-    [data-animate="fade-in"],
-    [data-animate="zoom-in"],
-    [data-animate-stagger] > *,
-    [data-animate-text] > * {
-      animation: none !important;
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
     }
   }
 }
 
-@keyframes logo-glow-pulse {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+/* Voz de títulos para elementos que no son h1-h3 (precios grandes, cifras). */
+@utility type-display {
+  font-family: var(--font-display);
+  font-stretch: 75%;
+  font-weight: 800;
+  letter-spacing: -0.01em;
 }

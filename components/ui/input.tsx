@@ -1,14 +1,19 @@
 import { cn } from "@/lib/utils";
-import type { InputHTMLAttributes } from "react";
+import type { InputHTMLAttributes, Ref } from "react";
 
-export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <input
-      className={cn(
-        "h-11 w-full rounded-xl border border-white/25 bg-black/50 px-4 text-base text-white outline-hidden transition placeholder:text-neutral-400 focus:border-primary focus:ring-2 focus:ring-primary/35 focus:shadow-[0_0_0_6px_rgba(255,30,30,0.08)] aria-invalid:border-red-400 aria-invalid:ring-2 aria-invalid:ring-red-400/25 data-[state=success]:border-emerald-400 data-[state=success]:ring-2 data-[state=success]:ring-emerald-400/20",
-        className
-      )}
-      {...props}
-    />
-  );
+// 16 px de texto: por debajo, Safari en iPhone hace zoom al enfocar el campo.
+export const fieldClasses = cn(
+  "w-full rounded-lg border border-line-strong bg-bg px-4 text-base text-ink",
+  "placeholder:text-ink-3 transition-[border-color,box-shadow] duration-150",
+  "hover:border-ink-3 focus:border-ink focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--ink)_14%,transparent)] focus:outline-none",
+  "aria-invalid:border-danger aria-invalid:focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--danger)_18%,transparent)]",
+  "disabled:cursor-not-allowed disabled:opacity-60"
+);
+
+export function Input({
+  className,
+  ref,
+  ...props
+}: InputHTMLAttributes<HTMLInputElement> & { ref?: Ref<HTMLInputElement> }) {
+  return <input ref={ref} className={cn(fieldClasses, "h-12", className)} {...props} />;
 }

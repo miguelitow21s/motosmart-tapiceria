@@ -1,5 +1,5 @@
-import type { Metadata } from "next";
-import { Orbitron, Sora } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Archivo } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/shared/navbar";
 import { Footer } from "@/components/shared/footer";
@@ -8,26 +8,26 @@ import { siteConfig } from "@/config/site";
 import { canAccessAdmin, getCurrentUserRole } from "@/lib/auth";
 import { buildWhatsAppUrl, getSiteSettings } from "@/lib/settings";
 
-// Pesos verificados contra el uso real de clases font-* en el repo: Sora
-// cubre texto base (400), font-medium (500) y font-semibold (600); Orbitron
-// solo se usa en h1-h4 sin peso explicito (hereda 400, que el propio
-// navegador ya mapeaba a 500 con el @import anterior), asi que basta 500.
-const sora = Sora({
+// Archivo variable con eje de ancho: un solo archivo da los títulos
+// condensados (font-stretch 75%) y el texto en ancho normal.
+const archivo = Archivo({
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  axes: ["wdth"],
   display: "swap",
-  variable: "--font-sora"
+  variable: "--font-archivo"
 });
 
-const orbitron = Orbitron({
-  subsets: ["latin"],
-  weight: ["500"],
-  display: "swap",
-  variable: "--font-orbitron"
-});
+// La barra superior es negra (el logo solo se lee sobre negro): la barra de
+// estado del teléfono toma el mismo color.
+export const viewport: Viewport = {
+  themeColor: "#000000",
+  viewportFit: "cover",
+  width: "device-width",
+  initialScale: 1
+};
 
 // Metadata editable desde /admin > "Textos y Config" (claves meta_title y
-// meta_description). No la vuelvas a quemar aqui.
+// meta_description). No la vuelvas a quemar aquí.
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSiteSettings();
 
@@ -55,12 +55,20 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const whatsappHref = buildWhatsAppUrl(settings.whatsapp_number, settings.whatsapp_default_message);
 
   return (
-    <html lang="es" className={`${sora.variable} ${orbitron.variable}`}>
+    <html lang="es-CO" className={archivo.variable}>
       <body>
+        <a
+          href="#contenido"
+          className="sr-only z-50 rounded-lg bg-ink px-4 py-3 font-semibold text-bg focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
+        >
+          Saltar al contenido
+        </a>
         <Navbar isAuthenticated={Boolean(user)} isAdmin={isAdmin} />
-        {/* pb-24: deja aire para que el boton flotante de WhatsApp no tape
-            el ultimo CTA de la pagina en movil. */}
-        <main className="pb-24">{children}</main>
+        {/* pb-24: deja aire para que el botón flotante de WhatsApp no tape
+            el último CTA de la página en el móvil. */}
+        <main id="contenido" tabIndex={-1} className="pb-24 outline-none">
+          {children}
+        </main>
         <Footer />
         <WhatsAppFab href={whatsappHref} />
       </body>

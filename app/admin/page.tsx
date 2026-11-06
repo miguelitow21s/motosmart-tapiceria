@@ -17,13 +17,17 @@ export default async function AdminPage() {
     redirect("/");
   }
 
+  // Tema oscuro provisional: el panel todavía usa sus clases de color viejas
+  // y se rehace en la Fase 5 con los tokens claros del sistema.
   return (
-    <SectionContainer className="py-8 sm:py-10 md:py-16">
-      <h1 className="font-display text-3xl text-white sm:text-4xl">Panel admin</h1>
-      <p className="mt-2 text-neutral-300">Rol actual: {role}</p>
-      <div className="mt-6 sm:mt-8">
-        <AdminDashboard />
-      </div>
-    </SectionContainer>
+    <div data-theme="dark" className="-mb-24 min-h-dvh bg-bg pb-24 text-ink">
+      <SectionContainer className="py-8 sm:py-10 md:py-16">
+        <h1 className="font-display text-3xl text-white sm:text-4xl">Panel admin</h1>
+        <p className="mt-2 text-neutral-300">Rol actual: {role}</p>
+        <div className="mt-6 sm:mt-8">
+          <AdminDashboard />
+        </div>
+      </SectionContainer>
+    </div>
   );
 }

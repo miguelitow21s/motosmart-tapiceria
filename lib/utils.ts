@@ -5,12 +5,26 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+const copNumber = new Intl.NumberFormat("es-CO", { maximumFractionDigits: 0 });
+
+/** Precio en pesos como se escribe en Colombia: "$145.000" (sin espacio ni decimales). */
 export function formatCOP(value: number) {
-  return new Intl.NumberFormat("es-CO", {
-    style: "currency",
-    currency: "COP",
-    maximumFractionDigits: 0
-  }).format(value);
+  const sign = value < 0 ? "-" : "";
+  return `${sign}$${copNumber.format(Math.abs(value))}`;
+}
+
+// El servidor de Vercel corre en UTC: sin zona fija, una promo que acaba a
+// las 9 p. m. en Medellín se mostraría con la fecha del día siguiente.
+const TIME_ZONE = "America/Bogota";
+
+/** Fecha corta para el cliente: "15 nov". */
+export function formatDateShort(value: string | null | undefined) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("es-CO", { day: "numeric", month: "short", timeZone: TIME_ZONE })
+    .format(date)
+    .replace(".", "");
 }
 
 export function getPromotionMeta(
@@ -55,6 +69,7 @@ export function formatDateTimeShort(value: string | null | undefined) {
     day: "2-digit",
     month: "short",
     hour: "2-digit",
-    minute: "2-digit"
+    minute: "2-digit",
+    timeZone: TIME_ZONE
   }).format(date);
 }
