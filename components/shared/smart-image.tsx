@@ -3,7 +3,7 @@
 import Image, { getImageProps } from "next/image";
 import { useState } from "react";
 import { preload } from "react-dom";
-import { cn } from "@/lib/utils";
+import { cx } from "@/lib/utils";
 
 /**
  * Foto de un trabajo dentro de un marco con `relative` y proporción fija.
@@ -64,7 +64,7 @@ export function SmartImage({
       fill
       sizes={sizes}
       priority={priority}
-      className={cn(fit === "cover" ? "object-cover" : "object-contain", className)}
+      className={cx(fit === "cover" ? "object-cover" : "object-contain", className)}
       onError={() => setFailedSrc(src)}
     />
   );

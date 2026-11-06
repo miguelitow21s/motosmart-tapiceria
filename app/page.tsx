@@ -12,7 +12,7 @@ import { JsonLd } from "@/components/seo/json-ld";
 import { siteConfig } from "@/config/site";
 import { pageMetadata } from "@/lib/seo";
 import { getSiteSettings, type SiteSettings } from "@/lib/settings";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 
 export async function generateMetadata(): Promise<Metadata> {
   const [settings, slides] = await Promise.all([getSiteSettings(), getCarouselSlides()]);

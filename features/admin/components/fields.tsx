@@ -5,7 +5,7 @@ import { ChevronDown, ChevronRight, ImagePlus } from "lucide-react";
 import { fieldClasses } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatThousands, parseDigits } from "@/features/admin/lib/format";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 
 /** Ids de la pista y el error de un campo, para aria-describedby. */
 export function describedBy(id: string, hint?: ReactNode, error?: string | null) {

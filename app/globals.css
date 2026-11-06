@@ -268,6 +268,70 @@
 }
 
 /*
+  Botón y campos de formulario (components/ui/button.tsx, input.tsx,
+  textarea.tsx, label.tsx). Viven en la capa components: cualquier utilidad
+  que se les pase en className gana por capa, sin importar el orden ni la
+  especificidad. Así no hace falta tailwind-merge en el navegador (8,5 kB que
+  cargaba cada página de la tienda solo para que `px-3` pisara a `px-5`).
+*/
+@layer components {
+  .btn {
+    @apply relative inline-flex items-center justify-center gap-2 rounded-lg font-semibold whitespace-nowrap select-none;
+    /* scale, no transform: en Tailwind 4 active:scale-* escribe la propiedad scale. */
+    @apply transition-[background-color,border-color,color,scale] duration-150 ease-(--ease-out);
+    @apply active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50;
+    /* aria-disabled: se ve apagado pero conserva el foco (ver ScrollRow). */
+    @apply aria-disabled:cursor-default aria-disabled:opacity-50 aria-disabled:active:scale-100;
+    @apply [&_svg]:size-5 [&_svg]:shrink-0;
+  }
+  .btn-default {
+    @apply bg-brand text-brand-ink hover:bg-brand-hover;
+  }
+  .btn-secondary {
+    @apply border border-line-strong bg-bg text-ink hover:border-ink hover:bg-surface;
+  }
+  .btn-dark {
+    @apply bg-ink text-bg hover:bg-ink-2;
+  }
+  .btn-ghost {
+    @apply text-ink hover:bg-surface;
+  }
+  .btn-danger {
+    @apply bg-danger text-white hover:bg-danger-hover;
+  }
+  .btn-sm {
+    @apply h-11 px-4 text-sm;
+  }
+  .btn-md {
+    @apply h-12 px-5 text-[0.9375rem];
+  }
+  .btn-lg {
+    @apply h-13 px-6 text-base;
+  }
+  .btn-icon {
+    @apply size-11;
+  }
+
+  /* 16 px de texto: por debajo, Safari en iPhone hace zoom al enfocar el campo. */
+  .field {
+    @apply w-full rounded-lg border border-line-field bg-bg px-4 text-base text-ink placeholder:text-ink-3;
+    @apply transition-[border-color,box-shadow] duration-150;
+    @apply hover:border-ink-3 focus:border-ink focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--ink)_14%,transparent)] focus:outline-hidden;
+    @apply aria-invalid:border-danger aria-invalid:focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--danger)_18%,transparent)];
+    @apply disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .field-input {
+    @apply h-12;
+  }
+  .field-textarea {
+    @apply min-h-32 py-3 leading-relaxed;
+  }
+  .field-label {
+    @apply block text-sm font-semibold text-ink;
+  }
+}
+
+/*
   Diálogos y hojas (components/ui/modal.tsx, sobre Radix). Radix marca
   data-state="open" / "closed" y espera a que termine la animación de salida
   antes de desmontar; el fondo dura lo mismo que el panel al salir porque el

@@ -3,7 +3,7 @@ import { ContactDetails } from "@/components/shared/contact-details";
 import { Logo } from "@/components/shared/logo";
 import { containerClasses } from "@/components/shared/section";
 import { getSiteSettings } from "@/lib/settings";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 
 const shopLinks = [
   { href: "/catalogo", label: "Catálogo" },

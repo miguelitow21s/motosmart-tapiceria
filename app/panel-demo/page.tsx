@@ -5,7 +5,7 @@ import { buildDemoSeed, type DemoCase } from "@/features/admin/demo/demo-seed";
 import { getActiveDesigns, getBrands, getCarouselSlides } from "@/features/catalog/services/catalog.service";
 import { getRiderPhotos } from "@/features/riders/services/rider-photos.service";
 import { getSiteSettings } from "@/lib/settings";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 import { DemoClient } from "./demo-client";
 
 /*

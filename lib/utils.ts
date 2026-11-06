@@ -1,9 +1,11 @@
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { clsx } from "clsx";
 
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+/**
+ * Une clases sin resolver conflictos: para lo que corre en el navegador de la
+ * tienda, donde tailwind-merge sobra (lib/cn.ts). Botón y campos ya ceden ante
+ * las utilidades por capa CSS (app/globals.css); el resto no pasa clases que choquen.
+ */
+export { clsx as cx };
 
 const copNumber = new Intl.NumberFormat("es-CO", { maximumFractionDigits: 0 });
 

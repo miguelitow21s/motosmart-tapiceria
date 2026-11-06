@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { startTransition } from "react";
 import { containerClasses } from "@/components/shared/section";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cx } from "@/lib/utils";
 
 /*
   Si una página de la tienda falla al cargar (sin conexión con la base de
@@ -24,7 +24,7 @@ export default function StoreError({ reset }: { error: Error & { digest?: string
     });
 
   return (
-    <div className={cn(containerClasses, "py-16 md:py-28")}>
+    <div className={cx(containerClasses, "py-16 md:py-28")}>
       <p className="text-sm font-semibold text-ink-3">Algo falló</p>
       <h1 className="mt-2 text-title">No pudimos cargar esta página</h1>
       <p className="mt-3 max-w-xl text-lg text-ink-2">

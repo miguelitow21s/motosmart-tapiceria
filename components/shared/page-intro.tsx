@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { containerClasses } from "@/components/shared/section";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 
 /** Cabecera de las páginas internas: migas opcionales, h1 y una entrada corta. */
 export function PageIntro({

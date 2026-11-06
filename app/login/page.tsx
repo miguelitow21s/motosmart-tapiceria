@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { containerClasses } from "@/components/shared/section";
 import { Card } from "@/components/ui/card";
 import { LoginForm } from "@/features/auth/components/login-form";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 
 export const metadata: Metadata = {
   title: "Acceso administrador",

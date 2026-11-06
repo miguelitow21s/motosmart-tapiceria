@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { trackEvent } from "@/lib/analytics";
-import { cn } from "@/lib/utils";
+import { cx } from "@/lib/utils";
 import type { Brand } from "@/types";
 
 const chip =
@@ -44,7 +44,7 @@ export function BrandBar({
       href={href}
       aria-current={isActive ? "page" : undefined}
       onClick={slug ? () => void trackEvent("brand_click", { brand: slug }) : undefined}
-      className={cn(chip, isActive ? "border-ink bg-ink text-bg" : "border-line-strong bg-bg text-ink hover:border-ink")}
+      className={cx(chip, isActive ? "border-ink bg-ink text-bg" : "border-line-strong bg-bg text-ink hover:border-ink")}
     >
       {label}
     </Link>

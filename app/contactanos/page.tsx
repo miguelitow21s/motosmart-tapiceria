@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { ContactForm } from "@/features/contact/components/contact-form";
 import { pageMetadata } from "@/lib/seo";
 import { getSiteSettings } from "@/lib/settings";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 
 export function generateMetadata(): Promise<Metadata> {
   return pageMetadata({

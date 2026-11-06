@@ -24,7 +24,7 @@ import { fileBaseName, plural } from "@/features/admin/lib/format";
 import { useCarouselImages, useNameLookups } from "@/features/admin/lib/selectors";
 import { retry, setAdminState, useAdminData, useAdminStore } from "@/features/admin/store/admin-data";
 import type { AdminImage, UploadDraft } from "@/features/admin/types";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 
 const PAGE = 48;
 

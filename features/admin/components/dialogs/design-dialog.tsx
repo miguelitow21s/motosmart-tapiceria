@@ -21,7 +21,8 @@ import {
 import { getAdminState, setAdminState, useAdminData, useAdminStore } from "@/features/admin/store/admin-data";
 import type { Design } from "@/features/admin/types";
 import { isAllowedPhotoUrl, ownPhoto, PHOTO_URL_HINT } from "@/lib/photos";
-import { cn, formatCOP } from "@/lib/utils";
+import { cn } from "@/lib/cn";
+import { formatCOP } from "@/lib/utils";
 
 /*
   Crear o editar un diseño. Vive en el shell del panel y se abre desde

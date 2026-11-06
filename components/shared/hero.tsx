@@ -7,7 +7,7 @@ import { SmartImage } from "@/components/shared/smart-image";
 import { WhatsAppLink } from "@/components/shared/whatsapp-link";
 import type { CarouselSlide } from "@/features/catalog/services/catalog.service";
 import { buildWhatsAppUrl, getSiteSettings } from "@/lib/settings";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 
 /**
  * Héroe del inicio. Textos desde /admin > "Textos" (hero_*). En escritorio,

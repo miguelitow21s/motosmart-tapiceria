@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { containerClasses } from "@/components/shared/section";
 import { AdminDashboard } from "@/features/admin/components/admin-dashboard";
 import { canAccessAdmin, getCurrentUserRole } from "@/lib/auth";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 
 export const metadata: Metadata = { title: "Panel", robots: { index: false, follow: false } };
 

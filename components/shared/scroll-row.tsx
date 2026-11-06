@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { containerClasses } from "@/components/shared/section";
-import { cn } from "@/lib/utils";
+import { cx } from "@/lib/utils";
 
 /**
  * Fila horizontal con scroll-snap nativo: en el teléfono se desliza con el
@@ -42,7 +42,7 @@ export function ScrollRow({ header, label, children }: { header: ReactNode; labe
 
   return (
     <div>
-      <div className={cn(containerClasses, "flex items-end justify-between gap-4")}>
+      <div className={cx(containerClasses, "flex items-end justify-between gap-4")}>
         {header}
         <div className="hidden shrink-0 gap-2 md:flex">
           {/* aria-disabled y no disabled: al llegar al final, el foco no salta al <body>. */}

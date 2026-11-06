@@ -1,5 +1,4 @@
-import { cn } from "@/lib/utils";
-import { fieldClasses } from "@/components/ui/input";
+import { cx } from "@/lib/utils";
 import type { Ref, TextareaHTMLAttributes } from "react";
 
 export function Textarea({
@@ -7,5 +6,5 @@ export function Textarea({
   ref,
   ...props
 }: TextareaHTMLAttributes<HTMLTextAreaElement> & { ref?: Ref<HTMLTextAreaElement> }) {
-  return <textarea ref={ref} className={cn(fieldClasses, "min-h-32 py-3 leading-relaxed", className)} {...props} />;
+  return <textarea ref={ref} className={cx("field field-textarea", className)} {...props} />;
 }

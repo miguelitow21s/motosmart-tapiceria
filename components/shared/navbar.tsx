@@ -10,7 +10,7 @@ import { AdminSessionActions } from "@/components/shared/admin-session-actions";
 import { Logo } from "@/components/shared/logo";
 import { containerClasses } from "@/components/shared/section";
 import { WhatsAppLink } from "@/components/shared/whatsapp-link";
-import { cn } from "@/lib/utils";
+import { cx } from "@/lib/utils";
 
 const publicLinks = [
   { href: "/", label: "Inicio" },
@@ -98,14 +98,14 @@ export function Navbar({ whatsappHref }: { whatsappHref: string }) {
 
   return (
     <header className="vt-chrome-top sticky top-0 z-50 bg-header pt-[env(safe-area-inset-top)] text-white [--focus:#fff]">
-      <div className={cn(containerClasses, "flex h-14 items-center gap-2")}>
+      <div className={cx(containerClasses, "flex h-14 items-center gap-2")}>
         <Logo priority />
 
         {inAdmin ? (
           <span className="ml-1 hidden border-l border-white/25 pl-3 text-[0.9375rem] font-medium text-white/75 sm:inline">Panel</span>
         ) : null}
 
-        <nav aria-label="Principal" className={cn("ml-6 hidden", !inAdmin && "md:block")}>
+        <nav aria-label="Principal" className={cx("ml-6 hidden", !inAdmin && "md:block")}>
           <ul className="flex items-center gap-1">
             {links.map((link) => {
               const active = isActive(pathname, link.href);
@@ -114,7 +114,7 @@ export function Navbar({ whatsappHref }: { whatsappHref: string }) {
                   <Link
                     href={link.href}
                     aria-current={active ? "page" : undefined}
-                    className={cn(
+                    className={cx(
                       "relative inline-flex h-11 items-center rounded-md px-3 text-[0.9375rem] font-medium transition-colors duration-150",
                       active
                         ? // Subrayado blanco: el rojo queda para acciones y precios en promoción.
@@ -172,7 +172,7 @@ export function Navbar({ whatsappHref }: { whatsappHref: string }) {
             ref={menuButtonRef}
             type="button"
             hidden={inAdmin}
-            className="inline-flex size-11 items-center justify-center rounded-lg text-white transition-colors duration-150 hover:bg-white/10 active:scale-[0.97] md:hidden"
+            className="inline-flex size-11 items-center justify-center rounded-lg text-white transition-[background-color,scale] duration-150 ease-(--ease-out) hover:bg-white/10 active:scale-[0.97] md:hidden"
             onClick={() => setOpen((prev) => !prev)}
             aria-expanded={open}
             aria-controls="menu-movil"
@@ -188,13 +188,13 @@ export function Navbar({ whatsappHref }: { whatsappHref: string }) {
         <div
           id="menu-movil"
           inert={!open}
-          className={cn(
+          className={cx(
             "fixed inset-x-0 top-[calc(3.5rem+env(safe-area-inset-top))] bottom-0 z-40 overflow-y-auto overscroll-contain bg-bg pb-[env(safe-area-inset-bottom)] text-ink [--focus:var(--ink)] md:hidden",
             "transition-[opacity,translate] duration-[220ms] ease-(--ease-out)",
             open ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-2 opacity-0"
           )}
         >
-          <nav aria-label="Menú" className={cn(containerClasses, "py-4")}>
+          <nav aria-label="Menú" className={cx(containerClasses, "py-4")}>
             <ul className="divide-y divide-line border-b border-line">
               {links.map((link, index) => {
                 const active = isActive(pathname, link.href);
@@ -207,7 +207,7 @@ export function Navbar({ whatsappHref }: { whatsappHref: string }) {
                       aria-current={active ? "page" : undefined}
                       className="type-display flex h-16 items-center justify-between text-2xl"
                     >
-                      <span className={cn(active && "underline decoration-current decoration-2 underline-offset-8")}>{link.label}</span>
+                      <span className={cx(active && "underline decoration-current decoration-2 underline-offset-8")}>{link.label}</span>
                       <ChevronRight aria-hidden="true" className="size-5 text-ink-3" />
                     </Link>
                   </li>

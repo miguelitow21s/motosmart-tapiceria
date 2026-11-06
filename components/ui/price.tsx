@@ -1,5 +1,6 @@
 import { isShowablePrice } from "@/lib/price-limits";
-import { cn, formatCOP, formatDateShort, getPromotionMeta } from "@/lib/utils";
+import { cn } from "@/lib/cn";
+import { formatCOP, formatDateShort, getPromotionMeta } from "@/lib/utils";
 import type { Design } from "@/types";
 
 const ASK_PRICE = "Consultar precio";

@@ -3,7 +3,7 @@ import { WhatsAppIcon } from "@/components/ui/whatsapp-icon";
 import { containerClasses } from "@/components/shared/section";
 import { WhatsAppLink } from "@/components/shared/whatsapp-link";
 import { buildWhatsAppUrl, getSiteSettings } from "@/lib/settings";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 
 /** Cierre de página: para quien no encontró su moto. Textos en /admin > "Textos" (closing_*). */
 export async function ClosingCta() {

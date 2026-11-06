@@ -3,7 +3,7 @@
 import { useState, type ComponentProps, type ReactNode } from "react";
 import { AlertCircle, ImageOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 
 /*
   Piezas de la superficie del panel. Una sola gramática: encabezado de

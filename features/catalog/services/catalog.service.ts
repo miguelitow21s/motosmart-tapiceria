@@ -1,9 +1,12 @@
 import { cache } from "react";
+import { unstable_cache } from "next/cache";
 import { createPublicSupabaseClient } from "@/lib/supabase/public";
 import { CAROUSEL_MAX, parseCarouselOrder, sortByCarouselOrder } from "@/lib/carousel-order";
 import type { Brand, Design } from "@/types";
 import { getPromotionMeta } from "@/lib/utils";
 import { ownPhoto } from "@/lib/photos";
+import { getCarouselOrderValue } from "@/lib/settings";
+import { STORE_TAG } from "@/lib/store-cache";
 
 const DESIGN_FIELDS =
   "id,brand_id,name,slug,short_description,image_url,is_active,base_price,discount_price,promotion_label,promotion_active,promotion_starts_at,promotion_ends_at";
@@ -112,6 +115,17 @@ export const getActiveDesigns = cache(async (): Promise<DesignWithBrand[]> => {
   return designs.map((design) => (design.image_url && missing.has(design.image_url) ? { ...design, image_url: "" } : design));
 });
 
+/**
+ * Los mismos diseños, guardados 5 minutos fuera del render. La búsqueda es la
+ * única página de la tienda que se arma en cada visita (lee ?q=): así no
+ * consulta Supabase ni revisa las fotos con cada búsqueda. refreshStore() la
+ * borra al guardar en el panel.
+ */
+export const getSearchableDesigns = unstable_cache(() => getActiveDesigns(), ["tienda-disenos"], {
+  revalidate: 300,
+  tags: [STORE_TAG]
+});
+
 // Inicio: un diseño real por marca activa (con foto propia si la marca tiene),
 // con precio y botón de WhatsApp.
 // PostgREST no tiene "un registro por grupo" en el cliente JS, así que se
@@ -166,7 +180,8 @@ export type CarouselSlide = {
  */
 export const getCarouselSlides = cache(async (): Promise<CarouselSlide[]> => {
   const supabase = createPublicSupabaseClient();
-  const [{ data, error }, { data: orderSetting, error: orderError }] = await Promise.all([
+  // El orden sale de la misma lectura de settings que los textos de la página.
+  const [{ data, error }, orderValue] = await Promise.all([
     supabase
       .from("images")
       .select(
@@ -175,12 +190,10 @@ export const getCarouselSlides = cache(async (): Promise<CarouselSlide[]> => {
       .eq("is_weekly_highlight", true)
       .order("created_at", { ascending: false })
       .limit(50),
-    supabase.from("settings").select("value").eq("key", "carousel_order").maybeSingle()
+    getCarouselOrderValue()
   ]);
 
   if (error) fail("getCarouselSlides", error.message);
-  // Sin el orden guardado se cae al orden por fecha: nunca vaciar el carrusel por esto.
-  if (orderError) console.error("getCarouselSlides order", orderError.message);
 
   type Row = {
     id: string;
@@ -191,7 +204,7 @@ export const getCarouselSlides = cache(async (): Promise<CarouselSlide[]> => {
     brands: BrandJoin;
   };
 
-  const ordered = sortByCarouselOrder((data ?? []) as Row[], parseCarouselOrder(orderSetting?.value)).slice(
+  const ordered = sortByCarouselOrder((data ?? []) as Row[], parseCarouselOrder(orderValue)).slice(
     0,
     CAROUSEL_MAX
   );

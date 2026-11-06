@@ -7,7 +7,7 @@ import { Modal } from "@/components/ui/modal";
 import { AdminSessionActions } from "@/components/shared/admin-session-actions";
 import { MOBILE_PRIMARY, TABS, tabHref, type TabInfo } from "@/features/admin/lib/tabs";
 import type { TabKey } from "@/features/admin/types";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 
 const GROUP_LABELS: Record<TabInfo["group"], string | null> = {
   inicio: null,

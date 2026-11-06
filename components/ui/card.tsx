@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 import type { HTMLAttributes } from "react";
 
 // Tarjeta plana: borde fino, sin sombra ni elevación al pasar el cursor.

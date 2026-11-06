@@ -4,7 +4,7 @@ import { ScrollRow } from "@/components/shared/scroll-row";
 import { SectionHeader } from "@/components/shared/section";
 import { SmartImage } from "@/components/shared/smart-image";
 import type { CarouselSlide } from "@/features/catalog/services/catalog.service";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 
 /**
  * Una foto del carrusel semanal con su modelo y su precio en una etiqueta

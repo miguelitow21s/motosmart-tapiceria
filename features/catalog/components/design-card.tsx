@@ -7,6 +7,7 @@ import { designQuoteMessage } from "@/features/catalog/lib/whatsapp";
 import type { DesignWithBrand } from "@/features/catalog/services/catalog.service";
 import { isShowablePrice } from "@/lib/price-limits";
 import { buildWhatsAppUrl } from "@/lib/settings";
+import { cn } from "@/lib/cn";
 
 export const designGridSizes = "(max-width: 767px) 50vw, (max-width: 1279px) 33vw, 25vw";
 
@@ -19,13 +20,15 @@ export function DesignCard({
   whatsappNumber,
   showBrand = true,
   priority = false,
-  sizes = designGridSizes
+  sizes = designGridSizes,
+  className
 }: {
   design: DesignWithBrand;
   whatsappNumber: string;
   showBrand?: boolean;
   priority?: boolean;
   sizes?: string;
+  className?: string;
 }) {
   const { value, promo, showable } = currentPrice(design);
   // Un precio mal escrito no va al mensaje: Natalia lo dice en el chat.
@@ -38,7 +41,7 @@ export function DesignCard({
   return (
     <article
       id={`diseno-${design.slug}`}
-      className="flex scroll-mt-36 flex-col overflow-hidden rounded-lg border border-line bg-bg target:border-ink"
+      className={cn("flex scroll-mt-36 flex-col overflow-hidden rounded-lg border border-line bg-bg target:border-ink", className)}
     >
       <div className="relative aspect-3/4 bg-surface">
         <SmartImage

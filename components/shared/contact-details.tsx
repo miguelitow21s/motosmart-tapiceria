@@ -1,7 +1,7 @@
 import { Clock, Instagram, MapPin, Phone } from "lucide-react";
 import { formatPhoneCO } from "@/features/catalog/lib/whatsapp";
 import { buildWhatsAppUrl, getSiteSettings, instagramHandle } from "@/lib/settings";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 
 /**
  * Datos del negocio desde /admin > "Textos". Lo que esté vacío no se

@@ -1,5 +1,5 @@
 import { containerClasses } from "@/components/shared/section";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 
 /**
  * Esqueleto con la forma real de las páginas de la tienda: título y grilla de

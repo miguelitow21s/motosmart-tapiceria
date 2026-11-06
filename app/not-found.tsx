@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { containerClasses } from "@/components/shared/section";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 
 export default function NotFound() {
   return (

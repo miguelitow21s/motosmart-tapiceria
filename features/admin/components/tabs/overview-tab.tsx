@@ -13,7 +13,7 @@ import { goToTab, tabHref } from "@/features/admin/lib/tabs";
 import { retry, setAdminState, useAdminData, useAdminStore } from "@/features/admin/store/admin-data";
 import type { TabKey } from "@/features/admin/types";
 import { ownPhoto } from "@/lib/photos";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 
 type Pending = { id: string; text: string; action: string; onClick: () => void };
 

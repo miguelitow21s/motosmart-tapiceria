@@ -9,7 +9,8 @@ import { BrandBar } from "@/features/catalog/components/brand-bar";
 import { DesignGrid } from "@/features/catalog/components/design-grid";
 import { getActiveDesigns, getBrands, type DesignWithBrand } from "@/features/catalog/services/catalog.service";
 import { pageMetadata } from "@/lib/seo";
-import { cn, getPromotionMeta } from "@/lib/utils";
+import { cn } from "@/lib/cn";
+import { getPromotionMeta } from "@/lib/utils";
 
 type Props = { params: Promise<{ slug: string }> };
 

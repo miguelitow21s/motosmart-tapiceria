@@ -1,7 +1,7 @@
 import { DesignCard, designGridSizes } from "@/features/catalog/components/design-card";
 import { sortForStore, type DesignWithBrand } from "@/features/catalog/services/catalog.service";
 import { getSiteSettings } from "@/lib/settings";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 
 /**
  * Rejilla de sillas: dos por fila en el teléfono, como en cualquier tienda.
@@ -12,6 +12,7 @@ export async function DesignGrid({
   showBrand = true,
   priorityCount = 0,
   maxColumns = 4,
+  preview = false,
   empty
 }: {
   designs: DesignWithBrand[];
@@ -20,6 +21,12 @@ export async function DesignGrid({
   priorityCount?: number;
   /** 3 cuando la cantidad no llena filas de 4 (p. ej. 6 marcas en el inicio). */
   maxColumns?: 3 | 4;
+  /**
+   * Muestra de una marca con enlace a "ver todos" (catálogo): con cuatro
+   * sillas, en tres columnas (tableta, portátil chico) la cuarta quedaría sola
+   * en su fila, así que ahí se oculta. En el teléfono son dos filas de dos.
+   */
+  preview?: boolean;
   empty?: React.ReactNode;
 }) {
   if (!designs.length) {
@@ -39,6 +46,7 @@ export async function DesignGrid({
           showBrand={showBrand}
           priority={index < priorityCount}
           sizes={maxColumns === 4 ? designGridSizes : "(max-width: 767px) 50vw, 33vw"}
+          className={preview && maxColumns === 4 && sorted.length === 4 && index === 3 ? "md:max-xl:hidden" : undefined}
         />
       ))}
     </div>

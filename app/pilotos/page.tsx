@@ -7,7 +7,7 @@ import { RiderGallery } from "@/features/riders/components/rider-gallery";
 import { getRiderPhotos } from "@/features/riders/services/rider-photos.service";
 import { isFeatureEnabled } from "@/lib/feature-flags";
 import { pageMetadata } from "@/lib/seo";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 
 
 export async function generateMetadata(): Promise<Metadata> {

@@ -259,7 +259,7 @@ Los h1 a h3 reciben por defecto Archivo 800, `font-stretch: 75%`, `letter-spacin
 
 Una columna angosta que se vuelve rejilla. El contenedor de toda la tienda es `max-w-7xl` (80 rem, 1280 px) con márgenes laterales de 16, 24 y 32 px (a partir de 40 rem y 64 rem), de modo que los bordes izquierdo y derecho coinciden en todas las secciones. Las filas que se deslizan (trabajos de la semana, marcas) sangran a todo el ancho de la pantalla pero su primer elemento arranca alineado con el contenido (`bleed-row`).
 
-Las secciones respiran 48 px arriba y abajo en el teléfono y 64 px desde `md`; las cabeceras de página usan 24 px y 40 px. La rejilla de sillas es de dos columnas en el teléfono, tres desde `md` y cuatro desde `xl` (tres si la cantidad no llena filas de cuatro), con 12 px de separación y 16 px desde `sm`. El héroe de escritorio parte en dos desde `lg`: texto a la izquierda y una foto vertical de 26 rem (30 rem desde `xl`) a la derecha con 64 px entre ambas; en el teléfono la foto destacada no se muestra y la primera tarjeta de "Trabajos de la semana" asoma en la primera pantalla. Las tarjetas del carrusel miden 13,5 rem en teléfono, 16 rem desde `sm` y 18 rem desde `lg`, con `scroll-snap` obligatorio.
+Las secciones respiran 48 px arriba y abajo en el teléfono y 64 px desde `md`; las cabeceras de página usan 24 px y 40 px. La rejilla de sillas es de dos columnas en el teléfono, tres desde `md` y cuatro desde `xl` (tres si la cantidad no llena filas de cuatro). En la vista previa de `/catalogo` (cuatro sillas por marca), entre `md` y `xl` se muestran solo tres, para que la cuarta no quede sola en una fila; el enlace "Ver los N de {marca}" lleva a todas. Separación de 12 px de separación y 16 px desde `sm`. El héroe de escritorio parte en dos desde `lg`: texto a la izquierda y una foto vertical de 26 rem (30 rem desde `xl`) a la derecha con 64 px entre ambas; en el teléfono la foto destacada no se muestra y la primera tarjeta de "Trabajos de la semana" asoma en la primera pantalla. Las tarjetas del carrusel miden 13,5 rem en teléfono, 16 rem desde `sm` y 18 rem desde `lg`, con `scroll-snap` obligatorio.
 
 La barra negra mide 56 px y es pegajosa; la barra de marcas (chips de 44 px) se pega justo debajo, así que `scroll-padding-top` es 8,5 rem y las tarjetas llevan `scroll-mt-36`. Los puntos de quiebre son los de Tailwind sin cambios (`sm` 40 rem, `md` 48 rem, `lg` 64 rem, `xl` 80 rem); el menú móvil de la tienda cambia a barra de enlaces en `md`.
 
@@ -291,7 +291,8 @@ Una sola familia, siempre de 44 px o más, con peso 600 y el glifo de 20 px a la
 - **Dark:** `ink` con texto blanco; hover `ink-2`. Acción principal del panel.
 - **Ghost:** sin fondo, texto `ink`; hover `surface`. Barras y listas.
 - **Danger:** `danger` con texto blanco; hover `danger-hover`. Solo borrar o deshacer algo irrecuperable.
-- **Estados:** presionado `scale(.97)`; deshabilitado al 50 % de opacidad sin eventos; `aria-disabled` se ve apagado pero conserva el foco (flechas de la fila de trabajos); cargando muestra un giro de 20 px antes del texto. Transición de color, borde y transform en 150 ms con `--ease-out`. El hover solo aplica con puntero fino (Tailwind 4 lo condiciona a `hover: hover`).
+- **Estados:** presionado `scale(.97)`; deshabilitado al 50 % de opacidad sin eventos; `aria-disabled` se ve apagado pero conserva el foco (flechas de la fila de trabajos); cargando muestra un giro de 20 px antes del texto. Transición de fondo, borde, color y `scale` en 150 ms con `--ease-out` (en Tailwind 4, `active:scale-*` escribe la propiedad `scale`, no `transform`: una transición que solo nombre `transform` deja el pulsado en seco). El hover solo aplica con puntero fino (Tailwind 4 lo condiciona a `hover: hover`).
+- **Código:** los estilos viven en `app/globals.css`, capa `components` (`.btn`, `.btn-default`, `.btn-secondary`, `.btn-dark`, `.btn-ghost`, `.btn-danger`, `.btn-sm`, `.btn-md`, `.btn-lg`, `.btn-icon`). Como las utilidades siempre ganan a la capa `components`, cualquier clase que llegue en `className` los pisa sin tailwind-merge; por eso el código cliente de la tienda une clases con `cx` (clsx, en `lib/utils`) y `cn` (con tailwind-merge) vive aparte en `lib/cn`, solo para componentes de servidor y el panel. No volver a poner `cn` en `lib/utils`: arrastraría tailwind-merge a todas las páginas de la tienda.
 
 ### Chips
 Chip de marca en la barra "Elige tu marca".
@@ -309,6 +310,10 @@ Chip de marca en la barra "Elige tu marca".
 - **Style:** alto 48 px, radio 8 px, borde `line-field`, fondo blanco, texto de 16 px en `ink`, marcador `ink-3`, relleno lateral de 16 px. El área de texto parte de 128 px de alto. Etiqueta arriba en 600 de 0.875 rem, y debajo la pista (`ink-3`) o el error (`danger`, 500), que reemplaza a la pista.
 - **Focus:** borde `ink` más el anillo de 3 px al 14 % de tinta; el contorno nativo se oculta porque el anillo lo reemplaza. Hover: borde `ink-3`.
 - **Error / Disabled:** `aria-invalid` pone borde `danger` y anillo de `danger` al 18 %. Deshabilitado al 60 % con cursor de prohibido.
+- **Código:** clases `.field`, `.field-input`, `.field-textarea` y `.field-label` en la capa `components` de `app/globals.css`.
+
+### Búsqueda del catálogo
+Campo de búsqueda bajo el título de `/catalogo` y de `/catalogo/buscar`: campo de 48 px con lupa de 20 px en `ink-3` a la izquierda (relleno izquierdo de 44 px), marcador "Ej.: NMAX, Boxer, DT 125", y al lado el botón oscuro "Buscar" (`dark`, porque el rojo queda para cotizar). Ancho máximo de 36 rem. Es un formulario GET normal (funciona sin JavaScript) que con `next/form` navega sin recargar. Busca por marca y modelo sin importar mayúsculas, tildes, guiones ni espacios ("nmax", "N-MAX" y "n max" encuentran lo mismo) e ignora palabras que no distinguen nada ("silla", "funda", "moto"). Sin resultados, la página dice "La hacemos a la medida de tu moto" y ofrece cotizar por WhatsApp con el modelo escrito en el mensaje. Las páginas de búsqueda no se indexan.
 
 ### Navigation
 - **Style:** barra superior negra de 56 px con el logo (44 px de alto, 93 px de ancho) a la izquierda. En escritorio: enlaces de 44 px de alto en 0.9375 rem 500, blancos al 75 % que pasan a blanco al pasar el cursor, y botón rojo "Cotizar por WhatsApp" a la derecha. La página activa va en blanco con subrayado blanco de 2 px, no rojo.
@@ -334,7 +339,7 @@ Un solo componente (`Modal`, sobre Radix). En teléfono es una hoja que sube des
 
 ### Movimiento
 Una sola gramática, con `transform` y `opacity`, y nada por encima de 300 ms. Lo que entra frena al llegar (`--ease-out`: `cubic-bezier(0.23, 1, 0.32, 1)`); las hojas del teléfono usan la curva de cajón de iOS (`--ease-drawer`: `cubic-bezier(0.32, 0.72, 0, 1)`).
-- **Pulsado:** `scale(.97)` con transición de 150 ms. Hover de color y borde en 150 ms; el enlace de texto (`link-underline`) oscurece su subrayado en 150 ms. Todo hover solo con puntero fino.
+- **Pulsado:** `scale(.97)` con transición de 150 ms sobre la propiedad `scale` (botones, botón de menú y cerrar del diálogo). Hover de color y borde en 150 ms; el enlace de texto (`link-underline`) oscurece su subrayado en 150 ms. Todo hover solo con puntero fino.
 - **Menú móvil:** opacidad y 8 px de traslación vertical, 220 ms, `ease-out`.
 - **Hoja del teléfono:** sube desde el borde en 300 ms con `--ease-drawer` y baja en 200 ms. **Diálogo de escritorio:** entra con opacidad y `scale(.96)` en 200 ms, sale con `scale(.98)` en 150 ms. El velo se funde en 200 ms (150 ms al cerrar en escritorio).
 - **Foto con hover:** `scale` 1,02 o 1,03 en 300 ms, solo puntero fino.
@@ -369,5 +374,5 @@ Una sola gramática, con `transform` y `opacity`, y nada por encima de 300 ms. L
 <!-- Notas de la documentación (verificado en el código):
      Corregido al documentar: el subrayado activo del menú móvil y de "Más secciones" del panel ya no es rojo (decoration-current), el comentario de globals.css nombra cabecera y pie como superficies oscuras, y "Saltar al contenido" usa --shadow-float.
      1) Los rótulos de grupo del panel lateral ("Tienda", "Ajustes") son mayúsculas pequeñas con tracking; son un rótulo de grupo, no un patrón del sistema.
-     2) El contrato pide pulsado en 120 ms; el botón transiciona en 150 ms (duration-150), dentro del rango de 100 a 160 ms. Se documenta 150 ms.
+     2) El contrato pide pulsado en 120 ms; el botón transiciona en 150 ms (duration-150), dentro del rango de 100 a 160 ms. Se documenta 150 ms. Hasta noviembre de 2026 la transición nombraba transform y el pulsado salía en seco; ahora nombra scale y se anima de verdad.
      3) Los valores se leyeron del código, no de un navegador: las alturas de línea de las utilidades text-lg a text-4xl son las predeterminadas de Tailwind 4 y no están declaradas en el repositorio. -->

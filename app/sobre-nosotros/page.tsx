@@ -7,7 +7,7 @@ import { SmartImage } from "@/components/shared/smart-image";
 import { getCarouselSlides } from "@/features/catalog/services/catalog.service";
 import { pageMetadata } from "@/lib/seo";
 import { getSiteSettings } from "@/lib/settings";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 
 export async function generateMetadata(): Promise<Metadata> {
   const slides = await getCarouselSlides();

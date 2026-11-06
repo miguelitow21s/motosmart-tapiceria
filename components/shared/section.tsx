@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 import type { HTMLAttributes, ReactNode } from "react";
 
 /** Ancho y márgenes laterales de toda la tienda: los bordes izquierdo y derecho siempre coinciden. */

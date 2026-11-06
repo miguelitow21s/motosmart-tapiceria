@@ -30,7 +30,8 @@ import { goToTab } from "@/features/admin/lib/tabs";
 import { retry, setAdminState, useAdminData, useAdminStore } from "@/features/admin/store/admin-data";
 import type { Design } from "@/features/admin/types";
 import { ownPhoto } from "@/lib/photos";
-import { cn, formatCOP } from "@/lib/utils";
+import { cn } from "@/lib/cn";
+import { formatCOP } from "@/lib/utils";
 
 // Textos cortos: en el teléfono los dos filtros van lado a lado.
 const FILTER_LABELS = {

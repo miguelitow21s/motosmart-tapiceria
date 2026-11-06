@@ -1,8 +1,7 @@
 import * as React from "react";
-import { cva, type VariantProps } from "class-variance-authority";
 import { Slot } from "@radix-ui/react-slot";
 import { Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cx } from "@/lib/utils";
 
 /*
   Una sola familia de botón. Todos miden 44 px o más (se usan con el pulgar).
@@ -11,42 +10,35 @@ import { cn } from "@/lib/utils";
   - dark: tinta sólida, la acción principal del panel (el rojo queda para borrar).
   - ghost: sin fondo, para barras y listas.
   - danger: borrar o deshacer algo que no se recupera.
+  Los estilos viven en app/globals.css (.btn y compañía, capa components):
+  lo que llegue en className los pisa sin necesidad de tailwind-merge.
 */
-const buttonVariants = cva(
-  [
-    "relative inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-lg font-semibold",
-    "transition-[background-color,border-color,color,transform] duration-150 ease-(--ease-out)",
-    "active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50",
-    // aria-disabled: se ve apagado pero conserva el foco (ver ScrollRow).
-    "aria-disabled:cursor-default aria-disabled:opacity-50 aria-disabled:active:scale-100",
-    "[&_svg]:size-5 [&_svg]:shrink-0"
-  ],
-  {
-    variants: {
-      variant: {
-        default: "bg-brand text-brand-ink hover:bg-brand-hover",
-        secondary: "border border-line-strong bg-bg text-ink hover:border-ink hover:bg-surface",
-        dark: "bg-ink text-bg hover:bg-ink-2",
-        ghost: "text-ink hover:bg-surface",
-        danger: "bg-danger text-white hover:bg-danger-hover"
-      },
-      size: {
-        sm: "h-11 px-4 text-sm",
-        default: "h-12 px-5 text-[0.9375rem]",
-        lg: "h-13 px-6 text-base",
-        icon: "size-11"
-      }
-    },
-    defaultVariants: {
-      variant: "default",
-      size: "default"
-    }
-  }
-);
+const VARIANTS = {
+  default: "btn-default",
+  secondary: "btn-secondary",
+  dark: "btn-dark",
+  ghost: "btn-ghost",
+  danger: "btn-danger"
+} as const;
 
-export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
+const SIZES = {
+  sm: "btn-sm",
+  default: "btn-md",
+  lg: "btn-lg",
+  icon: "btn-icon"
+} as const;
+
+export type ButtonVariant = keyof typeof VARIANTS;
+export type ButtonSize = keyof typeof SIZES;
+
+/** Clases del botón para un elemento que no es <Button> (un enlace, por ejemplo). */
+function buttonVariants({ variant, size }: { variant?: ButtonVariant | null; size?: ButtonSize | null } = {}) {
+  return `btn ${VARIANTS[variant ?? "default"]} ${SIZES[size ?? "default"]}`;
+}
+
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: ButtonVariant | null;
+  size?: ButtonSize | null;
   asChild?: boolean;
   isLoading?: boolean;
   ref?: React.Ref<HTMLButtonElement>;
@@ -58,7 +50,7 @@ function Button({ className, variant, size, asChild = false, isLoading = false, 
 
   return (
     <Comp
-      className={cn(buttonVariants({ variant, size }), className)}
+      className={cx(buttonVariants({ variant, size }), className)}
       ref={ref}
       aria-busy={isLoading || undefined}
       disabled={asChild ? undefined : props.disabled || isLoading}

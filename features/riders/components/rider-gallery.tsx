@@ -1,5 +1,5 @@
 import { SmartImage } from "@/components/shared/smart-image";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 import type { RiderPhoto } from "@/types";
 
 /** Fotos de clientes con su moto ya tapizada. */

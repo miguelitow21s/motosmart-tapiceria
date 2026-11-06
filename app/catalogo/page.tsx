@@ -5,12 +5,12 @@ import { ClosingCta } from "@/components/shared/closing-cta";
 import { PageIntro } from "@/components/shared/page-intro";
 import { containerClasses } from "@/components/shared/section";
 import { BrandBar } from "@/features/catalog/components/brand-bar";
+import { CatalogSearch } from "@/features/catalog/components/catalog-search";
 import { DesignGrid } from "@/features/catalog/components/design-grid";
 import { getActiveDesigns, getBrands, sortForStore } from "@/features/catalog/services/catalog.service";
 import { isFeatureEnabled } from "@/lib/feature-flags";
 import { pageMetadata } from "@/lib/seo";
-import { cn } from "@/lib/utils";
-
+import { cn } from "@/lib/cn";
 
 export async function generateMetadata(): Promise<Metadata> {
   const designs = await getActiveDesigns();
@@ -44,8 +44,10 @@ export default async function CatalogoPage() {
     <>
       <PageIntro
         title="Catálogo"
-        lead="Fundas y tapicería para moto por marca, con precio de referencia. Elige tu marca o baja para ver todo."
-      />
+        lead="Fundas y tapicería para moto por marca, con precio de referencia. Busca tu modelo o elige la marca."
+      >
+        <CatalogSearch />
+      </PageIntro>
       <BrandBar brands={brands} active="all" />
 
       <div className={cn(containerClasses, "space-y-14 py-10 md:space-y-16 md:py-12")}>
@@ -66,7 +68,12 @@ export default async function CatalogoPage() {
                 </Link>
               </div>
               <div className="mt-5">
-                <DesignGrid designs={brandDesigns.slice(0, PER_BRAND)} showBrand={false} priorityCount={index === 0 ? 2 : 0} />
+                <DesignGrid
+                  designs={brandDesigns.slice(0, PER_BRAND)}
+                  showBrand={false}
+                  priorityCount={index === 0 ? 2 : 0}
+                  preview
+                />
               </div>
             </section>
           ))

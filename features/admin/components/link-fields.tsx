@@ -3,7 +3,7 @@
 import { useId, useMemo } from "react";
 import { Field, Select } from "@/features/admin/components/fields";
 import { useAdminStore } from "@/features/admin/store/admin-data";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 
 /*
   Marca y diseño de una foto. Elegir un diseño pone su marca; cambiar la marca

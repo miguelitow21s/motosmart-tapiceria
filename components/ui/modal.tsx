@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 
 type ModalProps = {
   open: boolean;
@@ -88,7 +88,7 @@ export function Modal({
               </div>
               <Dialog.Close
                 aria-label="Cerrar"
-                className="inline-flex size-11 shrink-0 items-center justify-center rounded-lg text-ink-2 transition-colors duration-150 hover:bg-surface hover:text-ink active:scale-[0.97]"
+                className="inline-flex size-11 shrink-0 items-center justify-center rounded-lg text-ink-2 transition-[background-color,color,scale] duration-150 ease-(--ease-out) hover:bg-surface hover:text-ink active:scale-[0.97]"
               >
                 <X aria-hidden="true" className="size-5" />
               </Dialog.Close>
