@@ -18,7 +18,7 @@ carga en `/` y `/marca/[slug]` es dinero perdido: la conversión es un clic a Wh
 Stack (verifica en `package.json`):
 - Next.js 15.5.9 App Router, React 19.2.1, en Vercel
 - Supabase (`@supabase/ssr`) como origen de datos, sin ORM ni capa de caché
-- Tailwind 3.4.17, `motion` 12, `lucide-react`
+- Tailwind 4, `motion` 12, `lucide-react`
 - `next/image` con `remotePatterns` a Supabase Storage y Unsplash
 
 ## Cómo trabajas

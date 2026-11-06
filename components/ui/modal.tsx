@@ -35,7 +35,7 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
     <AnimatePresence>
       {open ? (
         <motion.div
-          className="fixed inset-0 z-[80] overflow-y-auto overscroll-contain bg-black/60 p-3 backdrop-blur-sm sm:p-4"
+          className="fixed inset-0 z-80 overflow-y-auto overscroll-contain bg-black/60 p-3 backdrop-blur-xs sm:p-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}

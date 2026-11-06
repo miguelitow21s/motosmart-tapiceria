@@ -1527,7 +1527,7 @@ export function AdminDashboardImpl() {
               );
             })}
           </div>
-          <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-neutral-900 to-transparent sm:hidden" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-linear-to-l from-neutral-900 to-transparent sm:hidden" />
         </div>
       </Card>
 
@@ -1539,7 +1539,7 @@ export function AdminDashboardImpl() {
           role={toast.type === "error" ? "alert" : "status"}
           aria-live={toast.type === "error" ? "assertive" : "polite"}
           className={cn(
-            "fixed inset-x-3 top-4 z-[100] mx-auto flex max-w-lg items-start gap-3 rounded-xl border px-4 py-3 text-sm shadow-card backdrop-blur-sm",
+            "fixed inset-x-3 top-4 z-100 mx-auto flex max-w-lg items-start gap-3 rounded-xl border px-4 py-3 text-sm shadow-card backdrop-blur-xs",
             toast.type === "success"
               ? "border-emerald-400/40 bg-emerald-950/95 text-emerald-100"
               : "border-red-400/40 bg-red-950/95 text-red-100"
@@ -1788,7 +1788,7 @@ export function AdminDashboardImpl() {
                       <tr key={design.id} className="border-t border-neutral-800">
                         <td className="px-2 py-2">
                           <button type="button" onClick={() => openEditDesignModal(design)}>
-                            <img src={design.image_url || "/logo-motosmart.png"} alt={design.name} className="h-12 w-16 rounded bg-neutral-950 object-contain" />
+                            <img src={design.image_url || "/logo-motosmart.png"} alt={design.name} className="h-12 w-16 rounded-sm bg-neutral-950 object-contain" />
                           </button>
                         </td>
                         <td className="px-2 py-2">
@@ -2066,7 +2066,7 @@ export function AdminDashboardImpl() {
                     aria-label={`Foto ${item.file.name}`}
                     className="grid gap-2 rounded-xl border border-neutral-700 p-2 md:grid-cols-[100px_1fr]"
                   >
-                    <img src={item.preview} alt="" className="h-24 w-full rounded bg-neutral-950 object-contain" />
+                    <img src={item.preview} alt="" className="h-24 w-full rounded-sm bg-neutral-950 object-contain" />
                     <div className="space-y-2">
                       <Input aria-label="Texto de la foto" value={item.alt} onChange={(e) => updateQueueItem(item.id, { alt: e.target.value })} />
                       <div className="grid gap-2 md:grid-cols-2">
@@ -2130,7 +2130,7 @@ export function AdminDashboardImpl() {
           <div className="columns-2 gap-3 space-y-3 md:columns-3 xl:columns-4">
             {filteredGallery.map((img) => (
               <button type="button" key={img.id} className="w-full overflow-hidden rounded-xl border border-neutral-700 bg-neutral-950 p-2 text-left" onClick={() => setSelectedImage(img)}>
-                <img src={img.url} alt={img.alt ?? "imagen"} className="mb-2 h-auto w-full rounded" />
+                <img src={img.url} alt={img.alt ?? "imagen"} className="mb-2 h-auto w-full rounded-sm" />
                 <p className="truncate text-xs text-neutral-300">{img.alt || "Sin alt"}</p>
                 <p className="text-[11px] text-neutral-500">{img.is_carousel ? "Carrusel" : "Catálogo"}</p>
               </button>

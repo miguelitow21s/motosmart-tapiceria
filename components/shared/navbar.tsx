@@ -51,8 +51,8 @@ export function Navbar({ isAdmin = false, isAuthenticated = false }: { isAdmin?:
             ? "bg-red-950/80 py-0.5 shadow-[0_12px_30px_rgba(120,0,0,0.35)]"
             : "bg-black/85 py-0.5 shadow-[0_12px_30px_rgba(0,0,0,0.3)]"
           : isAdmin
-            ? "bg-gradient-to-b from-red-950/70 via-black/55 to-transparent"
-            : "bg-gradient-to-b from-black/70 via-black/55 to-transparent"
+            ? "bg-linear-to-b from-red-950/70 via-black/55 to-transparent"
+            : "bg-linear-to-b from-black/70 via-black/55 to-transparent"
       )}
     >
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-8">
@@ -74,7 +74,7 @@ export function Navbar({ isAdmin = false, isAuthenticated = false }: { isAdmin?:
                 {link.label}
                 <span
                   className={cn(
-                    "absolute -bottom-2 left-0 h-[2px] w-full origin-left scale-x-0 rounded bg-primary transition-transform duration-300",
+                    "absolute -bottom-2 left-0 h-[2px] w-full origin-left scale-x-0 rounded-sm bg-primary transition-transform duration-300",
                     pathname === link.href && "scale-x-100"
                   )}
                 />

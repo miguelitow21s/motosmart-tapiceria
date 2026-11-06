@@ -16,14 +16,14 @@ const sora = Sora({
   subsets: ["latin"],
   weight: ["400", "500", "600"],
   display: "swap",
-  variable: "--font-sans"
+  variable: "--font-sora"
 });
 
 const orbitron = Orbitron({
   subsets: ["latin"],
   weight: ["500"],
   display: "swap",
-  variable: "--font-display"
+  variable: "--font-orbitron"
 });
 
 // Metadata editable desde /admin > "Textos y Config" (claves meta_title y

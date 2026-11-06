@@ -41,7 +41,7 @@ export function SmartImage({
         className={cn(
           "transition duration-500",
           fit === "contain" ? "object-contain" : "object-cover",
-          loading ? "scale-105 blur-sm opacity-0" : "scale-100 blur-0 opacity-100"
+          loading ? "scale-105 blur-xs opacity-0" : "scale-100 blur-0 opacity-100"
         )}
         sizes={sizes}
         priority={priority}
@@ -53,7 +53,7 @@ export function SmartImage({
         }}
       />
       {fit === "cover" ? (
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent" />
+        <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-black/45 via-transparent to-transparent" />
       ) : null}
     </div>
   );

@@ -52,7 +52,7 @@ export default async function HomePage() {
       </SectionContainer>
       <SectionContainer className="py-12">
         <div
-          className="rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur-sm"
+          className="rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur-xs"
           data-animate="fade-up"
         >
           <h2 className="font-display text-3xl text-white">Servicios de tapicería y personalización</h2>

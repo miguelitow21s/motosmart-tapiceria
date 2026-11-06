@@ -1,8 +1,41 @@
-@import "../styles/animations.css";
+@import "tailwindcss";
+@import "../styles/animations.css" layer(base);
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Fuentes: next/font publica --font-sora y --font-orbitron en <html>.
+   `inline` hace que la utilidad lea esa variable en el propio elemento
+   (si se resolviera en :root, quedaria vacia). */
+@theme inline {
+  --font-sans: var(--font-sora), system-ui, sans-serif;
+  --font-display: var(--font-orbitron), system-ui, sans-serif;
+}
+
+@theme {
+  --text-sm: var(--font-size-sm);
+  --text-sm--line-height: 1.5;
+  --text-base: var(--font-size-base);
+  --text-base--line-height: 1.6;
+  --text-lg: var(--font-size-lg);
+  --text-lg--line-height: 1.5;
+  --text-xl: var(--font-size-xl);
+  --text-xl--line-height: 1.35;
+  --text-display: var(--font-size-display);
+  --text-display--line-height: 1.1;
+
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-surface: hsl(var(--surface));
+  --color-border: hsl(var(--border));
+  --color-muted: hsl(var(--muted));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+
+  --radius-xl: 0.9rem;
+  --radius-2xl: 1.1rem;
+  --radius-3xl: 1.6rem;
+
+  --shadow-card: 0 14px 32px rgba(0, 0, 0, 0.32);
+  --shadow-glow: 0 0 22px rgba(255, 30, 30, 0.45);
+}
 
 :root {
   color-scheme: dark;
@@ -13,11 +46,10 @@
   --muted: 240 4% 65%;
   --primary: 0 100% 56%;
   --primary-foreground: 0 0% 100%;
-  --radius-xl: 0.9rem;
-  --radius-2xl: 1.1rem;
-  --radius-3xl: 1.6rem;
-  --shadow-card: 0 14px 32px rgba(0, 0, 0, 0.32);
-  --shadow-glow: 0 0 22px rgba(255, 30, 30, 0.45);
+  --honeycomb:
+    radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.04) 2px, transparent 2px),
+    radial-gradient(circle at 75% 75%, rgba(255, 255, 255, 0.03) 2px, transparent 2px),
+    linear-gradient(135deg, rgba(255, 30, 30, 0.12), rgba(5, 5, 5, 0.95));
   /* spacing + typography rhythm */
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -39,113 +71,178 @@
   --motion-slow: 0.6s;
 }
 
-body {
-  @apply bg-background text-foreground antialiased;
-  background-image: theme("backgroundImage.honeycomb");
-  background-size: 40px 40px, 40px 40px, cover;
-  min-height: 100dvh;
-  font-size: var(--font-size-base);
+/* Todo lo que sigue va en capas: en Tailwind 4 las utilidades viven en
+   @layer utilities y cualquier regla sin capa les ganaria (p.ej. `p`
+   pisaria los text-xs/sm). */
+@layer base {
+  /* Tailwind 4 cambio el color de borde por defecto a currentcolor; se
+     conserva el de v3 para no alterar bordes sin color explicito. */
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+
+  /* Tailwind 4 ya no pone cursor de mano en los botones. */
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    background-image: var(--honeycomb);
+    background-size: 40px 40px, 40px 40px, cover;
+    min-height: 100dvh;
+    font-size: var(--font-size-base);
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 30, 30, 0.5) rgba(255, 255, 255, 0.08);
+    box-sizing: border-box;
+  }
+
+  ::selection {
+    background: rgba(255, 30, 30, 0.35);
+    color: #fff7f7;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    letter-spacing: -0.02em;
+    font-family: var(--font-orbitron), system-ui, sans-serif;
+  }
+
+  p {
+    line-height: 1.6;
+    font-size: var(--font-size-base);
+  }
+
+  a,
+  button {
+    transition: transform var(--motion-fast) var(--ease-smooth), opacity var(--motion-fast) var(--ease-smooth), box-shadow var(--motion-fast) var(--ease-smooth), color var(--motion-fast) var(--ease-smooth);
+  }
+
+  :focus-visible {
+    outline: 2px solid rgba(255, 30, 30, 0.75);
+    outline-offset: 2px;
+  }
+
+  a:hover {
+    color: #fff;
+  }
+
+  a svg,
+  button svg {
+    transition: transform var(--motion-fast) var(--ease-smooth), opacity var(--motion-fast) var(--ease-smooth);
+  }
+
+  a:hover svg,
+  button:hover svg {
+    transform: translateY(-1px);
+  }
 }
 
-* {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 30, 30, 0.5) rgba(255, 255, 255, 0.08);
-  box-sizing: border-box;
-}
+@layer components {
+  .focus-ring {
+    outline: 2px solid rgba(255, 30, 30, 0.65);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 6px rgba(255, 30, 30, 0.12);
+  }
 
-::selection {
-  background: rgba(255, 30, 30, 0.35);
-  color: #fff7f7;
-}
+  .btn-ripple::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at var(--ripple-x, 50%) var(--ripple-y, 50%), rgba(255, 255, 255, 0.28), transparent 55%);
+    opacity: 0;
+    transform: scale(0.6);
+    pointer-events: none;
+    transition: opacity var(--motion-fast) var(--ease-smooth), transform var(--motion-normal) var(--ease-emphasized);
+  }
 
-h1,
-h2,
-h3,
-h4 {
-  letter-spacing: -0.02em;
-  font-family: var(--font-display), system-ui, sans-serif;
-}
+  .btn-ripple:active::after {
+    opacity: 1;
+    transform: scale(1.25);
+  }
 
-p {
-  line-height: 1.6;
-  font-size: var(--font-size-base);
-}
+  .card-overlay {
+    position: relative;
+    overflow: hidden;
+  }
 
-a,
-button {
-  transition: transform var(--motion-fast) var(--ease-smooth), opacity var(--motion-fast) var(--ease-smooth), box-shadow var(--motion-fast) var(--ease-smooth), color var(--motion-fast) var(--ease-smooth);
-}
+  .card-overlay::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(145deg, rgba(255, 30, 30, 0.12), transparent 45%);
+    opacity: 0;
+    transition: opacity var(--motion-normal) var(--ease-smooth);
+    pointer-events: none;
+  }
 
-:focus-visible {
-  outline: 2px solid rgba(255, 30, 30, 0.75);
-  outline-offset: 2px;
-}
+  .card-overlay:hover::after {
+    opacity: 1;
+  }
 
-a:hover {
-  color: #fff;
-}
+  /* Glow del logo: el box-shadow final ya esta pintado en el ::after y solo se
+     anima su opacidad (compositable) en vez de interpolar box-shadow entre dos
+     valores, que forzaria repintados continuos en el hilo principal. */
+  .logo-glow {
+    position: relative;
+  }
 
-.focus-ring {
-  outline: 2px solid rgba(255, 30, 30, 0.65);
-  outline-offset: 2px;
-  box-shadow: 0 0 0 6px rgba(255, 30, 30, 0.12);
-}
-
-.btn-ripple::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at var(--ripple-x, 50%) var(--ripple-y, 50%), rgba(255, 255, 255, 0.28), transparent 55%);
-  opacity: 0;
-  transform: scale(0.6);
-  pointer-events: none;
-  transition: opacity var(--motion-fast) var(--ease-smooth), transform var(--motion-normal) var(--ease-emphasized);
-}
-
-.btn-ripple:active::after {
-  opacity: 1;
-  transform: scale(1.25);
-}
-
-.card-overlay {
-  position: relative;
-  overflow: hidden;
-}
-
-.card-overlay::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(145deg, rgba(255, 30, 30, 0.12), transparent 45%);
-  opacity: 0;
-  transition: opacity var(--motion-normal) var(--ease-smooth);
-  pointer-events: none;
-}
-
-.card-overlay:hover::after {
-  opacity: 1;
-}
-
-/* Glow del logo: el box-shadow final ya esta pintado en el ::after y solo se
-   anima su opacidad (compositable) en vez de interpolar box-shadow entre dos
-   valores, que forzaria repintados continuos en el hilo principal. */
-.logo-glow {
-  position: relative;
-}
-
-.logo-glow::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  box-shadow: 0 0 32px rgba(255, 30, 30, 0.75);
-  opacity: 0;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
   .logo-glow::after {
-    animation: logo-glow-pulse 2.8s ease-in-out infinite alternate;
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: 0 0 32px rgba(255, 30, 30, 0.75);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .logo-glow::after {
+      animation: logo-glow-pulse 2.8s ease-in-out infinite alternate;
+    }
+  }
+
+  [data-animate="fade-up"] {
+    animation: fade-in-up var(--motion-slow) var(--ease-emphasized) both;
+  }
+
+  [data-animate="fade-in"] {
+    animation: fade-in var(--motion-normal) var(--ease-smooth) both;
+  }
+
+  [data-animate="zoom-in"] {
+    animation: zoom-in var(--motion-normal) var(--ease-emphasized) both;
+  }
+
+  [data-animate-stagger] > * {
+    animation: fade-in-up var(--motion-slow) var(--ease-emphasized) both;
+    animation-delay: calc(var(--i, 0) * 0.07s);
+  }
+
+  [data-animate-text] > * {
+    animation: fade-in var(--motion-normal) var(--ease-smooth) both;
+    animation-delay: calc(var(--i, 0) * 0.05s);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    [data-animate="fade-up"],
+    [data-animate="fade-in"],
+    [data-animate="zoom-in"],
+    [data-animate-stagger] > *,
+    [data-animate-text] > * {
+      animation: none !important;
+    }
   }
 }
 
@@ -156,46 +253,4 @@ a:hover {
   to {
     opacity: 1;
   }
-}
-
-[data-animate="fade-up"] {
-  animation: fade-in-up var(--motion-slow) var(--ease-emphasized) both;
-}
-
-[data-animate="fade-in"] {
-  animation: fade-in var(--motion-normal) var(--ease-smooth) both;
-}
-
-[data-animate="zoom-in"] {
-  animation: zoom-in var(--motion-normal) var(--ease-emphasized) both;
-}
-
-[data-animate-stagger] > * {
-  animation: fade-in-up var(--motion-slow) var(--ease-emphasized) both;
-  animation-delay: calc(var(--i, 0) * 0.07s);
-}
-
-[data-animate-text] > * {
-  animation: fade-in var(--motion-normal) var(--ease-smooth) both;
-  animation-delay: calc(var(--i, 0) * 0.05s);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  [data-animate="fade-up"],
-  [data-animate="fade-in"],
-  [data-animate="zoom-in"],
-  [data-animate-stagger] > *,
-  [data-animate-text] > * {
-    animation: none !important;
-  }
-}
-
-a svg,
-button svg {
-  transition: transform var(--motion-fast) var(--ease-smooth), opacity var(--motion-fast) var(--ease-smooth);
-}
-
-a:hover svg,
-button:hover svg {
-  transform: translateY(-1px);
 }

@@ -21,8 +21,8 @@ persona que administra el catálogo sube fotos de los trabajos desde el móvil, 
 Un panel admin que solo funciona en escritorio es un hallazgo, no una decisión de diseño.
 
 Stack:
-- **Tailwind CSS 3.4.17** (no v4). Breakpoints por defecto: `sm:640px`, `md:768px`,
-  `lg:1024px`, `xl:1280px`, `2xl:1536px`. Revisa `tailwind.config.ts` por si están extendidos.
+- **Tailwind CSS 4**. Breakpoints por defecto: `sm:640px`, `md:768px`,
+  `lg:1024px`, `xl:1280px`, `2xl:1536px`. Revisa `@theme` en `app/globals.css` por si están extendidos.
 - Next.js 15 App Router, `next/image`, `motion` 12
 - Tema oscuro, layout con `SectionContainer` (`max-w-7xl` + padding responsive)
 

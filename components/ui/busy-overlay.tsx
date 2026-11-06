@@ -7,7 +7,7 @@ import { Loader2 } from "lucide-react";
 export function BusyOverlay({ text }: { text: string | null }) {
   if (!text) return null;
   return (
-    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/70 p-6 backdrop-blur-sm">
+    <div className="fixed inset-0 z-90 flex items-center justify-center bg-black/70 p-6 backdrop-blur-xs">
       <div
         role="status"
         aria-live="polite"

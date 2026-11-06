@@ -16,7 +16,7 @@ export function RiderGallery({ photos }: { photos: RiderPhoto[] }) {
     <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3" data-animate-stagger>
       {photos.map((photo, idx) => (
         <Card key={photo.id} className="overflow-hidden p-0" style={{ "--i": idx } as CSSProperties}>
-          <div className="relative aspect-[4/5] w-full">
+          <div className="relative aspect-4/5 w-full">
             <SmartImage
               src={photo.storage_path}
               alt={`${photo.rider_name} con su ${photo.moto_info} - MotoSmart Tapicería`}
