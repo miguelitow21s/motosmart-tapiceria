@@ -59,7 +59,9 @@ export function seatQuoteMessage({
   sides,
   stitch,
   pattern,
-  moto
+  moto,
+  embroidery,
+  thread
 }: {
   /** Tipo de silla elegido, ej. "Deportiva". */
   shape: string;
@@ -68,6 +70,9 @@ export function seatQuoteMessage({
   stitch: string;
   pattern: string;
   moto: string;
+  /** Texto bordado en los costados; vacío si no lleva. */
+  embroidery: string;
+  thread: string;
 }) {
   return [
     "Hola MotoSmart, armé esta silla en la página:",
@@ -75,6 +80,7 @@ export function seatQuoteMessage({
     `- Centro: ${center} (${pattern.toLowerCase()})`,
     `- Costados: ${sides}`,
     `- Costura: ${stitch}`,
+    embroidery.trim() ? `- Bordado en los costados: ${embroidery.trim()} (hilo ${thread.toLowerCase()})` : "- Sin bordado",
     moto.trim() ? `- Mi moto: ${moto.trim()}` : "- Mi moto: (marca y modelo)",
     "¿Cuánto me sale?"
   ].join("\n");

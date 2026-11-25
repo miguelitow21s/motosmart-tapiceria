@@ -184,6 +184,98 @@ function bandGeometry(p: Profiles, at: number, phi0: number, phi1: number) {
   return geometry;
 }
 
+/** Parte del costado que es casi vertical (entre estos ángulos): ahí se lee el bordado. */
+const EMBROIDERY_LOW = -0.34;
+const EMBROIDERY_HIGH = 0.26;
+/** Alto máximo del parche bordado, en cm (las letras ocupan unos dos tercios). */
+const EMBROIDERY_MAX_HEIGHT = 8;
+
+/** Ángulo del costado derecho donde la superficie pasa por la altura `y`. */
+function phiAtHeight(p: Profiles, u: number, y: number, point: Vector3) {
+  let lo = -PAN;
+  let hi = SEAM;
+  for (let k = 0; k < 28; k++) {
+    const mid = (lo + hi) / 2;
+    if (surface(p, u, mid, point).y < y) lo = mid;
+    else hi = mid;
+  }
+  return (lo + hi) / 2;
+}
+
+export type EmbroideryPatch = {
+  right: BufferGeometry;
+  left: BufferGeometry;
+  /** Tamaño real del parche, en cm: la textura se pinta con esa proporción. */
+  widthCm: number;
+  heightCm: number;
+};
+
+/**
+ * Parche donde va la marca bordada, uno por costado. Sigue la línea del
+ * costado (recta, inclinada como la silla) con alto parejo, y va apenas por
+ * fuera del cuero: el hilo bordado queda en relieve. UV 0..1, de modo que el
+ * texto se lea de izquierda a derecha desde cada lado.
+ */
+function embroideryPatch(p: Profiles, at: [number, number], offset: number): EmbroideryPatch {
+  const [u0, u1] = at;
+  const point = new Vector3();
+  const lowAt = (u: number) => surface(p, u, EMBROIDERY_LOW, point).y;
+  const highAt = (u: number) => surface(p, u, EMBROIDERY_HIGH, point).y;
+  const m0 = (lowAt(u0) + highAt(u0)) / 2;
+  const m1 = (lowAt(u1) + highAt(u1)) / 2;
+  const line = (u: number) => m0 + ((m1 - m0) * (u - u0)) / (u1 - u0);
+  let half = (EMBROIDERY_MAX_HEIGHT / 2) * CM;
+  for (let i = 0; i <= 24; i++) {
+    const u = u0 + ((u1 - u0) * i) / 24;
+    half = Math.min(half, highAt(u) - line(u), line(u) - lowAt(u));
+  }
+  half = Math.max(half, 1.2 * CM);
+
+  const cols = 96;
+  const rows = 14;
+  const build = (right: boolean) => {
+    const position = new Float32Array((cols + 1) * (rows + 1) * 3);
+    const uv = new Float32Array((cols + 1) * (rows + 1) * 2);
+    const normal = new Vector3();
+    for (let i = 0; i <= cols; i++) {
+      const u = u0 + ((u1 - u0) * i) / cols;
+      for (let j = 0; j <= rows; j++) {
+        const phiRight = phiAtHeight(p, u, line(u) + half * ((2 * j) / rows - 1), point);
+        const phi = right ? phiRight : Math.PI - phiRight;
+        surface(p, u, phi, point);
+        surfaceNormal(p, u, phi, normal);
+        point.addScaledVector(normal, offset);
+        const k = i * (rows + 1) + j;
+        position.set([point.x, point.y, point.z], k * 3);
+        // Del lado izquierdo se mira hacia +z: el texto corre hacia -x.
+        uv.set([right ? i / cols : 1 - i / cols, j / rows], k * 2);
+      }
+    }
+    const index: number[] = [];
+    for (let i = 0; i < cols; i++) {
+      for (let j = 0; j < rows; j++) {
+        const k = i * (rows + 1) + j;
+        const n = k + rows + 1;
+        // x por y apunta a +z: hacia afuera a la derecha, hacia adentro a la izquierda.
+        if (right) index.push(k, n, k + 1, n, n + 1, k + 1);
+        else index.push(k, k + 1, n, n, k + 1, n + 1);
+      }
+    }
+    const geometry = new BufferGeometry();
+    geometry.setAttribute("position", new BufferAttribute(position, 3));
+    geometry.setAttribute("uv", new BufferAttribute(uv, 2));
+    geometry.setIndex(index);
+    geometry.computeVertexNormals();
+    return geometry;
+  };
+  return {
+    right: build(true),
+    left: build(false),
+    widthCm: (u1 - u0) * p.length,
+    heightCm: (2 * half) / CM
+  };
+}
+
 /**
  * Puntadas: una cápsula por puntada a lo largo de una línea paralela a la
  * costura, orientada por la tangente y apoyada en la superficie.
@@ -231,6 +323,9 @@ export type SeatGeometries = {
   stitches: Matrix4[];
   /** Franja que cruza el asiento, si la forma la lleva; no se transforma (como las puntadas). */
   band: BufferGeometry | null;
+  /** Marca bordada en los costados (hilo en relieve) y su sombra sobre el cuero. Tampoco se transforma. */
+  embroidery: EmbroideryPatch;
+  embroideryShadow: EmbroideryPatch;
   /** Largo en unidades de escena, para el encuadre y la sombra. */
   length: number;
   /** Altura del centro de la silla, para apuntar la cámara. */
@@ -257,6 +352,9 @@ export function buildSeatGeometries(shape: SeatShape): SeatGeometries {
     // Doble costura sobre el asiento, a unos 9 y 17 mm del vivo.
     stitches: stitchMatrices(p, [rightSeam + 0.07, rightSeam + 0.13, leftSeam - 0.07, leftSeam - 0.13]),
     band: shape.bandAt === undefined ? null : bandGeometry(p, shape.bandAt, rightSeam, leftSeam),
+    // El hilo queda 1,1 mm por fuera del cuero; la sombra, pegada a él.
+    embroidery: embroideryPatch(p, shape.embroideryAt, 0.0022),
+    embroideryShadow: embroideryPatch(p, shape.embroideryAt, 0.0006),
     length: p.length * CM,
     middle: ((low + high) / 2) * CM
   };

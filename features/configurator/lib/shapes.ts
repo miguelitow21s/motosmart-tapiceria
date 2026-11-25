@@ -33,6 +33,10 @@ export type SeatShape = {
   tailRound?: number;
   /** Lo mismo para la punta. */
   noseRound?: number;
+  /** Marca que se borda en el costado mientras el cliente no escriba la suya. */
+  brand: string;
+  /** Tramo del costado (u) donde va el bordado: donde el costado es alto y parejo. */
+  embroideryAt: [number, number];
 };
 
 export const SEAT_SHAPES: SeatShape[] = [
@@ -42,6 +46,8 @@ export const SEAT_SHAPES: SeatShape[] = [
     id: "boxer",
     label: "Boxer CT",
     examples: "Bajaj Boxer CT 100, Platino",
+    brand: "BOXER",
+    embroideryAt: [0.5, 0.86],
     length: 74,
     squareness: 2.8,
     tailRound: 12,
@@ -75,6 +81,8 @@ export const SEAT_SHAPES: SeatShape[] = [
     id: "calle",
     label: "Calle",
     examples: "AKT NKD, Honda CB, Yamaha YBR",
+    brand: "HONDA",
+    embroideryAt: [0.52, 0.86],
     length: 72,
     bandAt: 0.5,
     halfWidth: [
@@ -107,6 +115,8 @@ export const SEAT_SHAPES: SeatShape[] = [
     id: "deportiva",
     label: "Deportiva",
     examples: "Pulsar NS, Yamaha FZ, Apache",
+    brand: "PULSAR",
+    embroideryAt: [0.5, 0.84],
     length: 72,
     bandAt: 0.445,
     halfWidth: [
@@ -147,6 +157,8 @@ export const SEAT_SHAPES: SeatShape[] = [
     id: "scooter",
     label: "Scooter",
     examples: "Yamaha NMAX, AKT Dynamic",
+    brand: "NMAX",
+    embroideryAt: [0.58, 0.88],
     length: 82,
     halfWidth: [
       [0, 12],
@@ -181,6 +193,8 @@ export const SEAT_SHAPES: SeatShape[] = [
     id: "enduro",
     label: "Enduro",
     examples: "Yamaha DT, XTZ, Honda XRE",
+    brand: "YAMAHA",
+    embroideryAt: [0.2, 0.6],
     length: 86,
     bandAt: 0.68,
     squareness: 6,
@@ -220,6 +234,8 @@ export const SEAT_SHAPES: SeatShape[] = [
     id: "motocross",
     label: "Motocross",
     examples: "Honda CRF, Kawasaki KX, Yamaha YZ",
+    brand: "HONDA",
+    embroideryAt: [0.2, 0.56],
     length: 96,
     squareness: 4.5,
     tailRound: 6,

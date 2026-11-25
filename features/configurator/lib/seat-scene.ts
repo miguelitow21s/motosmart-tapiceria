@@ -38,9 +38,13 @@ import { seatShape, type SeatShapeId } from "./shapes";
 import {
   DIAMOND_TILE_M,
   GRAIN_TILE_M,
+  SATIN_ANGLE,
   createContactShadow,
+  loadEmbroideryFont,
   loadSeatTextures,
   paintDiamondColor,
+  paintEmbroidery,
+  type EmbroideryTextures,
   type SeatPattern,
   type SeatTextures
 } from "./textures";
@@ -51,6 +55,10 @@ export type SeatLook = {
   sides: string;
   stitch: string;
   pattern: SeatPattern;
+  /** Texto bordado en los dos costados; vacío, sin bordado. */
+  embroidery: string;
+  /** Color del hilo del bordado. */
+  thread: string;
 };
 
 export type SeatScene = {
@@ -143,6 +151,35 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
   const panMaterial = new MeshStandardMaterial({ color: 0x171717, roughness: 0.42, metalness: 0 });
   const stitchMaterial = new MeshStandardMaterial({ color: new Color(initial.stitch), roughness: 0.62 });
   let diamondColor: CanvasTexture | null = null;
+  // Hilo de bordado: satín brillante, con el brillo estirado a lo largo de
+  // cada puntada (anisotropía). Las letras salen del alfa de la textura.
+  const threadMaterial = new MeshPhysicalMaterial({
+    color: 0xffffff,
+    roughness: 0.42,
+    metalness: 0,
+    sheen: 0.6,
+    sheenRoughness: 0.35,
+    sheenColor: new Color(initial.thread),
+    anisotropy: 0.6,
+    // Dirección del hilo en la textura (perpendicular al avance del satín, con la v hacia arriba).
+    anisotropyRotation: -(SATIN_ANGLE + Math.PI / 2),
+    normalScale: new Vector2(1, 1),
+    alphaTest: 0.5,
+    alphaToCoverage: true,
+    polygonOffset: true,
+    polygonOffsetFactor: -2,
+    polygonOffsetUnits: -2
+  });
+  const embroideryShadowMaterial = new MeshBasicMaterial({
+    color: 0xffffff,
+    transparent: true,
+    depthWrite: false,
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+    polygonOffsetUnits: -1
+  });
+  let embroideryTextures: EmbroideryTextures | null = null;
+  let embroideryKey = "";
 
   /* ------------------------------------------------------------ Piezas */
 
@@ -184,6 +221,53 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
   bandMesh.visible = current.band !== null;
   bandMesh.frustumCulled = false;
   seat.add(bandMesh);
+
+  // Marca bordada en los dos costados: hilo en relieve y su sombra sobre el cuero.
+  const embroideryMeshes = {
+    right: new Mesh(current.embroidery.right, threadMaterial),
+    left: new Mesh(current.embroidery.left, threadMaterial),
+    shadowRight: new Mesh(current.embroideryShadow.right, embroideryShadowMaterial),
+    shadowLeft: new Mesh(current.embroideryShadow.left, embroideryShadowMaterial)
+  };
+  const embroideryGeometry = (geometries: SeatGeometries) => ({
+    right: geometries.embroidery.right,
+    left: geometries.embroidery.left,
+    shadowRight: geometries.embroideryShadow.right,
+    shadowLeft: geometries.embroideryShadow.left
+  });
+  for (const mesh of Object.values(embroideryMeshes)) {
+    mesh.visible = false;
+    mesh.frustumCulled = false;
+    seat.add(mesh);
+  }
+  function showEmbroidery(show: boolean) {
+    for (const mesh of Object.values(embroideryMeshes)) mesh.visible = show;
+  }
+
+  /** Vuelve a pintar el bordado si cambió el texto, el hilo o el tamaño del parche. */
+  function updateEmbroidery(look: SeatLook) {
+    if (!textures || morph) return;
+    const { widthCm, heightCm } = current.embroidery;
+    const key = [look.embroidery.trim(), look.thread, widthCm.toFixed(2), heightCm.toFixed(2)].join("|");
+    if (key !== embroideryKey) {
+      embroideryKey = key;
+      const painted = paintEmbroidery(look.embroidery, look.thread, widthCm, heightCm);
+      embroideryTextures?.dispose();
+      embroideryTextures = painted;
+      if (painted) {
+        const changed = threadMaterial.map === null;
+        threadMaterial.map = painted.color;
+        threadMaterial.normalMap = painted.normal;
+        threadMaterial.sheenColor.set(look.thread);
+        embroideryShadowMaterial.map = painted.shadow;
+        if (changed) {
+          threadMaterial.needsUpdate = true;
+          embroideryShadowMaterial.needsUpdate = true;
+        }
+      }
+    }
+    showEmbroidery(embroideryTextures !== null);
+  }
 
   // Sombra de contacto bajo la base; se estira con el largo de la silla.
   const shadowTexture = createContactShadow();
@@ -235,11 +319,18 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
     if (bandMesh.geometry !== emptyGeometry && bandMesh.geometry !== target.band) bandMesh.geometry.dispose();
     bandMesh.geometry = target.band ?? emptyGeometry;
     bandMesh.visible = target.band !== null;
+    const nextEmbroidery = embroideryGeometry(target);
+    for (const name of Object.keys(embroideryMeshes) as Array<keyof typeof embroideryMeshes>) {
+      const mesh = embroideryMeshes[name];
+      if (mesh.geometry !== nextEmbroidery[name]) mesh.geometry.dispose();
+      mesh.geometry = nextEmbroidery[name];
+    }
     current = target;
     seatLength = target.length;
     seatMiddle = target.middle;
     shadow.scale.x = seatLength * 1.25;
     placeCamera();
+    updateEmbroidery(currentLook);
   }
 
   function changeShape(id: SeatShapeId) {
@@ -266,6 +357,7 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
     // esconden y vuelven con la forma nueva.
     stitches.visible = false;
     bandMesh.visible = false;
+    showEmbroidery(false);
     morph = { start: performance.now(), target, from, fromLength: seatLength, fromMiddle: seatMiddle };
   }
 
@@ -307,6 +399,7 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
   function disposeGeometries(geometries: SeatGeometries) {
     for (const piece of PIECES) geometries[piece].dispose();
     geometries.band?.dispose();
+    for (const geometry of Object.values(embroideryGeometry(geometries))) geometry.dispose();
   }
 
   /* ------------------------------------------------------------ Look */
@@ -341,10 +434,12 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
       centerMaterial.roughness = 0.55;
     }
     centerMaterial.needsUpdate = true;
+    updateEmbroidery(look);
   }
 
-  loadSeatTextures()
-    .then((loaded) => {
+  // La letra del bordado es la de la página: se espera a que esté lista.
+  Promise.all([loadSeatTextures(), loadEmbroideryFont()])
+    .then(([loaded]) => {
       if (disposed) {
         loaded.dispose();
         return;
@@ -529,8 +624,19 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
       stitchShape.dispose();
       bandMesh.geometry.dispose();
       emptyGeometry.dispose();
+      for (const mesh of Object.values(embroideryMeshes)) mesh.geometry.dispose();
+      embroideryTextures?.dispose();
       shadow.geometry.dispose();
-      [centerMaterial, sideMaterial, bandMaterial, panMaterial, stitchMaterial, shadow.material].forEach((material) =>
+      [
+        centerMaterial,
+        sideMaterial,
+        bandMaterial,
+        panMaterial,
+        stitchMaterial,
+        threadMaterial,
+        embroideryShadowMaterial,
+        shadow.material
+      ].forEach((material) =>
         material.dispose()
       );
       diamondColor?.dispose();

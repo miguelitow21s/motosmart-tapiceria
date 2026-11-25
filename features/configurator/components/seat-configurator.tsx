@@ -19,6 +19,9 @@ import {
 } from "../lib/shapes";
 import type { SeatPattern } from "../lib/textures";
 
+/** Letras que caben bien bordadas en el costado. */
+const EMBROIDERY_MAX = 12;
+
 // Siluetas de lado de cada forma, calculadas una vez con los mismos perfiles del 3D.
 const SHAPE_OPTIONS = SEAT_SHAPES.map((shape) => ({ ...shape, path: silhouettePath(shape) }));
 
@@ -64,7 +67,14 @@ export function SeatConfigurator({
   const [pattern, setPattern] = useState<SeatPattern>("antideslizante");
   const [shapeId, setShapeId] = useState<SeatShapeId>(DEFAULT_SEAT_SHAPE);
   const [moto, setMoto] = useState("");
+  // Mientras el cliente no escriba su bordado, se borda la marca de su moto
+  // (la primera palabra de "Marca y modelo") o la de la forma elegida.
+  const [customEmbroidery, setCustomEmbroidery] = useState<string | null>(null);
+  const [thread, setThread] = useState(() => pick(colors, "blanco", 0));
   const motoId = useId();
+  const embroideryId = useId();
+  const shape = seatShape(shapeId);
+  const embroidery = customEmbroidery ?? (moto.trim().split(/s+/)[0]?.toUpperCase().slice(0, EMBROIDERY_MAX) || shape.brand);
 
   const look = useMemo<SeatLook>(
     () => ({
@@ -72,9 +82,11 @@ export function SeatConfigurator({
       center: center.hex,
       sides: sides.hex,
       stitch: stitch.hex,
-      pattern
+      pattern,
+      embroidery,
+      thread: thread.hex
     }),
-    [shapeId, center, sides, stitch, pattern]
+    [shapeId, center, sides, stitch, pattern, embroidery, thread]
   );
   const lookRef = useRef(look);
   lookRef.current = look;
@@ -140,7 +152,6 @@ export function SeatConfigurator({
   }, [look]);
 
   const patternLabel = SEAT_PATTERNS.find((item) => item.id === pattern)?.label ?? pattern;
-  const shape = seatShape(shapeId);
   const href = buildWhatsAppUrl(
     whatsappNumber,
     seatQuoteMessage({
@@ -149,7 +160,9 @@ export function SeatConfigurator({
       sides: sides.name,
       stitch: stitch.name,
       pattern: patternLabel,
-      moto
+      moto,
+      embroidery,
+      thread: thread.name
     })
   );
 
@@ -310,6 +323,26 @@ export function SeatConfigurator({
             className="mt-2 h-12 w-full rounded-lg border border-line-field bg-bg px-4 text-base text-ink placeholder:text-ink-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
           />
         </div>
+        <div>
+          <label htmlFor={embroideryId} className="text-sm font-semibold text-ink-2">
+            Bordado en los costados
+          </label>
+          <input
+            id={embroideryId}
+            value={embroidery}
+            onChange={(event) => setCustomEmbroidery(event.target.value.slice(0, EMBROIDERY_MAX))}
+            placeholder="Sin bordado"
+            maxLength={EMBROIDERY_MAX}
+            autoComplete="off"
+            autoCapitalize="characters"
+            aria-describedby={`${embroideryId}-ayuda`}
+            className="mt-2 h-12 w-full rounded-lg border border-line-field bg-bg px-4 font-display text-base font-bold tracking-wide text-ink [font-stretch:75%] placeholder:font-sans placeholder:font-normal placeholder:tracking-normal placeholder:text-ink-3 placeholder:[font-stretch:100%] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+          />
+          <p id={`${embroideryId}-ayuda`} className="mt-2 text-sm text-ink-3">
+            La marca de tu moto, tu nombre o tu número. Bórralo si la quieres sin bordado.
+          </p>
+        </div>
+        <Swatches legend="Hilo del bordado" colors={colors} value={thread} onChange={setThread} />
         <Button asChild size="lg" className="w-full">
           <WhatsAppLink href={href} source="arma-tu-silla">
             <WhatsAppIcon />
