@@ -53,12 +53,15 @@ export function invalidSeatColorLines(text: string) {
 }
 
 export function seatQuoteMessage({
+  shape,
   center,
   sides,
   stitch,
   pattern,
   moto
 }: {
+  /** Tipo de silla elegido, ej. "Deportiva". */
+  shape: string;
   center: string;
   sides: string;
   stitch: string;
@@ -67,6 +70,7 @@ export function seatQuoteMessage({
 }) {
   return [
     "Hola MotoSmart, armé esta silla en la página:",
+    `- Tipo de silla: ${shape}`,
     `- Centro: ${center} (${pattern.toLowerCase()})`,
     `- Costados: ${sides}`,
     `- Costura: ${stitch}`,

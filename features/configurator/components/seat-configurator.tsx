@@ -8,7 +8,11 @@ import { buildWhatsAppUrl } from "@/lib/settings-defaults";
 import { cx } from "@/lib/utils";
 import { SEAT_PATTERNS, seatQuoteMessage, type SeatColor } from "../lib/options";
 import type { SeatLook, SeatScene } from "../lib/seat-scene";
+import { DEFAULT_SEAT_SHAPE, SEAT_SHAPES, seatShape, silhouettePath, type SeatShapeId } from "../lib/shapes";
 import type { SeatPattern } from "../lib/textures";
+
+// Siluetas de lado de cada forma, calculadas una vez con los mismos perfiles del 3D.
+const SHAPE_OPTIONS = SEAT_SHAPES.map((shape) => ({ ...shape, path: silhouettePath(shape) }));
 
 type Status = "idle" | "loading" | "ready" | "fallback";
 
@@ -50,17 +54,19 @@ export function SeatConfigurator({
   const [sides, setSides] = useState(() => pick(colors, "rojo", 2));
   const [stitch, setStitch] = useState(() => pick(colors, "rojo", 2));
   const [pattern, setPattern] = useState<SeatPattern>("rombos");
+  const [shapeId, setShapeId] = useState<SeatShapeId>(DEFAULT_SEAT_SHAPE);
   const [moto, setMoto] = useState("");
   const motoId = useId();
 
   const look = useMemo<SeatLook>(
     () => ({
+      shape: shapeId,
       center: center.hex,
       sides: sides.hex,
       stitch: stitch.hex,
       pattern
     }),
-    [center, sides, stitch, pattern]
+    [shapeId, center, sides, stitch, pattern]
   );
   const lookRef = useRef(look);
   lookRef.current = look;
@@ -126,9 +132,11 @@ export function SeatConfigurator({
   }, [look]);
 
   const patternLabel = SEAT_PATTERNS.find((item) => item.id === pattern)?.label ?? pattern;
+  const shape = seatShape(shapeId);
   const href = buildWhatsAppUrl(
     whatsappNumber,
     seatQuoteMessage({
+      shape: shape.label,
       center: center.name,
       sides: sides.name,
       stitch: stitch.name,
@@ -211,6 +219,49 @@ export function SeatConfigurator({
       </div>
 
       <form className="grid gap-5" onSubmit={(event) => event.preventDefault()}>
+        <fieldset>
+          <legend className="text-sm font-semibold text-ink-2">
+            Tu moto: <span className="text-ink">{shape.label}</span>
+          </legend>
+          <div className="mt-2 grid grid-cols-5 gap-1 rounded-lg bg-surface p-1">
+            {SHAPE_OPTIONS.map((option) => {
+              const selected = option.id === shapeId;
+              return (
+                <label
+                  key={option.id}
+                  className={cx(
+                    "group flex min-h-16 cursor-pointer flex-col items-center justify-center gap-1.5 rounded-md px-1 py-2 text-center text-xs font-semibold transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ink",
+                    selected ? "bg-ink text-bg" : "text-ink-2 hover:text-ink"
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name="forma"
+                    value={option.id}
+                    checked={selected}
+                    onChange={() => setShapeId(option.id)}
+                    className="sr-only"
+                    aria-describedby={`${motoId}-ejemplos-${option.id}`}
+                  />
+                  {/* Alto exagerado a propósito: así se nota el escalón o el lomo en un dibujo pequeño. */}
+                  <svg
+                    viewBox="0 1 90 19"
+                    preserveAspectRatio="none"
+                    aria-hidden="true"
+                    className="h-6 w-full max-w-20 transition-transform duration-150 ease-out group-active:scale-95"
+                  >
+                    <path d={option.path} fill="currentColor" />
+                  </svg>
+                  {option.label}
+                  <span id={`${motoId}-ejemplos-${option.id}`} className="sr-only">
+                    {option.examples}
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+          <p className="mt-2 text-sm text-ink-3">Como {shape.examples}.</p>
+        </fieldset>
         <Swatches legend="Centro" colors={colors} value={center} onChange={setCenter} />
         <fieldset>
           <legend className="text-sm font-semibold text-ink-2">Textura del centro</legend>
@@ -240,13 +291,13 @@ export function SeatConfigurator({
         <Swatches legend="Costura" colors={colors} value={stitch} onChange={setStitch} />
         <div>
           <label htmlFor={motoId} className="text-sm font-semibold text-ink-2">
-            Tu moto <span className="font-normal text-ink-3">(opcional)</span>
+            Marca y modelo <span className="font-normal text-ink-3">(opcional)</span>
           </label>
           <input
             id={motoId}
             value={moto}
             onChange={(event) => setMoto(event.target.value.slice(0, 60))}
-            placeholder="Ej.: Yamaha NMAX 2023"
+            placeholder={`Ej.: ${shape.examples.split(",")[0]} 2023`}
             autoComplete="off"
             className="mt-2 h-12 w-full rounded-lg border border-line-field bg-bg px-4 text-base text-ink placeholder:text-ink-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
           />

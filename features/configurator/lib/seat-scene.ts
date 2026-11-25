@@ -1,13 +1,10 @@
 /*
   Silla de moto en 3D, modelada con código (sin archivo .glb que descargar).
 
-  La silla es un "loft": a lo largo del eje X (de la cola, x<0, a la punta que
-  va contra el tanque, x>0) se barre una sección transversal tipo superelipse
-  cuyo ancho y alto cambian con perfiles medidos de una silla de calle común
-  (unos 68 cm de largo, 41 cm en lo más ancho). La sección se reparte en tres
-  piezas, como se corta el cuero en el taller: el panel central (el asiento),
-  los costados y la base plástica. Entre centro y costados va un vivo (piping)
-  y una doble costura de puntadas de verdad, cada una una pieza 3D.
+  La forma sale del tipo de moto que elige el cliente (shapes.ts) y la malla
+  de seat-geometry.ts. Al cambiar de moto, la silla se transforma en la nueva
+  en medio segundo: todas las formas tienen los mismos vértices, así que basta
+  con llevar cada uno de su lugar viejo al nuevo.
 
   Es una vista de referencia: la silla de cada cliente se hace a la medida.
 */
@@ -17,7 +14,6 @@ import {
   BufferGeometry,
   CanvasTexture,
   CapsuleGeometry,
-  CatmullRomCurve3,
   Color,
   DirectionalLight,
   Group,
@@ -31,15 +27,14 @@ import {
   PerspectiveCamera,
   PlaneGeometry,
   PMREMGenerator,
-  Quaternion,
   Scene,
   SRGBColorSpace,
-  TubeGeometry,
   Vector2,
-  Vector3,
   WebGLRenderer
 } from "three";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+import { buildSeatGeometries, type SeatGeometries } from "./seat-geometry";
+import { seatShape, type SeatShapeId } from "./shapes";
 import {
   DIAMOND_TILE_M,
   GRAIN_TILE_M,
@@ -51,219 +46,12 @@ import {
 } from "./textures";
 
 export type SeatLook = {
+  shape: SeatShapeId;
   center: string;
   sides: string;
   stitch: string;
   pattern: SeatPattern;
 };
-
-/* ---------------------------------------------------------------- Forma */
-
-type Point = [number, number];
-
-/** Curva suave que pasa por los puntos (Hermite cúbica con tangentes de vecinos). */
-function profile(points: Point[]) {
-  const n = points.length;
-  const slope = (k: number) => {
-    const a = points[Math.max(0, k - 1)];
-    const b = points[Math.min(n - 1, k + 1)];
-    return (b[1] - a[1]) / (b[0] - a[0]);
-  };
-  return (u: number) => {
-    if (u <= points[0][0]) return points[0][1];
-    if (u >= points[n - 1][0]) return points[n - 1][1];
-    let i = 0;
-    while (u > points[i + 1][0]) i++;
-    const [x0, y0] = points[i];
-    const [x1, y1] = points[i + 1];
-    const h = x1 - x0;
-    const t = (u - x0) / h;
-    const t2 = t * t;
-    const t3 = t2 * t;
-    return (
-      (2 * t3 - 3 * t2 + 1) * y0 +
-      (t3 - 2 * t2 + t) * h * slope(i) +
-      (-2 * t3 + 3 * t2) * y1 +
-      (t3 - t2) * h * slope(i + 1)
-    );
-  };
-}
-
-const LENGTH = 1.36; // unidades de escena; la silla mide ~68 cm, escala 2:1
-// u = 0 cola, u = 1 punta del tanque.
-const halfWidth = profile([
-  [0, 0.15],
-  [0.12, 0.185],
-  [0.32, 0.205],
-  [0.5, 0.19],
-  [0.68, 0.145],
-  [0.86, 0.095],
-  [1, 0.06]
-]);
-const topHeight = profile([
-  [0, 0.33],
-  [0.13, 0.345],
-  [0.28, 0.315],
-  [0.42, 0.255],
-  [0.6, 0.245],
-  [0.82, 0.265],
-  [1, 0.27]
-]);
-const bottomHeight = profile([
-  [0, 0.11],
-  [0.35, 0.045],
-  [0.75, 0.05],
-  [1, 0.1]
-]);
-
-const EXPONENT = 3.2; // 2 = elipse, más alto = más cuadrada
-const SEAM = 0.98; // ángulo (rad) de la costura entre centro y costado
-const PAN = 1.05; // la base arranca este ángulo por debajo del horizonte
-
-function signedPow(value: number, power: number) {
-  return Math.sign(value) * Math.abs(value) ** power;
-}
-
-/** Remate redondeado en la cola y en la punta: la sección se encoge. */
-function endScale(u: number) {
-  const reach = 0.05;
-  const a = Math.min(u, 1 - u) / reach;
-  // Cuarto de círculo: el remate queda como una cúpula, no como un cono.
-  return a >= 1 ? 1 : Math.sqrt(1 - (1 - Math.max(0, a)) ** 2);
-}
-
-/**
- * Punto de la superficie. `phi` recorre la sección: 0 costado derecho (+z),
- * π/2 arriba, π costado izquierdo, 3π/2 abajo.
- */
-function surface(u: number, phi: number, out: Vector3) {
-  const s = endScale(u);
-  // En la punta y la cola la sección se cierra del todo: sin hueco.
-  const a = halfWidth(u) * s;
-  const top = topHeight(u);
-  const bottom = bottomHeight(u);
-  const center = (top + bottom) / 2;
-  const half = ((top - bottom) / 2) * s;
-  const c = Math.cos(phi);
-  const sn = Math.sin(phi);
-  const z = a * signedPow(c, 2 / EXPONENT);
-  let y = center + half * signedPow(sn, 2 / EXPONENT);
-  // Abombado del asiento: la espuma sube en el centro.
-  if (sn > 0 && a > 0) y += 0.016 * s * (1 - (z / a) ** 2) * sn;
-  return out.set((u - 0.5) * LENGTH, y, z);
-}
-
-/** Más filas cerca de la cola y la punta, donde la forma se curva. */
-function uAt(t: number) {
-  return 0.5 - 0.5 * Math.cos(Math.PI * t);
-}
-
-/**
- * Pieza de la silla entre dos ángulos. UV en metros reales de material
- * (x a lo largo, arco a lo ancho, con cero en el centro de la pieza) para
- * que el grano y los rombos nunca se estiren.
- */
-function loftPiece(phi0: number, phi1: number, rows: number, cols: number) {
-  const count = (rows + 1) * (cols + 1);
-  const position = new Float32Array(count * 3);
-  const uv = new Float32Array(count * 2);
-  const p = new Vector3();
-  const prev = new Vector3();
-  const arcs = new Float32Array(cols + 1);
-  for (let i = 0; i <= rows; i++) {
-    const u = uAt(i / rows);
-    let arc = 0;
-    for (let j = 0; j <= cols; j++) {
-      surface(u, phi0 + ((phi1 - phi0) * j) / cols, p);
-      if (j > 0) arc += p.distanceTo(prev);
-      prev.copy(p);
-      arcs[j] = arc;
-      const k = i * (cols + 1) + j;
-      position.set([p.x, p.y, p.z], k * 3);
-    }
-    for (let j = 0; j <= cols; j++) {
-      const k = i * (cols + 1) + j;
-      // Escala 2:1 → metros reales = unidades / 2.
-      uv.set([((u - 0.5) * LENGTH) / 2, (arcs[j] - arc / 2) / 2], k * 2);
-    }
-  }
-  const index: number[] = [];
-  for (let i = 0; i < rows; i++) {
-    for (let j = 0; j < cols; j++) {
-      const a = i * (cols + 1) + j;
-      const b = a + cols + 1;
-      index.push(a, b, a + 1, b, b + 1, a + 1);
-    }
-  }
-  const geometry = new BufferGeometry();
-  geometry.setAttribute("position", new BufferAttribute(position, 3));
-  geometry.setAttribute("uv", new BufferAttribute(uv, 2));
-  geometry.setIndex(index);
-  geometry.computeVertexNormals();
-  return geometry;
-}
-
-/** Normal de la superficie por diferencias finitas. */
-function surfaceNormal(u: number, phi: number, out: Vector3) {
-  const p = surface(u, phi, new Vector3());
-  const du = surface(Math.min(1, u + 1e-3), phi, new Vector3()).sub(p);
-  const dphi = surface(u, phi + 1e-3, new Vector3()).sub(p);
-  return out.crossVectors(du, dphi).normalize();
-}
-
-/** Vivo (piping) a lo largo de la costura de un costado. */
-function pipingGeometry(phi: number) {
-  const points: Vector3[] = [];
-  const normal = new Vector3();
-  for (let i = 0; i <= 120; i++) {
-    const u = 0.012 + 0.976 * uAt(i / 120);
-    const p = surface(u, phi, new Vector3());
-    surfaceNormal(u, phi, normal);
-    points.push(p.addScaledVector(normal, 0.004));
-  }
-  return new TubeGeometry(new CatmullRomCurve3(points), 260, 0.0075, 8, false);
-}
-
-/**
- * Puntadas: una cápsula por puntada, puestas a lo largo de una línea paralela
- * a la costura, cada una orientada por la tangente y apoyada en la superficie.
- */
-function stitchMatrices(phiOffsets: number[]) {
-  const matrices: Matrix4[] = [];
-  const pitch = 0.013; // 6,5 mm reales entre puntadas (escala 2:1)
-  const tangent = new Vector3();
-  const normal = new Vector3();
-  const quaternion = new Quaternion();
-  const basis = new Matrix4();
-  const side = new Vector3();
-  for (const phi of phiOffsets) {
-    // Recorre por longitud de arco real, no por u, para puntadas parejas.
-    const samples: Vector3[] = [];
-    for (let i = 0; i <= 600; i++) samples.push(surface(0.02 + 0.96 * (i / 600), phi, new Vector3()));
-    let carry = 0;
-    for (let i = 1; i < samples.length; i++) {
-      const segment = samples[i].distanceTo(samples[i - 1]);
-      carry += segment;
-      if (carry < pitch) continue;
-      carry = 0;
-      const u = 0.02 + 0.96 * (i / 600);
-      const p = samples[i];
-      tangent.subVectors(samples[i], samples[i - 1]).normalize();
-      surfaceNormal(u, phi, normal);
-      // tangente × normal: base de mano derecha (x × y = z). Al revés la
-      // matriz es un espejo y las puntadas salen torcidas.
-      side.crossVectors(tangent, normal).normalize();
-      // La cápsula nace sobre +Y: se gira para que su eje siga la tangente.
-      basis.makeBasis(side, tangent, normal);
-      quaternion.setFromRotationMatrix(basis);
-      const position = p.clone().addScaledVector(normal, 0.0009);
-      matrices.push(new Matrix4().compose(position, quaternion, new Vector3(1, 1, 0.55)));
-    }
-  }
-  return matrices;
-}
-
-/* --------------------------------------------------------------- Escena */
 
 export type SeatScene = {
   update(look: SeatLook): void;
@@ -278,6 +66,16 @@ export type SeatSceneOptions = {
   /** No se pudo preparar la silla (texturas o WebGL). */
   onError?: (error: unknown) => void;
 };
+
+const PIECES = ["center", "rightSide", "leftSide", "pan", "rightPiping", "leftPiping"] as const;
+type Piece = (typeof PIECES)[number];
+
+/** Duración de la transformación entre formas, en ms. */
+const MORPH_MS = 560;
+
+function easeInOut(t: number) {
+  return t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
+}
 
 export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, options: SeatSceneOptions): SeatScene {
   const renderer = new WebGLRenderer({
@@ -335,46 +133,50 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
 
   const centerMaterial = leather(initial.center);
   const sideMaterial = leather(initial.sides);
-  const panMaterial = new MeshStandardMaterial({
-    color: 0x0c0c0c,
-    roughness: 0.72,
-    metalness: 0
-  });
-  const stitchMaterial = new MeshStandardMaterial({
-    color: new Color(initial.stitch),
-    roughness: 0.62
-  });
+  // Plástico negro con algo de brillo: el contraluz le marca el canto sobre el fondo negro.
+  const panMaterial = new MeshStandardMaterial({ color: 0x171717, roughness: 0.42, metalness: 0 });
+  const stitchMaterial = new MeshStandardMaterial({ color: new Color(initial.stitch), roughness: 0.62 });
   let diamondColor: CanvasTexture | null = null;
 
-  const seat = new Group();
-  const rightSeam = SEAM;
-  const leftSeam = Math.PI - SEAM;
-  const center = new Mesh(loftPiece(rightSeam, leftSeam, 220, 48), centerMaterial);
-  const rightSide = new Mesh(loftPiece(-PAN, rightSeam, 220, 26), sideMaterial);
-  const leftSide = new Mesh(loftPiece(leftSeam, Math.PI + PAN, 220, 26), sideMaterial);
-  const pan = new Mesh(loftPiece(Math.PI + PAN, 2 * Math.PI - PAN, 160, 12), panMaterial);
-  const rightPiping = new Mesh(pipingGeometry(rightSeam), sideMaterial);
-  const leftPiping = new Mesh(pipingGeometry(leftSeam), sideMaterial);
-  seat.add(center, rightSide, leftSide, pan, rightPiping, leftPiping);
+  /* ------------------------------------------------------------ Piezas */
 
-  // Doble costura del lado del asiento, a 9 y 17 mm del vivo.
+  const seat = new Group();
+  let current: SeatGeometries = buildSeatGeometries(seatShape(initial.shape));
+  let shapeId = initial.shape;
+  const materials: Record<Piece, MeshPhysicalMaterial | MeshStandardMaterial> = {
+    center: centerMaterial,
+    rightSide: sideMaterial,
+    leftSide: sideMaterial,
+    pan: panMaterial,
+    rightPiping: sideMaterial,
+    leftPiping: sideMaterial
+  };
+  const meshes = {} as Record<Piece, Mesh>;
+  for (const piece of PIECES) {
+    const mesh = new Mesh(current[piece], materials[piece]);
+    // Durante la transformación los vértices se mueven: la esfera de
+    // recorte guardada ya no sirve y la silla podría desaparecer.
+    mesh.frustumCulled = false;
+    meshes[piece] = mesh;
+    seat.add(mesh);
+  }
+
   const stitchShape = new CapsuleGeometry(0.0017, 0.0075, 3, 6);
-  const matrices = stitchMatrices([rightSeam + 0.06, rightSeam + 0.11, leftSeam - 0.06, leftSeam - 0.11]);
-  const stitches = new InstancedMesh(stitchShape, stitchMaterial, matrices.length);
-  matrices.forEach((matrix, index) => stitches.setMatrixAt(index, matrix));
-  stitches.instanceMatrix.needsUpdate = true;
+  function makeStitches(matrices: Matrix4[]) {
+    const mesh = new InstancedMesh(stitchShape, stitchMaterial, matrices.length);
+    matrices.forEach((matrix, index) => mesh.setMatrixAt(index, matrix));
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.frustumCulled = false;
+    return mesh;
+  }
+  let stitches = makeStitches(current.stitches);
   seat.add(stitches);
 
-  // Sombra de contacto bajo la base.
+  // Sombra de contacto bajo la base; se estira con el largo de la silla.
   const shadowTexture = createContactShadow();
   const shadow = new Mesh(
-    new PlaneGeometry(LENGTH * 1.25, 0.62),
-    new MeshBasicMaterial({
-      map: shadowTexture,
-      transparent: true,
-      depthWrite: false,
-      opacity: 0.9
-    })
+    new PlaneGeometry(1, 0.7),
+    new MeshBasicMaterial({ map: shadowTexture, transparent: true, depthWrite: false, opacity: 0.9 })
   );
   shadow.rotation.x = -Math.PI / 2;
   shadow.position.y = 0.018;
@@ -384,9 +186,117 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
   stage.add(seat);
   scene.add(stage);
 
+  // Largo y altura media que usa el encuadre (cambian durante la transformación).
+  let seatLength = current.length;
+  let seatMiddle = current.middle;
+  shadow.scale.x = seatLength * 1.25;
+
+  /* ---------------------------------------------- Cambio de forma */
+
+  type Morph = {
+    start: number;
+    target: SeatGeometries;
+    from: Record<Piece, { position: Float32Array; uv: Float32Array }>;
+    fromLength: number;
+    fromMiddle: number;
+  };
+  let morph: Morph | null = null;
+
+  function attribute(geometry: BufferGeometry, name: "position" | "uv") {
+    return geometry.getAttribute(name) as BufferAttribute;
+  }
+
+  /** Deja puestas las piezas de la forma nueva (sin animar o al terminar). */
+  function settle(target: SeatGeometries) {
+    for (const piece of PIECES) {
+      // Se sueltan la copia animada (si la hubo) y la pieza de la forma vieja.
+      const shown = meshes[piece].geometry;
+      meshes[piece].geometry = target[piece];
+      if (shown !== target[piece]) shown.dispose();
+      if (current[piece] !== target[piece] && current[piece] !== shown) current[piece].dispose();
+    }
+    seat.remove(stitches);
+    stitches.dispose();
+    stitches = makeStitches(target.stitches);
+    seat.add(stitches);
+    current = target;
+    seatLength = target.length;
+    seatMiddle = target.middle;
+    shadow.scale.x = seatLength * 1.25;
+    placeCamera();
+  }
+
+  function changeShape(id: SeatShapeId) {
+    if (id === shapeId) return;
+    shapeId = id;
+    const target = buildSeatGeometries(seatShape(id));
+    if (options.reducedMotion || !compiled) {
+      if (morph) disposeGeometries(morph.target);
+      morph = null;
+      settle(target);
+      return;
+    }
+    // Si ya se estaba transformando, sigue desde donde va.
+    if (morph) disposeGeometries(morph.target);
+    const from = {} as Morph["from"];
+    for (const piece of PIECES) {
+      const geometry = meshes[piece].geometry;
+      from[piece] = {
+        position: (attribute(geometry, "position").array as Float32Array).slice(),
+        uv: (attribute(geometry, "uv").array as Float32Array).slice()
+      };
+    }
+    // Las puntadas no se pueden transformar (cambia cuántas caben): se
+    // esconden y vuelven con la forma nueva.
+    stitches.visible = false;
+    morph = { start: performance.now(), target, from, fromLength: seatLength, fromMiddle: seatMiddle };
+  }
+
+  function stepMorph(now: number) {
+    if (!morph) return;
+    const t = Math.min(1, (now - morph.start) / MORPH_MS);
+    const e = easeInOut(t);
+    if (t >= 1) {
+      // Las piezas que se animaron son copias; se cambian por las finales.
+      const target = morph.target;
+      morph = null;
+      settle(target);
+      return;
+    }
+    for (const piece of PIECES) {
+      const geometry = meshes[piece].geometry;
+      if (geometry === current[piece]) {
+        // La primera vez se anima una copia: la geometría original queda
+        // intacta por si hay que descartarla.
+        meshes[piece].geometry = geometry.clone();
+      }
+      const animated = meshes[piece].geometry;
+      for (const name of ["position", "uv"] as const) {
+        const values = attribute(animated, name);
+        const out = values.array as Float32Array;
+        const a = morph.from[piece][name];
+        const b = attribute(morph.target[piece], name).array as Float32Array;
+        for (let i = 0; i < out.length; i++) out[i] = a[i] + (b[i] - a[i]) * e;
+        values.needsUpdate = true;
+      }
+      animated.computeVertexNormals();
+    }
+    seatLength = morph.fromLength + (morph.target.length - morph.fromLength) * e;
+    seatMiddle = morph.fromMiddle + (morph.target.middle - morph.fromMiddle) * e;
+    shadow.scale.x = seatLength * 1.25;
+    placeCamera();
+  }
+
+  function disposeGeometries(geometries: SeatGeometries) {
+    for (const piece of PIECES) geometries[piece].dispose();
+  }
+
+  /* ------------------------------------------------------------ Look */
+
   let currentLook = initial;
   function applyLook(look: SeatLook) {
     currentLook = look;
+    changeShape(look.shape);
     if (!textures) return;
     sideMaterial.color.set(look.sides);
     stitchMaterial.color.set(look.stitch);
@@ -413,6 +323,7 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
     }
     centerMaterial.needsUpdate = true;
   }
+
   loadSeatTextures()
     .then((loaded) => {
       if (disposed) {
@@ -439,6 +350,18 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
 
   /* ------------------------------------------------ Tamaño y encuadre */
 
+  function placeCamera() {
+    // Encuadre: la silla ocupa ~85 % del ancho disponible, sea del largo que sea.
+    const span = seatLength * 1.1;
+    const fit = Math.max(span, span / Math.min(1.35, camera.aspect));
+    const distance = fit / (2 * Math.tan((camera.fov * Math.PI) / 360)) / Math.max(0.75, Math.min(1.6, camera.aspect));
+    // Cámara baja (unos 25°): se lee el perfil, que es lo que cambia de una moto a otra.
+    camera.position.set(distance * 0.62, distance * 0.42, distance * 0.72);
+    camera.lookAt(0, seatMiddle, 0);
+    camera.updateProjectionMatrix();
+    needsRender = true;
+  }
+
   function frame() {
     const width = canvas.clientWidth || 1;
     const height = canvas.clientHeight || 1;
@@ -446,13 +369,7 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, narrow ? 1.75 : 2));
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
-    // Encuadre: la silla (1,36 de largo) ocupa ~85 % del ancho disponible.
-    const fit = Math.max(1.5, 1.5 / Math.min(1.35, camera.aspect));
-    const distance = fit / (2 * Math.tan((camera.fov * Math.PI) / 360)) / Math.max(0.75, Math.min(1.6, camera.aspect));
-    camera.position.set(distance * 0.55, distance * 0.72, distance * 0.62);
-    camera.lookAt(0, 0.17, 0);
-    camera.updateProjectionMatrix();
-    needsRender = true;
+    placeCamera();
   }
 
   /* ------------------------------------------------------- Movimiento */
@@ -502,7 +419,11 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
   canvas.addEventListener("pointerup", onPointerUp);
   canvas.addEventListener("pointercancel", onPointerUp);
 
-  const resizeObserver = new ResizeObserver(frame);
+  // Cambiar el tamaño borra el lienzo: hay que volver a pintar enseguida.
+  const resizeObserver = new ResizeObserver(() => {
+    frame();
+    wake();
+  });
   resizeObserver.observe(canvas);
   const intersection = new IntersectionObserver(([entry]) => {
     visible = entry.isIntersecting;
@@ -519,7 +440,8 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
     if (!compiled) return;
     const dt = Math.min(1 / 30, (now - previous) / 1000);
     previous = now;
-    let moving = false;
+    let moving = morph !== null;
+    stepMorph(now);
     if (!dragging) {
       if (Math.abs(velocity) > 0.01) {
         yaw += velocity * dt;
@@ -577,9 +499,14 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
       canvas.removeEventListener("pointermove", onPointerMove);
       canvas.removeEventListener("pointerup", onPointerUp);
       canvas.removeEventListener("pointercancel", onPointerUp);
-      seat.traverse((object) => {
-        if (object instanceof Mesh || object instanceof InstancedMesh) object.geometry.dispose();
-      });
+      if (morph) disposeGeometries(morph.target);
+      for (const piece of PIECES) {
+        meshes[piece].geometry.dispose();
+        current[piece].dispose();
+      }
+      stitches.dispose();
+      stitchShape.dispose();
+      shadow.geometry.dispose();
       [centerMaterial, sideMaterial, panMaterial, stitchMaterial, shadow.material].forEach((material) =>
         material.dispose()
       );
