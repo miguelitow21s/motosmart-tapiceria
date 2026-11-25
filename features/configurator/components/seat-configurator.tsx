@@ -7,7 +7,7 @@ import { WhatsAppLink } from "@/components/shared/whatsapp-link";
 import { buildWhatsAppUrl } from "@/lib/settings-defaults";
 import { cx } from "@/lib/utils";
 import { SEAT_PATTERNS, seatQuoteMessage, type SeatColor } from "../lib/options";
-import type { SeatLook, SeatScene } from "../lib/seat-scene";
+import type { SeatLook, SeatScene, SeatView } from "../lib/seat-scene";
 import {
   DEFAULT_SEAT_SHAPE,
   SEAT_SHAPES,
@@ -17,7 +17,18 @@ import {
   silhouettePath,
   type SeatShapeId
 } from "../lib/shapes";
-import type { SeatPattern } from "../lib/textures";
+import type { EmbroideryStyle, SeatPattern } from "../lib/textures";
+
+const VIEWS: Array<{ id: SeatView; label: string }> = [
+  { id: "tres-cuartos", label: "3/4" },
+  { id: "lado", label: "Lado" },
+  { id: "arriba", label: "Arriba" }
+];
+
+const LETTER_STYLES: Array<{ id: EmbroideryStyle; label: string }> = [
+  { id: "recta", label: "Recta" },
+  { id: "inclinada", label: "Inclinada" }
+];
 
 /** Letras que caben bien bordadas en el costado. */
 const EMBROIDERY_MAX = 12;
@@ -71,6 +82,8 @@ export function SeatConfigurator({
   // (la primera palabra de "Marca y modelo") o la de la forma elegida.
   const [customEmbroidery, setCustomEmbroidery] = useState<string | null>(null);
   const [thread, setThread] = useState(() => pick(colors, "blanco", 0));
+  const [letter, setLetter] = useState<EmbroideryStyle>("recta");
+  const [view, setView] = useState<SeatView | null>("tres-cuartos");
   const motoId = useId();
   const embroideryId = useId();
   const shape = seatShape(shapeId);
@@ -84,9 +97,10 @@ export function SeatConfigurator({
       stitch: stitch.hex,
       pattern,
       embroidery,
-      thread: thread.hex
+      thread: thread.hex,
+      embroideryStyle: letter
     }),
-    [shapeId, center, sides, stitch, pattern, embroidery, thread]
+    [shapeId, center, sides, stitch, pattern, embroidery, thread, letter]
   );
   const lookRef = useRef(look);
   lookRef.current = look;
@@ -162,7 +176,8 @@ export function SeatConfigurator({
       pattern: patternLabel,
       moto,
       embroidery,
-      thread: thread.name
+      thread: thread.name,
+      letter: LETTER_STYLES.find((item) => item.id === letter)?.label ?? letter
     })
   );
 
@@ -185,6 +200,7 @@ export function SeatConfigurator({
               event.preventDefault();
               sceneRef.current?.rotateBy(event.key === "ArrowLeft" ? -0.3 : 0.3);
               setTouched(true);
+              setView(null);
             }
           }}
         >
@@ -210,8 +226,40 @@ export function SeatConfigurator({
               "absolute inset-0 h-full w-full cursor-grab touch-pan-y transition-opacity duration-500 active:cursor-grabbing",
               status === "ready" ? "opacity-100" : "opacity-0"
             )}
-            onPointerDown={() => setTouched(true)}
+            onPointerDown={() => {
+              setTouched(true);
+              setView(null);
+            }}
           />
+          {/* Vistas rápidas: de lado se lee el bordado; desde arriba, la textura. */}
+          <div
+            role="group"
+            aria-label="Vista de la silla"
+            className={cx(
+              "absolute top-2 right-2 flex gap-1 rounded-full bg-black/55 p-1 backdrop-blur transition-opacity duration-300",
+              status === "ready" ? "opacity-100" : "pointer-events-none opacity-0"
+            )}
+          >
+            {VIEWS.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                aria-pressed={view === item.id}
+                tabIndex={status === "ready" ? 0 : -1}
+                onClick={() => {
+                  sceneRef.current?.setView(item.id);
+                  setView(item.id);
+                  setTouched(true);
+                }}
+                className={cx(
+                  "min-h-11 min-w-11 rounded-full px-3 text-sm font-semibold transition-[color,background-color,scale] duration-150 ease-out active:scale-95",
+                  view === item.id ? "bg-white text-black" : "text-white/80 hover:text-white"
+                )}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
           <p
             aria-hidden="true"
             className={cx(
@@ -342,6 +390,31 @@ export function SeatConfigurator({
             La marca de tu moto, tu nombre o tu número. Bórralo si la quieres sin bordado.
           </p>
         </div>
+        <fieldset disabled={!embroidery.trim()} className="disabled:opacity-50">
+          <legend className="text-sm font-semibold text-ink-2">Letra del bordado</legend>
+          <div className="mt-2 grid grid-cols-2 gap-1 rounded-lg bg-surface p-1">
+            {LETTER_STYLES.map((item) => (
+              <label
+                key={item.id}
+                className={cx(
+                  "flex min-h-11 cursor-pointer items-center justify-center rounded-md px-2 text-center font-display text-base font-extrabold tracking-wide uppercase transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ink",
+                  item.id === "inclinada" && "italic",
+                  letter === item.id ? "bg-ink text-bg" : "text-ink-2 hover:text-ink"
+                )}
+              >
+                <input
+                  type="radio"
+                  name="letra"
+                  value={item.id}
+                  checked={letter === item.id}
+                  onChange={() => setLetter(item.id)}
+                  className="sr-only"
+                />
+                {item.label}
+              </label>
+            ))}
+          </div>
+        </fieldset>
         <Swatches legend="Hilo del bordado" colors={colors} value={thread} onChange={setThread} />
         <Button asChild size="lg" className="w-full">
           <WhatsAppLink href={href} source="arma-tu-silla">

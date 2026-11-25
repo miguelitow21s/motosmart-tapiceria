@@ -194,28 +194,40 @@ function setFont(ctx: CanvasRenderingContext2D, size: number) {
   ctx.font = `800 ${size}px ${embroideryFont()}`;
 }
 
-/** Desenfoque de caja separable, dos pasadas (casi gaussiano). */
-function blur(source: Float32Array, width: number, height: number, radius: number) {
+/** Caja de píxeles [x0, x1) × [y0, y1) donde se trabaja: el resto del lienzo queda vacío. */
+type Box = { x0: number; y0: number; x1: number; y1: number };
+
+/**
+ * Desenfoque de caja separable, dos pasadas (casi gaussiano), solo dentro de
+ * `box`. Fuera de la caja la máscara vale cero, así que el borde no cambia nada.
+ */
+function blur(source: Float32Array, width: number, box: Box, radius: number) {
   const r = Math.max(1, Math.round(radius));
+  const { x0, y0, x1, y1 } = box;
+  const span = 2 * r + 1;
   let a: Float32Array = source;
   let b: Float32Array = new Float32Array(a.length);
   for (let pass = 0; pass < 2; pass++) {
-    for (let y = 0; y < height; y++) {
-      let sum = 0;
+    for (let y = y0; y < y1; y++) {
       const row = y * width;
-      for (let x = -r; x <= r; x++) sum += a[row + Math.min(width - 1, Math.max(0, x))];
-      for (let x = 0; x < width; x++) {
-        b[row + x] = sum / (2 * r + 1);
-        sum += a[row + Math.min(width - 1, x + r + 1)] - a[row + Math.max(0, x - r)];
+      let sum = 0;
+      for (let x = x0 - r; x <= x0 + r; x++) sum += x >= x0 && x < x1 ? a[row + x] : 0;
+      for (let x = x0; x < x1; x++) {
+        b[row + x] = sum / span;
+        const add = x + r + 1;
+        const drop = x - r;
+        sum += (add < x1 ? a[row + add] : 0) - (drop >= x0 ? a[row + drop] : 0);
       }
     }
     [a, b] = [b, a];
-    for (let x = 0; x < width; x++) {
+    for (let x = x0; x < x1; x++) {
       let sum = 0;
-      for (let y = -r; y <= r; y++) sum += a[Math.min(height - 1, Math.max(0, y)) * width + x];
-      for (let y = 0; y < height; y++) {
-        b[y * width + x] = sum / (2 * r + 1);
-        sum += a[Math.min(height - 1, y + r + 1) * width + x] - a[Math.max(0, y - r) * width + x];
+      for (let y = y0 - r; y <= y0 + r; y++) sum += y >= y0 && y < y1 ? a[y * width + x] : 0;
+      for (let y = y0; y < y1; y++) {
+        b[y * width + x] = sum / span;
+        const add = y + r + 1;
+        const drop = y - r;
+        sum += (add < y1 ? a[add * width + x] : 0) - (drop >= y0 ? a[drop * width + x] : 0);
       }
     }
     [a, b] = [b, a];
@@ -228,11 +240,11 @@ function hexToRgb(hex: string): [number, number, number] {
   return [(value >> 16) & 255, (value >> 8) & 255, value & 255];
 }
 
-/** Ruido fijo por puntada: cada hilo refleja un poco distinto. */
-function hash(n: number) {
-  const s = Math.sin(n * 127.1) * 43758.5453;
-  return s - Math.floor(s);
-}
+/** Brillo fijo por puntada: cada hilo refleja un poco distinto. */
+const JITTER = Float32Array.from({ length: 256 }, (_, i) => {
+  const v = Math.sin(i * 127.1) * 43758.5453;
+  return (v - Math.floor(v)) * 0.12;
+});
 
 function canvasOf(width: number, height: number) {
   const canvas = document.createElement("canvas");
@@ -241,17 +253,32 @@ function canvasOf(width: number, height: number) {
   return canvas;
 }
 
+export type EmbroideryStyle = "recta" | "inclinada";
+
+/** Inclinación de la letra "inclinada" (como las marcas deportivas): unos 12°. */
+const ITALIC = Math.tan((12 * Math.PI) / 180);
+
 /**
  * Pinta la marca bordada para un parche de `widthCm` × `heightCm`: relleno en
  * satín (puntadas inclinadas, cada una con su brillo), cordón alrededor en otro
  * tono del mismo hilo, relieve y sombra. Devuelve null si no hay texto.
+ *
+ * Se repinta al escribir, así que solo se trabaja en la caja de las letras y
+ * sin funciones trigonométricas por píxel.
  */
-export function paintEmbroidery(text: string, thread: string, widthCm: number, heightCm: number) {
+export function paintEmbroidery(
+  text: string,
+  thread: string,
+  style: EmbroideryStyle,
+  widthCm: number,
+  heightCm: number
+) {
   const label = text.trim();
   if (!label) return null;
   const width = Math.min(2048, Math.round(widthCm * EMBROIDERY_PX_PER_CM));
   const scale = width / widthCm;
   const height = Math.max(32, Math.round(heightCm * scale));
+  const slant = style === "inclinada" ? ITALIC : 0;
 
   // Máscaras: el relleno de las letras, y las letras con su cordón.
   const canvas = canvasOf(width, height);
@@ -264,7 +291,7 @@ export function paintEmbroidery(text: string, thread: string, widthCm: number, h
   let size = (100 * height * 0.66) / probeHeight;
   let squeeze = 1;
   const maxWidth = width * 0.9;
-  const textWidth = (probe.width * size) / 100;
+  const textWidth = ((probe.width + slant * probeHeight) * size) / 100;
   if (textWidth > maxWidth) {
     // Primero se aprietan un poco las letras; si no alcanza, se achican.
     squeeze = Math.max(0.84, maxWidth / textWidth);
@@ -278,11 +305,14 @@ export function paintEmbroidery(text: string, thread: string, widthCm: number, h
   ctx.lineJoin = "round";
   ctx.fillStyle = "#fff";
   ctx.strokeStyle = "#fff";
+  const ascent = metrics.actualBoundingBoxAscent;
+  const descent = metrics.actualBoundingBoxDescent;
   const drawText = (withOutline: boolean) => {
     ctx.clearRect(0, 0, width, height);
     ctx.save();
-    ctx.translate(width / 2, height / 2 + (metrics.actualBoundingBoxAscent - metrics.actualBoundingBoxDescent) / 2);
-    ctx.scale(squeeze, 1);
+    ctx.translate(width / 2, height / 2 + (ascent - descent) / 2);
+    // La inclinación gira en torno a la mitad de la letra, para que quede centrada.
+    ctx.transform(squeeze, 0, -slant, 1, -slant * ((ascent - descent) / 2), 0);
     if (withOutline) {
       ctx.lineWidth = outline * 2;
       ctx.strokeText(label, 0, 0);
@@ -297,8 +327,34 @@ export function paintEmbroidery(text: string, thread: string, widthCm: number, h
   const fill = drawText(false);
   const outer = drawText(true);
 
+  // Caja de las letras, con aire para el desenfoque y la sombra.
+  let x0 = width;
+  let x1 = 0;
+  let y0 = height;
+  let y1 = 0;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      if (outer[y * width + x] > 0) {
+        if (x < x0) x0 = x;
+        if (x > x1) x1 = x;
+        if (y < y0) y0 = y;
+        if (y > y1) y1 = y;
+      }
+    }
+  }
+  if (x1 < x0) return null;
+  const radius = scale * 0.13;
+  const shift = Math.round(scale * 0.1);
+  const pad = Math.ceil(radius * 2) + 2;
+  const box: Box = {
+    x0: Math.max(0, x0 - pad),
+    y0: Math.max(0, y0 - pad),
+    x1: Math.min(width, x1 + pad + 1),
+    y1: Math.min(height, y1 + pad + shift + 1)
+  };
+
   // Color y relieve, píxel a píxel con las mismas puntadas.
-  const puff = blur(outer, width, height, scale * 0.12);
+  const puff = blur(outer, width, box, radius);
   const cos = Math.cos(SATIN_ANGLE);
   const sin = Math.sin(SATIN_ANGLE);
   const pitch = SATIN_PITCH_CM * scale;
@@ -310,26 +366,29 @@ export function paintEmbroidery(text: string, thread: string, widthCm: number, h
   const edge = luminance > 0.18 ? 0.55 : 1.8;
   const color = ctx.createImageData(width, height);
   const pixels = color.data;
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
+  for (let y = box.y0; y < box.y1; y++) {
+    for (let x = box.x0; x < box.x1; x++) {
       const i = y * width + x;
       const o = outer[i];
       if (o <= 0) continue;
       // Satín: hilos paralelos y redondos (claros al centro, surco entre uno y otro).
       const phase = (x * cos + y * sin) / pitch;
-      const ridge = Math.sin(Math.PI * (phase - Math.floor(phase)));
-      const jitter = hash(Math.floor(phase)) * 0.12;
+      const stitch = Math.floor(phase);
+      const f1 = phase - stitch;
+      const ridge = 4 * f1 * (1 - f1);
       // Cordón: puntadas cortas cruzadas en el otro sentido.
       const phase2 = (x * sin - y * cos) / cordPitch;
-      const ridge2 = Math.sin(Math.PI * (phase2 - Math.floor(phase2)));
+      const f2 = phase2 - Math.floor(phase2);
+      const ridge2 = 4 * f2 * (1 - f2);
       const t = Math.min(1, fill[i] / o);
-      const satin = 0.72 + 0.34 * ridge - jitter;
+      const satin = 0.72 + 0.34 * ridge - JITTER[stitch & 255];
       const cord = (0.78 + 0.26 * ridge2) * edge;
       const shade = cord + (satin - cord) * t;
-      pixels[i * 4] = Math.min(255, tr * shade);
-      pixels[i * 4 + 1] = Math.min(255, tg * shade);
-      pixels[i * 4 + 2] = Math.min(255, tb * shade);
-      pixels[i * 4 + 3] = Math.round(o * 255);
+      const p = i * 4;
+      pixels[p] = Math.min(255, tr * shade);
+      pixels[p + 1] = Math.min(255, tg * shade);
+      pixels[p + 2] = Math.min(255, tb * shade);
+      pixels[p + 3] = o * 255;
       heightMap[i] = puff[i] * 0.7 + o * (t * 0.3 * ridge + (1 - t) * 0.22 * ridge2);
     }
   }
@@ -338,26 +397,28 @@ export function paintEmbroidery(text: string, thread: string, widthCm: number, h
   colorTexture.colorSpace = SRGBColorSpace;
   colorTexture.anisotropy = 8;
 
-  // Normales a partir del relieve (diferencias centrales).
+  // Normales a partir del relieve (diferencias centrales). Fuera de la caja, plano.
   const normalCanvas = canvasOf(width, height);
   const normalCtx = normalCanvas.getContext("2d");
   if (!normalCtx) throw new Error("Sin contexto 2D");
   const normalImage = normalCtx.createImageData(width, height);
   const n = normalImage.data;
-  const strength = 2.4;
-  for (let y = 0; y < height; y++) {
+  // (128, 128, 255, 255) en un entero de 32 bits (memoria little-endian).
+  new Uint32Array(n.buffer).fill(0xffff8080);
+  const strength = 3;
+  for (let y = box.y0; y < box.y1; y++) {
     const up = Math.max(0, y - 1) * width;
     const down = Math.min(height - 1, y + 1) * width;
-    for (let x = 0; x < width; x++) {
-      const i = y * width + x;
-      const dx = (heightMap[y * width + Math.min(width - 1, x + 1)] - heightMap[y * width + Math.max(0, x - 1)]) * strength;
+    const row = y * width;
+    for (let x = box.x0; x < box.x1; x++) {
+      const dx = (heightMap[row + Math.min(width - 1, x + 1)] - heightMap[row + Math.max(0, x - 1)]) * strength;
       // En la textura la v crece hacia arriba; en el lienzo, la y hacia abajo.
       const dy = (heightMap[down + x] - heightMap[up + x]) * strength;
-      const length = Math.hypot(dx, dy, 1);
-      n[i * 4] = Math.round((-dx / length) * 127.5 + 127.5);
-      n[i * 4 + 1] = Math.round((dy / length) * 127.5 + 127.5);
-      n[i * 4 + 2] = Math.round((1 / length) * 127.5 + 127.5);
-      n[i * 4 + 3] = 255;
+      const k = 127.5 / Math.sqrt(dx * dx + dy * dy + 1);
+      const p = (row + x) * 4;
+      n[p] = 127.5 - dx * k;
+      n[p + 1] = 127.5 + dy * k;
+      n[p + 2] = 127.5 + k;
     }
   }
   normalCtx.putImageData(normalImage, 0, 0);
@@ -366,16 +427,15 @@ export function paintEmbroidery(text: string, thread: string, widthCm: number, h
   normal.anisotropy = 8;
 
   // Sombra: las letras desenfocadas y corridas 1 mm hacia abajo (la luz viene de arriba).
-  const soft = blur(outer, width, height, scale * 0.14);
-  const shift = Math.round(scale * 0.1);
   const shadowCanvas = canvasOf(width, height);
   const shadowCtx = shadowCanvas.getContext("2d");
   if (!shadowCtx) throw new Error("Sin contexto 2D");
   const shadowImage = shadowCtx.createImageData(width, height);
-  const s = shadowImage.data;
-  for (let y = 0; y < height; y++) {
+  const sh = shadowImage.data;
+  for (let y = box.y0; y < box.y1; y++) {
     const from = Math.max(0, y - shift) * width;
-    for (let x = 0; x < width; x++) s[(y * width + x) * 4 + 3] = Math.round(Math.min(1, soft[from + x] * 1.15) * 170);
+    const row = y * width;
+    for (let x = box.x0; x < box.x1; x++) sh[(row + x) * 4 + 3] = Math.min(1, puff[from + x] * 1.2) * 185;
   }
   shadowCtx.putImageData(shadowImage, 0, 0);
   const shadow = new CanvasTexture(shadowCanvas);

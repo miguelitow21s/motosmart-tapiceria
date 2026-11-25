@@ -75,7 +75,7 @@ export const DEFAULT_SETTINGS: SiteSettings = {
     "Escríbenos con la marca, el modelo y una foto de tu silla. Igual te cotizamos el forro a medida.",
   configurator_title: "Arma tu silla",
   configurator_text:
-    "Elige el color del centro, de los costados y de la costura, y la textura del asiento. Te la cotizamos por WhatsApp y la cortamos a la medida de tu moto.",
+    "Elige tu tipo de moto, los colores, la textura y la marca bordada en los costados. Te la cotizamos por WhatsApp y la cortamos a la medida de tu moto.",
   configurator_colors: DEFAULT_SEAT_COLORS_TEXT,
   meta_title: "MotoSmart Tapicería | Tapicería premium en Medellín",
   meta_description:

@@ -18,7 +18,7 @@
 
 insert into public.settings (key, value, is_public) values
   ('configurator_title', jsonb_build_object('text', 'Arma tu silla'), true),
-  ('configurator_text',  jsonb_build_object('text', 'Elige el color del centro, de los costados y de la costura, y la textura del asiento. Te la cotizamos por WhatsApp y la cortamos a la medida de tu moto.'), true),
+  ('configurator_text',  jsonb_build_object('text', 'Elige tu tipo de moto, los colores, la textura y la marca bordada en los costados. Te la cotizamos por WhatsApp y la cortamos a la medida de tu moto.'), true),
   ('configurator_colors', jsonb_build_object('text', E'Negro #161616\nGris carbón #3b3d40\nRojo #b3121f\nAzul #1d3fae\nVerde #4f9a1f\nBlanco #e9e7e1\nCafé #5a3a24\nAmarillo #e0a91b'), true)
 on conflict (key) do nothing;
 

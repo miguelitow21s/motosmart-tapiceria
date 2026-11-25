@@ -44,6 +44,7 @@ import {
   loadSeatTextures,
   paintDiamondColor,
   paintEmbroidery,
+  type EmbroideryStyle,
   type EmbroideryTextures,
   type SeatPattern,
   type SeatTextures
@@ -59,11 +60,34 @@ export type SeatLook = {
   embroidery: string;
   /** Color del hilo del bordado. */
   thread: string;
+  embroideryStyle: EmbroideryStyle;
 };
+
+/** Vistas rápidas: tres cuartos (la de siempre), de lado y desde arriba. */
+export type SeatView = "tres-cuartos" | "lado" | "arriba";
+
+/** Dirección de la cámara vista desde arriba (rad), y su altura por defecto: unos 24°. */
+const CAMERA_AZIMUTH = Math.atan2(0.62, 0.72);
+const CAMERA_ELEVATION = Math.atan2(0.42, Math.hypot(0.62, 0.72));
+const CAMERA_REACH = Math.hypot(0.62, 0.42, 0.72);
+
+const VIEWS: Record<SeatView, { yaw: number; elevation: number }> = {
+  // Giro de la silla y altura de la cámara. De lado, el costado derecho mira
+  // de frente a la cámara (giro = dirección de la cámara).
+  "tres-cuartos": { yaw: 0.42, elevation: CAMERA_ELEVATION },
+  lado: { yaw: CAMERA_AZIMUTH, elevation: 0.1 },
+  arriba: { yaw: CAMERA_AZIMUTH, elevation: 1.05 }
+};
+/** Duración del viaje de la cámara entre vistas, en ms. */
+const VIEW_MS = 650;
+/** Tras elegir una vista, la silla se queda quieta este tiempo antes de volver a girar sola. */
+const VIEW_HOLD_MS = 6000;
 
 export type SeatScene = {
   update(look: SeatLook): void;
   rotateBy(radians: number): void;
+  /** Lleva la cámara a una vista guardada (de lado se lee el bordado). */
+  setView(view: SeatView): void;
   dispose(): void;
 };
 
@@ -244,14 +268,40 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
     for (const mesh of Object.values(embroideryMeshes)) mesh.visible = show;
   }
 
-  /** Vuelve a pintar el bordado si cambió el texto, el hilo o el tamaño del parche. */
+  /**
+   * Repinta el bordado cuando el cliente deja de escribir (pintarlo cuesta unas
+   * decenas de ms en un teléfono: no debe frenar cada tecla). El primer
+   * bordado y el de una forma nueva se pintan enseguida.
+   */
+  let embroideryTimer = 0;
+  function requestEmbroidery(look: SeatLook) {
+    window.clearTimeout(embroideryTimer);
+    if (!embroideryTextures) {
+      updateEmbroidery(look);
+      return;
+    }
+    embroideryTimer = window.setTimeout(() => {
+      updateEmbroidery(currentLook);
+      needsRender = true;
+      wake();
+    }, 110);
+  }
+
+  /** Vuelve a pintar el bordado si cambió el texto, el hilo, la letra o el tamaño del parche. */
   function updateEmbroidery(look: SeatLook) {
     if (!textures || morph) return;
+    window.clearTimeout(embroideryTimer);
     const { widthCm, heightCm } = current.embroidery;
-    const key = [look.embroidery.trim(), look.thread, widthCm.toFixed(2), heightCm.toFixed(2)].join("|");
+    const key = [
+      look.embroidery.trim(),
+      look.thread,
+      look.embroideryStyle,
+      widthCm.toFixed(2),
+      heightCm.toFixed(2)
+    ].join("|");
     if (key !== embroideryKey) {
       embroideryKey = key;
-      const painted = paintEmbroidery(look.embroidery, look.thread, widthCm, heightCm);
+      const painted = paintEmbroidery(look.embroidery, look.thread, look.embroideryStyle, widthCm, heightCm);
       embroideryTextures?.dispose();
       embroideryTextures = painted;
       if (painted) {
@@ -434,7 +484,7 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
       centerMaterial.roughness = 0.55;
     }
     centerMaterial.needsUpdate = true;
-    updateEmbroidery(look);
+    requestEmbroidery(look);
   }
 
   // La letra del bordado es la de la página: se espera a que esté lista.
@@ -466,13 +516,21 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
 
   /* ------------------------------------------------ Tamaño y encuadre */
 
+  let elevation = CAMERA_ELEVATION;
+
   function placeCamera() {
     // Encuadre: la silla ocupa ~85 % del ancho disponible, sea del largo que sea.
     const span = seatLength * 1.1;
     const fit = Math.max(span, span / Math.min(1.35, camera.aspect));
     const distance = fit / (2 * Math.tan((camera.fov * Math.PI) / 360)) / Math.max(0.75, Math.min(1.6, camera.aspect));
-    // Cámara baja (unos 25°): se lee el perfil, que es lo que cambia de una moto a otra.
-    camera.position.set(distance * 0.62, distance * 0.42, distance * 0.72);
+    // Cámara baja (unos 24°): se lee el perfil, que es lo que cambia de una moto a otra.
+    // Desde arriba la punta queda más cerca de la cámara: se aleja un poco para que quepa.
+    const reach = distance * CAMERA_REACH * (1 + 0.22 * Math.max(0, elevation - CAMERA_ELEVATION));
+    camera.position.set(
+      reach * Math.cos(elevation) * Math.sin(CAMERA_AZIMUTH),
+      reach * Math.sin(elevation),
+      reach * Math.cos(elevation) * Math.cos(CAMERA_AZIMUTH)
+    );
     camera.lookAt(0, seatMiddle, 0);
     camera.updateProjectionMatrix();
     needsRender = true;
@@ -502,9 +560,24 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
   let raf = 0;
   let previous = performance.now();
   let readyFired = false;
+  let viewTween: { start: number; fromYaw: number; toYaw: number; fromElevation: number; toElevation: number } | null =
+    null;
+
+  function stepView(now: number) {
+    if (!viewTween) return false;
+    const t = Math.min(1, (now - viewTween.start) / VIEW_MS);
+    const e = easeInOut(t);
+    yaw = viewTween.fromYaw + (viewTween.toYaw - viewTween.fromYaw) * e;
+    elevation = viewTween.fromElevation + (viewTween.toElevation - viewTween.fromElevation) * e;
+    placeCamera();
+    if (t >= 1) viewTween = null;
+    lastInteraction = now + VIEW_HOLD_MS - 2600;
+    return true;
+  }
 
   const onPointerDown = (event: PointerEvent) => {
     dragging = true;
+    viewTween = null;
     lastX = event.clientX;
     lastTime = event.timeStamp;
     velocity = 0;
@@ -558,7 +631,8 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
     previous = now;
     let moving = morph !== null;
     stepMorph(now);
-    if (!dragging) {
+    if (stepView(now)) moving = true;
+    else if (!dragging) {
       if (Math.abs(velocity) > 0.01) {
         yaw += velocity * dt;
         velocity *= Math.exp(-4 * dt);
@@ -599,7 +673,31 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
       needsRender = true;
       wake();
     },
+    setView(view) {
+      const target = VIEWS[view];
+      // El camino corto: nunca más de media vuelta.
+      const turn = target.yaw - yaw;
+      const toYaw = yaw + Math.atan2(Math.sin(turn), Math.cos(turn));
+      velocity = 0;
+      if (options.reducedMotion) {
+        yaw = toYaw;
+        elevation = target.elevation;
+        placeCamera();
+        lastInteraction = performance.now() + VIEW_HOLD_MS;
+      } else {
+        viewTween = {
+          start: performance.now(),
+          fromYaw: yaw,
+          toYaw,
+          fromElevation: elevation,
+          toElevation: target.elevation
+        };
+      }
+      needsRender = true;
+      wake();
+    },
     rotateBy(radians) {
+      viewTween = null;
       yaw += radians;
       lastInteraction = performance.now();
       needsRender = true;
@@ -608,6 +706,7 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
     dispose() {
       disposed = true;
       cancelAnimationFrame(raf);
+      window.clearTimeout(embroideryTimer);
       resizeObserver.disconnect();
       intersection.disconnect();
       document.removeEventListener("visibilitychange", onVisibility);
