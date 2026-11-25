@@ -4,33 +4,16 @@ import { ScrollRow } from "@/components/shared/scroll-row";
 import { SectionHeader } from "@/components/shared/section";
 import { SmartImage } from "@/components/shared/smart-image";
 import type { CarouselSlide } from "@/features/catalog/services/catalog.service";
-import { cn } from "@/lib/cn";
 
-/**
- * Una foto del carrusel semanal con su modelo y su precio en una etiqueta
- * sobre la foto, como en el héroe de escritorio. Así, a 390×844, la primera
- * tarjeta cabe entera con su precio en la primera pantalla.
- */
-export function SlideCard({
-  slide,
-  priority = false,
-  preloadMedia,
-  className
-}: {
-  slide: CarouselSlide;
-  priority?: boolean;
-  preloadMedia?: string;
-  className?: string;
-}) {
+/** Una foto del carrusel semanal con su modelo y su precio en una etiqueta sobre la foto, como en el héroe. */
+export function SlideCard({ slide }: { slide: CarouselSlide }) {
   return (
-    <Link href={slide.href} className={cn("group block w-[13.5rem] shrink-0 snap-start rounded-lg sm:w-64 lg:w-72", className)}>
+    <Link href={slide.href} className="group block w-[13.5rem] shrink-0 snap-start rounded-lg sm:w-64 lg:w-72">
       <div className="relative aspect-3/4 overflow-hidden rounded-lg bg-surface">
         <SmartImage
           src={slide.image}
           alt={slide.alt}
           sizes="(max-width: 639px) 216px, (max-width: 1023px) 256px, 288px"
-          priority={priority}
-          preloadMedia={preloadMedia}
           className="transition-transform duration-300 ease-out group-hover:scale-[1.03]"
         />
         <div className="absolute inset-x-2 bottom-2 rounded-md bg-bg px-3 py-2">
@@ -47,27 +30,18 @@ export function SlideCard({
 }
 
 /**
- * "Trabajos de la semana": las fotos que la administradora marca en el
- * panel, en su orden. Con `featuredFirst`, la primera ya está grande en el
- * héroe de escritorio y aquí solo se muestra en pantallas angostas.
+ * "Trabajos de la semana": las fotos que la administradora marca en el panel,
+ * en su orden. El inicio pasa todas menos la primera, que ya va grande en el
+ * héroe; sin fotos que mostrar, la sección no sale.
  */
-export function WeeklyWork({ slides, featuredFirst = false }: { slides: CarouselSlide[]; featuredFirst?: boolean }) {
+export function WeeklyWork({ slides }: { slides: CarouselSlide[] }) {
   if (!slides.length) return null;
 
   return (
-    // Arriba poco aire en el teléfono: la fila tiene que asomar en la primera pantalla.
-    <section aria-labelledby="trabajos" className="pt-6 pb-10 md:py-14">
+    <section aria-labelledby="trabajos" className="py-10 md:py-14">
       <ScrollRow label="Trabajos de la semana" header={<SectionHeader id="trabajos" title="Trabajos de la semana" />}>
-        {slides.map((slide, index) => (
-          <SlideCard
-            key={slide.id}
-            slide={slide}
-            // Si la primera foto ya es la del héroe en escritorio, esta tarjeta
-            // se oculta allí: se precarga solo en teléfono y tableta.
-            priority={index === 0 && !featuredFirst}
-            preloadMedia={index === 0 && featuredFirst ? "(max-width: 1023.98px)" : undefined}
-            className={index === 0 && featuredFirst ? "lg:hidden" : undefined}
-          />
+        {slides.map((slide) => (
+          <SlideCard key={slide.id} slide={slide} />
         ))}
       </ScrollRow>
     </section>

@@ -7,7 +7,9 @@ import { SmartImage } from "@/components/shared/smart-image";
 import { BrandBar } from "@/features/catalog/components/brand-bar";
 import { DesignGrid } from "@/features/catalog/components/design-grid";
 import { WeeklyWork } from "@/features/catalog/components/weekly-work";
-import { getBrands, getCarouselSlides, getFeaturedDesigns } from "@/features/catalog/services/catalog.service";
+import { getBrands, getCarouselSlides, getFeaturedDesigns, getStoreDesigns } from "@/features/catalog/services/catalog.service";
+import { ConfiguratorTeaser } from "@/features/configurator/components/configurator-teaser";
+import { isCustomizerEnabled } from "@/lib/feature-flags";
 import { JsonLd } from "@/components/seo/json-ld";
 import { siteConfig } from "@/config/site";
 import { pageMetadata } from "@/lib/seo";
@@ -62,16 +64,18 @@ function businessJsonLd(settings: SiteSettings) {
 }
 
 export default async function HomePage() {
-  const [brands, featuredDesigns, slides, settings] = await Promise.all([
+  const [brands, featuredDesigns, designs, slides, settings, customizerOn] = await Promise.all([
     getBrands(),
     getFeaturedDesigns(),
+    getStoreDesigns(),
     getCarouselSlides(),
-    getSiteSettings()
+    getSiteSettings(),
+    isCustomizerEnabled()
   ]);
 
   const featured = slides[0] ?? null;
   // Para el bloque de servicios, la foto más lejos de la primera (que ya
-  // está en el héroe y abre la fila de trabajos).
+  // está en el héroe).
   const servicesPhoto = slides.length > 1 ? slides[slides.length - 1] : null;
   const services = [
     { title: settings.service_1_title, text: settings.service_1_text },
@@ -82,9 +86,9 @@ export default async function HomePage() {
   return (
     <>
       <JsonLd data={businessJsonLd(settings)} />
-      <Hero featured={featured} />
+      <Hero featured={featured} designCount={designs.length} brandCount={brands.length} />
       <BrandBar brands={brands} />
-      <WeeklyWork slides={slides} featuredFirst />
+      <WeeklyWork slides={slides.slice(1)} />
 
       {featuredDesigns.length ? (
         <Section aria-labelledby="sillas" className="pt-4 md:pt-6">
@@ -104,33 +108,41 @@ export default async function HomePage() {
         </Section>
       ) : null}
 
-      <section aria-labelledby="servicios" className="border-t border-line">
+      {customizerOn ? <ConfiguratorTeaser /> : null}
+
+      <section aria-labelledby="servicios" className={cn(!customizerOn && "border-t border-line")}>
         <div
           className={cn(
             containerClasses,
-            "grid gap-8 py-12 md:py-16",
-            servicesPhoto && "lg:grid-cols-[minmax(0,26rem)_1fr] lg:items-center lg:gap-16"
+            "grid gap-8 py-12 md:py-20",
+            servicesPhoto && "lg:grid-cols-[minmax(0,28rem)_1fr] lg:items-center lg:gap-16"
           )}
         >
-          {servicesPhoto ? (
-            <div className="relative aspect-4/3 overflow-hidden rounded-lg bg-surface lg:aspect-3/4">
-              <SmartImage src={servicesPhoto.image} alt={servicesPhoto.alt} sizes="(min-width: 1024px) 416px, 100vw" />
-            </div>
-          ) : null}
-          <div>
+          <div className={cn(servicesPhoto && "lg:col-start-2")}>
             <h2 id="servicios" className="text-title">
               {settings.services_title}
             </h2>
             <p className="mt-3 max-w-2xl text-lg text-ink-2">{settings.services_text}</p>
-            <dl className="mt-8 divide-y divide-line border-y border-line">
-              {services.map((service) => (
-                <div key={service.title} className="grid gap-1 py-5 sm:grid-cols-[13rem_1fr] sm:gap-6">
-                  <dt className="type-display text-xl leading-tight">{service.title}</dt>
-                  <dd className="text-ink-2">{service.text}</dd>
-                </div>
+            <ol className="mt-8 border-t-2 border-ink">
+              {services.map((service, index) => (
+                <li
+                  key={service.title}
+                  className="grid grid-cols-[3.25rem_1fr] gap-x-4 border-b border-line py-5 sm:grid-cols-[4.5rem_13rem_1fr] sm:gap-x-6"
+                >
+                  <span aria-hidden="true" className="type-display tabular row-span-2 text-4xl leading-none text-brand sm:row-span-1 sm:text-5xl">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <h3 className="text-xl leading-tight">{service.title}</h3>
+                  <p className="text-ink-2">{service.text}</p>
+                </li>
               ))}
-            </dl>
+            </ol>
           </div>
+          {servicesPhoto ? (
+            <div className="relative aspect-4/3 overflow-hidden rounded-lg bg-surface lg:col-start-1 lg:row-start-1 lg:aspect-3/4">
+              <SmartImage src={servicesPhoto.image} alt={servicesPhoto.alt} sizes="(min-width: 1024px) 448px, 100vw" />
+            </div>
+          ) : null}
         </div>
       </section>
 
