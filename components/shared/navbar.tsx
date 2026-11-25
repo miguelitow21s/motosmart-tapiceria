@@ -15,6 +15,7 @@ import { cx } from "@/lib/utils";
 const publicLinks = [
   { href: "/", label: "Inicio" },
   { href: "/catalogo", label: "Catálogo" },
+  { href: "/arma-tu-silla", label: "Arma tu silla" },
   { href: "/pilotos", label: "Pilotos" },
   { href: "/sobre-nosotros", label: "Nosotros" },
   { href: "/contactanos", label: "Contacto" }
@@ -50,11 +51,12 @@ function useHasSession() {
   );
 }
 
-export function Navbar({ whatsappHref }: { whatsappHref: string }) {
+export function Navbar({ whatsappHref, customizerOn }: { whatsappHref: string; customizerOn: boolean }) {
   const isAuthenticated = useHasSession();
   const pathname = usePathname();
   const inAdmin = isAdminPath(pathname);
-  const links = publicLinks;
+  // "Arma tu silla" solo existe con su módulo encendido.
+  const links = customizerOn ? publicLinks : publicLinks.filter((link) => link.href !== "/arma-tu-silla");
   const [open, setOpen] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const firstLinkRef = useRef<HTMLAnchorElement>(null);
@@ -73,7 +75,7 @@ export function Navbar({ whatsappHref }: { whatsappHref: string }) {
     for (const node of behind) node.inert = true;
     firstLinkRef.current?.focus();
 
-    const desktop = window.matchMedia("(min-width: 48rem)");
+    const desktop = window.matchMedia("(min-width: 64rem)");
     const close = () => setOpen(false);
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -102,10 +104,12 @@ export function Navbar({ whatsappHref }: { whatsappHref: string }) {
         <Logo priority />
 
         {inAdmin ? (
-          <span className="ml-1 hidden border-l border-white/25 pl-3 text-[0.9375rem] font-medium text-white/75 sm:inline">Panel</span>
+          <span className="ml-1 hidden border-l border-white/25 pl-3 text-[0.9375rem] font-medium text-white/75 sm:inline">
+            Panel
+          </span>
         ) : null}
 
-        <nav aria-label="Principal" className={cx("ml-6 hidden", !inAdmin && "md:block")}>
+        <nav aria-label="Principal" className={cx("ml-6 hidden", !inAdmin && "lg:block")}>
           <ul className="flex items-center gap-1">
             {links.map((link) => {
               const active = isActive(pathname, link.href);
@@ -149,18 +153,18 @@ export function Navbar({ whatsappHref }: { whatsappHref: string }) {
               {isAuthenticated ? (
                 <Link
                   href="/admin"
-                  className="hidden h-11 items-center rounded-md px-3 text-[0.9375rem] font-medium text-white/75 hover:text-white md:inline-flex"
+                  className="hidden h-11 items-center rounded-md px-3 text-[0.9375rem] font-medium text-white/75 hover:text-white lg:inline-flex"
                 >
                   Panel
                 </Link>
               ) : null}
-              <Button asChild size="sm" className="hidden md:inline-flex">
+              <Button asChild size="sm" className="hidden lg:inline-flex">
                 <WhatsAppLink href={whatsappHref} source="cabecera">
                   <WhatsAppIcon />
                   Cotizar por WhatsApp
                 </WhatsAppLink>
               </Button>
-              <Button asChild size="icon" className="md:hidden">
+              <Button asChild size="icon" className="lg:hidden">
                 <WhatsAppLink href={whatsappHref} source="cabecera" aria-label="Escribir por WhatsApp">
                   <WhatsAppIcon />
                 </WhatsAppLink>
@@ -172,7 +176,7 @@ export function Navbar({ whatsappHref }: { whatsappHref: string }) {
             ref={menuButtonRef}
             type="button"
             hidden={inAdmin}
-            className="inline-flex size-11 items-center justify-center rounded-lg text-white transition-[background-color,scale] duration-150 ease-(--ease-out) hover:bg-white/10 active:scale-[0.97] md:hidden"
+            className="inline-flex size-11 items-center justify-center rounded-lg text-white transition-[background-color,scale] duration-150 ease-(--ease-out) hover:bg-white/10 active:scale-[0.97] lg:hidden"
             onClick={() => setOpen((prev) => !prev)}
             aria-expanded={open}
             aria-controls="menu-movil"
@@ -189,7 +193,7 @@ export function Navbar({ whatsappHref }: { whatsappHref: string }) {
           id="menu-movil"
           inert={!open}
           className={cx(
-            "fixed inset-x-0 top-[calc(3.5rem+env(safe-area-inset-top))] bottom-0 z-40 overflow-y-auto overscroll-contain bg-bg pb-[env(safe-area-inset-bottom)] text-ink [--focus:var(--ink)] md:hidden",
+            "fixed inset-x-0 top-[calc(3.5rem+env(safe-area-inset-top))] bottom-0 z-40 overflow-y-auto overscroll-contain bg-bg pb-[env(safe-area-inset-bottom)] text-ink [--focus:var(--ink)] lg:hidden",
             "transition-[opacity,translate] duration-[220ms] ease-(--ease-out)",
             open ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-2 opacity-0"
           )}
@@ -207,7 +211,9 @@ export function Navbar({ whatsappHref }: { whatsappHref: string }) {
                       aria-current={active ? "page" : undefined}
                       className="type-display flex h-16 items-center justify-between text-2xl"
                     >
-                      <span className={cx(active && "underline decoration-current decoration-2 underline-offset-8")}>{link.label}</span>
+                      <span className={cx(active && "underline decoration-current decoration-2 underline-offset-8")}>
+                        {link.label}
+                      </span>
                       <ChevronRight aria-hidden="true" className="size-5 text-ink-3" />
                     </Link>
                   </li>

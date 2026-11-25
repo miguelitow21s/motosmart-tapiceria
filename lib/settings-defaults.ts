@@ -1,3 +1,5 @@
+import { DEFAULT_SEAT_COLORS_TEXT } from "@/features/configurator/lib/options";
+
 // Sin imports de servidor: el panel (componente de cliente) también lo usa
 // para mostrar el valor de respaldo de una clave que aún no existe.
 
@@ -32,6 +34,9 @@ export type SiteSettings = {
   service_3_title: string;
   service_3_text: string;
   closing_title: string;
+  configurator_title: string;
+  configurator_text: string;
+  configurator_colors: string;
   closing_text: string;
   meta_title: string;
   meta_description: string;
@@ -68,6 +73,10 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   closing_title: "¿Tu moto no está en el catálogo?",
   closing_text:
     "Escríbenos con la marca, el modelo y una foto de tu silla. Igual te cotizamos el forro a medida.",
+  configurator_title: "Arma tu silla",
+  configurator_text:
+    "Elige tu tipo de moto, los colores, la textura y la marca bordada en los costados. Te la cotizamos por WhatsApp y la cortamos a la medida de tu moto.",
+  configurator_colors: DEFAULT_SEAT_COLORS_TEXT,
   meta_title: "MotoSmart Tapicería | Tapicería premium en Medellín",
   meta_description:
     "Tapicería premium para motos en Medellín. Asientos a medida, materiales de alto agarre y acabados profesionales. Cotiza por WhatsApp."

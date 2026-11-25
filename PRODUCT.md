@@ -42,6 +42,10 @@ Sillas hechas a mano en un taller real de Medellín: cada diseño del catálogo 
 - Colores de marca: rojo, blanco y negro.
 - **Es tapicería, no mecánica.** MotoSmart corta, cose y tapiza sillas de moto: es un oficio de confección (cuero, tela, espuma, costura, molde). No es un taller mecánico ni vende repuestos. El dueño rechazó direcciones visuales que lo hacían ver como taller de motos o almacén de repuestos (fichas de aplicación, placas, calcomanías de carreras, rótulos de taller), así que el mundo visual sale del oficio de la tapicería y nunca de la mecánica.
 - **Dirección visual elegida (noviembre 2026): la tienda estándar del rubro, sin ironía.** Después de tres rondas, el dueño escogió la tienda convencional de tapicería para moto: foto grande del trabajo real, búsqueda por marca, grilla con precio y botón de WhatsApp. La vara de acabado son Luimoto y Saddlemen. La tienda debe verse a su altura o mejor, sin rarezas metidas de contrabando. Las piezas: fondo claro para leer al sol, el rojo de marca solo para acciones, y el logo sobre una barra negra que continúa su fondo.
+- **Segunda pasada (25 de noviembre de 2026): "que quede brutal y no quede sencilla".** El dueño pidió transformar la tienda y el panel con 3D "en todo lo que se vea bien". La base de la tienda estándar se mantiene (foto real, precio, WhatsApp), pero ahora con más fuerza:
+  - **3D permitido como vista de referencia.** El 3D entra como herramienta del cliente, no como decoración. El primero es "Arma tu silla" (`/arma-tu-silla`, módulo `customizer_enabled`): una silla genérica que el cliente gira y colorea, y cuya combinación se cotiza por WhatsApp. Siempre lleva la nota "Vista de referencia", nunca reemplaza la foto de un diseño del catálogo. (Propuesta, pendiente de que el dueño vea el inicio: que no vaya en el primer pantallazo, donde sigue la foto real.)
+  - **Escenario negro permitido por secciones.** Una sección puede ir sobre negro (`data-theme="dark"`) cuando continúa la barra del logo y hace lucir la silla. (Propuesta, pendiente de que el dueño vea el inicio: la tienda no pasa entera a oscuro y el fondo claro sigue siendo la base para leer al sol.)
+  - **Más presencia:** tipografía más grande, la foto real como protagonista y respuesta al pasar el dedo o el mouse. Cada página se le muestra al dueño (capturas a 390 y 1440) antes de seguir con la siguiente.
 
 ## Evidence on Hand
 
@@ -53,7 +57,7 @@ Sillas hechas a mano en un taller real de Medellín: cada diseño del catálogo 
 
 ## Product Principles
 
-1. **La silla real manda.** Cada pantalla de la tienda lleva una foto de un trabajo real del taller, nunca stock ni ilustración en su lugar.
+1. **La silla real manda.** Cada pantalla de la tienda lleva una foto de un trabajo real del taller, nunca stock ni ilustración en su lugar. La silla 3D de "Arma tu silla" es una vista de referencia rotulada: se suma a las fotos, no las reemplaza.
 2. **Precio y WhatsApp a un toque.** El motociclista ve cuánto cuesta y puede escribir con el diseño ya identificado sin buscar el botón.
 3. **Si Natalia no lo puede cambiar desde el teléfono, está mal hecho.** Todo texto, precio y dato de contacto vive en el panel.
 4. **Honestidad.** Ningún mensaje dice que algo pasó si no pasó (formularios, copias, guardados), y no se muestran cifras ni testimonios que no existen.
