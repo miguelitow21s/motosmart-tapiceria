@@ -144,7 +144,8 @@ function SettingInput({
 }) {
   const id = useId();
   const error = changed && showError ? validateSetting(field, value) : null;
-  const counter = field.kind === "textarea" ? `${value.trim().length} de ${field.max}.` : null;
+  const multiline = field.kind === "textarea" || field.kind === "colors";
+  const counter = multiline ? `${value.trim().length} de ${field.max}.` : null;
   const hint = [field.hint, counter].filter(Boolean).join(" ") || undefined;
   const common = {
     id,
@@ -162,10 +163,15 @@ function SettingInput({
       optional={isOptionalSetting(field)}
       hint={hint}
       error={error}
-      className={field.kind === "textarea" ? "sm:col-span-2" : undefined}
+      className={multiline ? "sm:col-span-2" : undefined}
     >
-      {field.kind === "textarea" ? (
-        <Textarea {...common} rows={4} className="min-h-28" onChange={(event) => onChange(event.target.value)} />
+      {multiline ? (
+        <Textarea
+          {...common}
+          rows={field.kind === "colors" ? 8 : 4}
+          className={field.kind === "colors" ? "min-h-48" : "min-h-28"}
+          onChange={(event) => onChange(event.target.value)}
+        />
       ) : (
         <Input
           {...common}

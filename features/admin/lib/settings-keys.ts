@@ -1,5 +1,6 @@
 import { OPTIONAL_SETTING_KEYS, type SiteSettings } from "@/lib/settings-defaults";
 import { isWebUrl } from "@/lib/url";
+import { invalidSeatColorLines } from "@/features/configurator/lib/options";
 
 /*
   Textos que la administradora edita en "Textos". Agrupados por la parte de
@@ -7,7 +8,7 @@ import { isWebUrl } from "@/lib/url";
   Para añadir uno nuevo, ver lib/settings-defaults.ts.
 */
 
-export type SettingKind = "text" | "textarea" | "tel" | "url";
+export type SettingKind = "text" | "textarea" | "tel" | "url" | "colors";
 
 export type SettingField = {
   key: keyof SiteSettings;
@@ -95,6 +96,23 @@ export const SETTING_GROUPS: SettingGroup[] = [
     ]
   },
   {
+    id: "arma-tu-silla",
+    title: "Arma tu silla",
+    description: "La silla en 3D donde el cliente elige colores y textura. Se enciende y apaga en «Módulos».",
+    fields: [
+      { key: "configurator_title", label: "Título de la sección", kind: "text", min: 2, max: 80 },
+      { key: "configurator_text", label: "Texto de la sección", kind: "textarea", min: 2, max: 300 },
+      {
+        key: "configurator_colors",
+        label: "Colores de cuero",
+        hint: "Uno por línea: el nombre y su código de color. Ej.: Rojo #b3121f. Mínimo 2, máximo 14.",
+        kind: "colors",
+        min: 10,
+        max: 600
+      }
+    ]
+  },
+  {
     id: "nosotros",
     title: "Nosotros y cierre",
     description: "La página «Nosotros» y el bloque final de cada página.",
@@ -158,5 +176,12 @@ export function validateSetting(field: SettingField, raw: string): string | null
     return "Pega el enlace completo, empezando por https://";
   }
   if (field.kind === "tel" && !/^\+?[\d\s-]+$/.test(value)) return "Escribe solo números.";
+  if (field.kind === "colors") {
+    const bad = invalidSeatColorLines(value);
+    if (bad.length) return `No entiendo «${bad[0]}». Escribe el nombre y el código, así: Rojo #b3121f`;
+    const count = value.split(/\r?\n/).filter((line) => line.trim()).length;
+    if (count < 2) return "Escribe al menos 2 colores.";
+    if (count > 14) return `Máximo 14 colores (llevas ${count}).`;
+  }
   return null;
 }

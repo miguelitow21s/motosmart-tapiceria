@@ -54,7 +54,7 @@ const FEATURES: Row[] = [
   { name: "riders_enabled", enabled: true },
   { name: "checkout_enabled", enabled: true },
   { name: "admin_uploads_enabled", enabled: true },
-  { name: "customizer_enabled", enabled: false }
+  { name: "customizer_enabled", enabled: true }
 ];
 
 function baseSeed(data: PublicData, now: number): DemoSeed {

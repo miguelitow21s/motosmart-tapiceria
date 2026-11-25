@@ -17,17 +17,17 @@ export const FEATURE_INFO: Record<string, { label: string; description: string; 
   checkout_enabled: {
     label: "Agendar instalación",
     description: "La página para agendar la instalación por WhatsApp. Apagado, quien la abra vuelve al inicio.",
-    order: 3
+    order: 4
   },
   admin_uploads_enabled: {
     label: "Subir fotos desde el panel",
     description: "Apagado, nadie puede subir fotos nuevas (ni de diseños, ni del carrusel, ni de pilotos).",
-    order: 4
+    order: 5
   },
   customizer_enabled: {
-    label: "Personalizador",
-    description: "La tienda ya no lo usa.",
-    order: 5,
-    retired: true
+    label: "Arma tu silla",
+    description:
+      "La silla en 3D donde el cliente elige colores y textura y la cotiza por WhatsApp (inicio y su propia página). Apagado, no se muestra.",
+    order: 3
   }
 };
