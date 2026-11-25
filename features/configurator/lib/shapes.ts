@@ -25,37 +25,44 @@ export type SeatShape = {
   halfWidth: Point[];
   top: Point[];
   bottom: Point[];
+  /** Dónde va la costura con vivo que cruza la silla (u), si la silla es de dos piezas. */
+  splitAt?: number;
 };
 
 export const SEAT_SHAPES: SeatShape[] = [
   {
-    // Banca larga y plana de una pieza, gruesa atrás, que baja suave hacia el tanque.
+    // Boxer CT: una pieza larga. Parrillero ancho y un poco más alto, bajada
+    // suave al puesto del piloto (hundido), y la punta angosta que cae sobre el tanque.
     id: "boxer",
-    label: "Boxer",
-    examples: "Bajaj Boxer, Platino",
-    length: 78,
+    label: "Boxer CT",
+    examples: "Bajaj Boxer CT 100, Platino",
+    length: 76,
     halfWidth: [
       [0, 12],
-      [0.12, 14],
-      [0.45, 14.5],
-      [0.72, 13.5],
-      [0.88, 11],
-      [1, 8.5]
+      [0.1, 14],
+      [0.32, 15],
+      [0.55, 14],
+      [0.75, 12.5],
+      [0.9, 9.5],
+      [1, 7]
     ],
     top: [
-      [0, 14.2],
-      [0.1, 15],
-      [0.4, 14.6],
-      [0.7, 13.6],
-      [0.9, 12.8],
-      [1, 12.2]
+      [0, 14.8],
+      [0.08, 15.6],
+      [0.3, 15.4],
+      [0.44, 14.4],
+      [0.6, 13],
+      [0.78, 12.8],
+      [0.9, 12.4],
+      [1, 10.6]
     ],
     bottom: [
-      [0, 6.2],
-      [0.12, 4.2],
+      [0, 7],
+      [0.12, 5],
+      [0.4, 4.2],
       [0.6, 3],
-      [0.85, 3],
-      [1, 4.6]
+      [0.86, 3],
+      [1, 4]
     ]
   },
   {
@@ -64,6 +71,7 @@ export const SEAT_SHAPES: SeatShape[] = [
     label: "Calle",
     examples: "AKT NKD, Honda CB, Yamaha YBR",
     length: 72,
+    splitAt: 0.5,
     halfWidth: [
       [0, 9.5],
       [0.15, 11.5],
@@ -95,6 +103,7 @@ export const SEAT_SHAPES: SeatShape[] = [
     label: "Deportiva",
     examples: "Pulsar NS, Yamaha FZ, Apache",
     length: 72,
+    splitAt: 0.445,
     halfWidth: [
       [0, 8],
       [0.12, 9.5],

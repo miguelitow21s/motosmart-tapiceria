@@ -172,6 +172,13 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
   let stitches = makeStitches(current.stitches);
   seat.add(stitches);
 
+  // Vivo que cruza la silla en las de dos piezas (Calle, Deportiva).
+  const emptyGeometry = new BufferGeometry();
+  const cross = new Mesh(current.crossPiping ?? emptyGeometry, sideMaterial);
+  cross.visible = current.crossPiping !== null;
+  cross.frustumCulled = false;
+  seat.add(cross);
+
   // Sombra de contacto bajo la base; se estira con el largo de la silla.
   const shadowTexture = createContactShadow();
   const shadow = new Mesh(
@@ -219,6 +226,9 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
     stitches.dispose();
     stitches = makeStitches(target.stitches);
     seat.add(stitches);
+    if (cross.geometry !== emptyGeometry && cross.geometry !== target.crossPiping) cross.geometry.dispose();
+    cross.geometry = target.crossPiping ?? emptyGeometry;
+    cross.visible = target.crossPiping !== null;
     current = target;
     seatLength = target.length;
     seatMiddle = target.middle;
@@ -249,6 +259,7 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
     // Las puntadas no se pueden transformar (cambia cuántas caben): se
     // esconden y vuelven con la forma nueva.
     stitches.visible = false;
+    cross.visible = false;
     morph = { start: performance.now(), target, from, fromLength: seatLength, fromMiddle: seatMiddle };
   }
 
@@ -289,6 +300,7 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
 
   function disposeGeometries(geometries: SeatGeometries) {
     for (const piece of PIECES) geometries[piece].dispose();
+    geometries.crossPiping?.dispose();
   }
 
   /* ------------------------------------------------------------ Look */
@@ -506,6 +518,8 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
       }
       stitches.dispose();
       stitchShape.dispose();
+      cross.geometry.dispose();
+      emptyGeometry.dispose();
       shadow.geometry.dispose();
       [centerMaterial, sideMaterial, panMaterial, stitchMaterial, shadow.material].forEach((material) =>
         material.dispose()

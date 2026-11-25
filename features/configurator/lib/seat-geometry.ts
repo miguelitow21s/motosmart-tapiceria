@@ -143,6 +143,19 @@ function pipingGeometry(p: Profiles, phi: number) {
   return new TubeGeometry(new CatmullRomCurve3(points), PIPING_SEGMENTS, 0.0072, 8, false);
 }
 
+/** Vivo que cruza el asiento de costura a costura, donde se unen dos piezas. */
+function crossPipingGeometry(p: Profiles, u: number, phi0: number, phi1: number) {
+  const points: Vector3[] = [];
+  const normal = new Vector3();
+  for (let i = 0; i <= 40; i++) {
+    const phi = phi0 + ((phi1 - phi0) * i) / 40;
+    const point = surface(p, u, phi, new Vector3());
+    surfaceNormal(p, u, phi, normal);
+    points.push(point.addScaledVector(normal, 0.004));
+  }
+  return new TubeGeometry(new CatmullRomCurve3(points), 80, 0.0072, 8, false);
+}
+
 /**
  * Puntadas: una cápsula por puntada a lo largo de una línea paralela a la
  * costura, orientada por la tangente y apoyada en la superficie.
@@ -188,6 +201,8 @@ export type SeatGeometries = {
   rightPiping: BufferGeometry;
   leftPiping: BufferGeometry;
   stitches: Matrix4[];
+  /** Vivo transversal de las sillas de dos piezas; no se transforma (como las puntadas). */
+  crossPiping: BufferGeometry | null;
   /** Largo en unidades de escena, para el encuadre y la sombra. */
   length: number;
   /** Altura del centro de la silla, para apuntar la cámara. */
@@ -213,6 +228,7 @@ export function buildSeatGeometries(shape: SeatShape): SeatGeometries {
     leftPiping: pipingGeometry(p, leftSeam),
     // Doble costura sobre el asiento, a unos 9 y 17 mm del vivo.
     stitches: stitchMatrices(p, [rightSeam + 0.07, rightSeam + 0.13, leftSeam - 0.07, leftSeam - 0.13]),
+    crossPiping: shape.splitAt === undefined ? null : crossPipingGeometry(p, shape.splitAt, rightSeam, leftSeam),
     length: p.length * CM,
     middle: ((low + high) / 2) * CM
   };
