@@ -3,7 +3,10 @@ import type { ReactNode } from "react";
 import { containerClasses } from "@/components/shared/section";
 import { cn } from "@/lib/cn";
 
-/** Cabecera de las páginas internas: migas opcionales, h1 y una entrada corta. */
+/**
+ * Cabecera de las páginas internas: escenario negro que sigue a la cabecera
+ * (como el héroe del inicio), migas opcionales, h1 grande y una entrada corta.
+ */
 export function PageIntro({
   title,
   lead,
@@ -19,29 +22,41 @@ export function PageIntro({
   className?: string;
 }) {
   return (
-    <div className={cn(containerClasses, "pt-6 pb-6 md:pt-10 md:pb-8", className)}>
-      {crumbs?.length ? (
-        <nav aria-label="Estás en">
-          <ol className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-3">
-            {crumbs.map((crumb, index) => (
-              <li key={crumb.label} className="flex items-center gap-2">
-                {index > 0 ? <span aria-hidden="true">/</span> : null}
-                {crumb.href ? (
-                  // -my-3 + min-h-11: zona de toque de 44 px sin empujar el título.
-                  <Link href={crumb.href} className="link-underline -my-3 inline-flex min-h-11 items-center text-ink-2">
-                    {crumb.label}
-                  </Link>
-                ) : (
-                  <span aria-current="page">{crumb.label}</span>
-                )}
-              </li>
-            ))}
-          </ol>
-        </nav>
-      ) : null}
-      <h1 className={cn("text-title", crumbs?.length ? "mt-2" : null)}>{title}</h1>
-      {lead ? <p className="mt-3 max-w-2xl text-lg text-ink-2">{lead}</p> : null}
-      {children}
+    <div data-theme="dark">
+      <div className={cn(containerClasses, "pt-6 pb-8 md:pt-12 md:pb-12", className)}>
+        {crumbs?.length ? (
+          <nav aria-label="Estás en">
+            <ol className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-3">
+              {crumbs.map((crumb, index) => (
+                <li key={crumb.label} className="flex items-center gap-2">
+                  {index > 0 ? <span aria-hidden="true">/</span> : null}
+                  {crumb.href ? (
+                    // -my-3 + min-h-11: zona de toque de 44 px sin empujar el título.
+                    <Link
+                      href={crumb.href}
+                      className="link-underline -my-3 inline-flex min-h-11 items-center text-ink-2"
+                    >
+                      {crumb.label}
+                    </Link>
+                  ) : (
+                    <span aria-current="page">{crumb.label}</span>
+                  )}
+                </li>
+              ))}
+            </ol>
+          </nav>
+        ) : null}
+        <h1
+          className={cn(
+            "max-w-[18ch] text-[clamp(2.25rem,1.3rem+3.4vw,4.75rem)] leading-[0.95] tracking-[-0.02em] uppercase",
+            crumbs?.length ? "mt-3" : null
+          )}
+        >
+          {title}
+        </h1>
+        {lead ? <p className="mt-4 max-w-2xl text-ink-2 sm:text-lg">{lead}</p> : null}
+        {children}
+      </div>
     </div>
   );
 }
