@@ -9,7 +9,6 @@ import { isFeatureEnabled } from "@/lib/feature-flags";
 import { pageMetadata } from "@/lib/seo";
 import { cn } from "@/lib/cn";
 
-
 export async function generateMetadata(): Promise<Metadata> {
   const photos = await getRiderPhotos();
   const photo = photos[0];
@@ -33,8 +32,12 @@ export default async function PilotosPage() {
         title="Nuestros pilotos"
         lead="Motos reales de clientes reales, con su silla MotoSmart. Cuando recibas la tuya, mándanos la foto por WhatsApp."
       />
-      <div className={cn(containerClasses, "pt-2 pb-12 md:pb-16")}>
-        <RiderGallery photos={photos} />
+      {/* Galería en el escenario negro de la cabecera: las fotos de los pilotos
+          son de noche y de taller, y sobre negro se ven como una exposición. */}
+      <div data-theme="dark">
+        <div className={cn(containerClasses, "pt-2 pb-14 md:pb-20")}>
+          <RiderGallery photos={photos} />
+        </div>
       </div>
       <ClosingCta />
     </>
