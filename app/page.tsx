@@ -82,7 +82,7 @@ export default async function HomePage() {
   return (
     <>
       <JsonLd data={businessJsonLd(settings)} />
-      <Hero featured={featured} designCount={designs.length} brandCount={brands.length} />
+      <Hero featured={featured} designCount={designs.length} brandCount={new Set(designs.map((design) => design.brand_id)).size} />
       <BrandBar brands={brands} />
       <WeeklyWork slides={slides.slice(1)} />
 

@@ -12,7 +12,8 @@ import { cn } from "@/lib/cn";
 /**
  * Héroe del inicio: escenario negro que sigue a la cabecera, con la primera
  * foto del carrusel semanal grande y su precio. Textos desde /admin > "Textos"
- * (hero_*). Las cifras salen de la base (diseños con foto y marcas activas):
+ * (hero_*). Las cifras salen de la base (diseños con foto y las marcas que
+ * tienen alguno, las mismas que muestra el catálogo):
  * nada inventado.
  *
  * En el teléfono la foto va debajo del botón y su alto se ajusta al alto de la
