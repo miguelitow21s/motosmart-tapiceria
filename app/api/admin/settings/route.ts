@@ -18,6 +18,13 @@ const settingValueSchema = z.union([
   z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.array(z.string())]))
 ]);
 
+/** El texto de un setting del panel: "..." o { text: "..." }. Otra forma, null. */
+function settingText(value: z.infer<typeof settingValueSchema>): string | null {
+  if (typeof value === "string") return value;
+  if (typeof value === "object" && typeof value.text === "string") return value.text;
+  return null;
+}
+
 const settingSchema = z.object({
   key: z.string().min(2).max(100),
   value: settingValueSchema
@@ -51,16 +58,23 @@ export async function POST(request: Request) {
 
   // Las reglas del panel también aquí: un enlace de Instagram con
   // javascript: (o un texto obligatorio vacío) no entra aunque no venga del panel.
-  const field = SETTING_FIELD_BY_KEY.get(parsed.data.key);
+  // El panel manda { text: "..." } (la forma en que se guarda en la base);
+  // antes solo se aceptaba un texto suelto y todo guardado de Textos fallaba.
+  // Se guarda siempre como { text }, que es lo que lee la tienda.
+  let setting = parsed.data;
+  const field = SETTING_FIELD_BY_KEY.get(setting.key);
   if (field) {
-    const problem = typeof parsed.data.value === "string" ? validateSetting(field, parsed.data.value) : "Este valor debe ser texto.";
+    const text = settingText(setting.value);
+    if (text === null) return NextResponse.json({ error: "Este valor debe ser texto." }, { status: 400 });
+    const problem = validateSetting(field, text);
     if (problem) return NextResponse.json({ error: problem }, { status: 400 });
+    setting = { key: setting.key, value: { text } };
   }
 
   // Las claves que lee la tienda se guardan siempre como públicas: sin esto,
   // una clave nueva nacía con is_public = false y el visitante no la veía
   // aunque el panel dijera "guardado". Las demás no tocan is_public.
-  const row = PUBLIC_SETTING_KEYS.has(parsed.data.key) ? { ...parsed.data, is_public: true } : parsed.data;
+  const row = PUBLIC_SETTING_KEYS.has(setting.key) ? { ...setting, is_public: true } : setting;
 
   const supabase = createAdminSupabaseClient();
   const { error } = await supabase.from("settings").upsert(row, { onConflict: "key" });
