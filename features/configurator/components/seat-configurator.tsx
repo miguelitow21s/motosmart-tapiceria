@@ -8,7 +8,15 @@ import { buildWhatsAppUrl } from "@/lib/settings-defaults";
 import { cx } from "@/lib/utils";
 import { SEAT_PATTERNS, seatQuoteMessage, type SeatColor } from "../lib/options";
 import type { SeatLook, SeatScene } from "../lib/seat-scene";
-import { DEFAULT_SEAT_SHAPE, SEAT_SHAPES, seatShape, silhouettePath, type SeatShapeId } from "../lib/shapes";
+import {
+  DEFAULT_SEAT_SHAPE,
+  SEAT_SHAPES,
+  SILHOUETTE_HEIGHT,
+  SILHOUETTE_WIDTH,
+  seatShape,
+  silhouettePath,
+  type SeatShapeId
+} from "../lib/shapes";
 import type { SeatPattern } from "../lib/textures";
 
 // Siluetas de lado de cada forma, calculadas una vez con los mismos perfiles del 3D.
@@ -53,7 +61,7 @@ export function SeatConfigurator({
   const [center, setCenter] = useState(() => pick(colors, "negro", 0));
   const [sides, setSides] = useState(() => pick(colors, "rojo", 2));
   const [stitch, setStitch] = useState(() => pick(colors, "rojo", 2));
-  const [pattern, setPattern] = useState<SeatPattern>("rombos");
+  const [pattern, setPattern] = useState<SeatPattern>("antideslizante");
   const [shapeId, setShapeId] = useState<SeatShapeId>(DEFAULT_SEAT_SHAPE);
   const [moto, setMoto] = useState("");
   const motoId = useId();
@@ -223,7 +231,7 @@ export function SeatConfigurator({
           <legend className="text-sm font-semibold text-ink-2">
             Tu moto: <span className="text-ink">{shape.label}</span>
           </legend>
-          <div className="mt-2 grid grid-cols-5 gap-1 rounded-lg bg-surface p-1">
+          <div className="mt-2 grid grid-cols-3 gap-1 rounded-lg bg-surface p-1">
             {SHAPE_OPTIONS.map((option) => {
               const selected = option.id === shapeId;
               return (
@@ -245,10 +253,10 @@ export function SeatConfigurator({
                   />
                   {/* Alto exagerado a propósito: así se nota el escalón o el lomo en un dibujo pequeño. */}
                   <svg
-                    viewBox="0 1 90 19"
+                    viewBox={`0 0 ${SILHOUETTE_WIDTH} ${SILHOUETTE_HEIGHT}`}
                     preserveAspectRatio="none"
                     aria-hidden="true"
-                    className="h-6 w-full max-w-20 transition-transform duration-150 ease-out group-active:scale-95"
+                    className="h-8 w-full max-w-24 transition-transform duration-150 ease-out group-active:scale-95"
                   >
                     <path d={option.path} fill="currentColor" />
                   </svg>

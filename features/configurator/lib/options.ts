@@ -9,9 +9,10 @@ import type { SeatPattern } from "./textures";
 export type SeatColor = { name: string; hex: string };
 
 export const SEAT_PATTERNS: Array<{ id: SeatPattern; label: string }> = [
-  { id: "rombos", label: "Rombos" },
+  // Antideslizante primero: es lo que más hace el taller (ver el catálogo).
+  { id: "antideslizante", label: "Antideslizante" },
   { id: "liso", label: "Liso" },
-  { id: "antideslizante", label: "Antideslizante" }
+  { id: "rombos", label: "Rombos" }
 ];
 
 export const DEFAULT_SEAT_COLORS_TEXT = [

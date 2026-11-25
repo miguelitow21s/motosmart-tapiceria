@@ -13,7 +13,7 @@
 
 export type Point = [number, number];
 
-export type SeatShapeId = "boxer" | "calle" | "deportiva" | "scooter" | "enduro";
+export type SeatShapeId = "boxer" | "calle" | "deportiva" | "scooter" | "enduro" | "motocross";
 
 export type SeatShape = {
   id: SeatShapeId;
@@ -25,44 +25,49 @@ export type SeatShape = {
   halfWidth: Point[];
   top: Point[];
   bottom: Point[];
-  /** Dónde va la costura con vivo que cruza la silla (u), si la silla es de dos piezas. */
-  splitAt?: number;
+  /** Dónde va la franja que cruza el asiento (u), del color de los costados. */
+  bandAt?: number;
+  /** Qué tan cuadrada es la sección: 3,4 redondeada (calle), 6 de cajón (enduro). */
+  squareness?: number;
+  /** Largo de la curva de la cola vista desde arriba, en cm: 10 es una U, 3 casi recta. */
+  tailRound?: number;
+  /** Lo mismo para la punta. */
+  noseRound?: number;
 };
 
 export const SEAT_SHAPES: SeatShape[] = [
   {
-    // Boxer CT: una pieza larga. Parrillero ancho y un poco más alto, bajada
-    // suave al puesto del piloto (hundido), y la punta angosta que cae sobre el tanque.
+    // Boxer CT (foto del catálogo): una pieza larga y gruesa, ancho parejo, cola y punta en U,
+    // el parrillero un poco más alto y el piloto plano. Sección redondeada.
     id: "boxer",
     label: "Boxer CT",
     examples: "Bajaj Boxer CT 100, Platino",
-    length: 76,
+    length: 74,
+    squareness: 2.8,
+    tailRound: 12,
+    noseRound: 9,
     halfWidth: [
-      [0, 12],
-      [0.1, 14],
-      [0.32, 15],
-      [0.55, 14],
-      [0.75, 12.5],
-      [0.9, 9.5],
-      [1, 7]
+      [0, 13],
+      [0.12, 14.5],
+      [0.4, 14.5],
+      [0.7, 13.5],
+      [0.9, 12],
+      [1, 10.5]
     ],
     top: [
-      [0, 14.8],
-      [0.08, 15.6],
-      [0.3, 15.4],
-      [0.44, 14.4],
-      [0.6, 13],
-      [0.78, 12.8],
-      [0.9, 12.4],
-      [1, 10.6]
+      [0, 15.5],
+      [0.1, 16.4],
+      [0.25, 16.2],
+      [0.42, 14.6],
+      [0.58, 13.6],
+      [0.85, 13.4],
+      [1, 13]
     ],
     bottom: [
-      [0, 7],
-      [0.12, 5],
-      [0.4, 4.2],
+      [0, 5],
+      [0.15, 3.6],
       [0.6, 3],
-      [0.86, 3],
-      [1, 4]
+      [1, 3.6]
     ]
   },
   {
@@ -71,7 +76,7 @@ export const SEAT_SHAPES: SeatShape[] = [
     label: "Calle",
     examples: "AKT NKD, Honda CB, Yamaha YBR",
     length: 72,
-    splitAt: 0.5,
+    bandAt: 0.5,
     halfWidth: [
       [0, 9.5],
       [0.15, 11.5],
@@ -103,7 +108,7 @@ export const SEAT_SHAPES: SeatShape[] = [
     label: "Deportiva",
     examples: "Pulsar NS, Yamaha FZ, Apache",
     length: 72,
-    splitAt: 0.445,
+    bandAt: 0.445,
     halfWidth: [
       [0, 8],
       [0.12, 9.5],
@@ -171,33 +176,78 @@ export const SEAT_SHAPES: SeatShape[] = [
     ]
   },
   {
-    // Larga, angosta y plana; la punta sube por encima del tanque.
+    // Enduro (DT, XTZ, XRE): de cajón, cola cortada casi recta y con la base arqueada,
+    // franja al pie de la subida y la punta que trepa sobre el tanque.
     id: "enduro",
     label: "Enduro",
-    examples: "Yamaha XTZ, DT, Honda XR",
-    length: 88,
+    examples: "Yamaha DT, XTZ, Honda XRE",
+    length: 86,
+    bandAt: 0.68,
+    squareness: 6,
+    tailRound: 4,
+    noseRound: 6,
     halfWidth: [
-      [0, 8],
-      [0.12, 10],
-      [0.45, 11],
-      [0.62, 11.5],
-      [0.8, 10],
-      [0.92, 7.5],
+      [0, 11],
+      [0.1, 12],
+      [0.5, 12.5],
+      [0.66, 12],
+      [0.8, 9.5],
+      [0.92, 7],
       [1, 5.5]
     ],
     top: [
-      [0, 14],
-      [0.4, 14.6],
-      [0.66, 14],
-      [0.84, 16.4],
-      [1, 19.6]
+      [0, 18],
+      [0.3, 18.4],
+      [0.6, 17.8],
+      [0.68, 18.6],
+      [0.8, 24],
+      [0.92, 29],
+      [1, 30.5]
     ],
     bottom: [
-      [0, 5],
-      [0.5, 3.6],
-      [0.72, 4.2],
-      [0.88, 9.4],
-      [1, 14]
+      [0, 9.5],
+      [0.1, 6.5],
+      [0.3, 5],
+      [0.62, 5],
+      [0.75, 8.5],
+      [0.9, 18],
+      [1, 23]
+    ]
+  },
+  {
+    // Motocross (CRF, KX, YZ): muy larga y angosta, plana, cola delgada y una subida larga
+    // que lleva la punta bien arriba del tanque.
+    id: "motocross",
+    label: "Motocross",
+    examples: "Honda CRF, Kawasaki KX, Yamaha YZ",
+    length: 96,
+    squareness: 4.5,
+    tailRound: 6,
+    noseRound: 5,
+    halfWidth: [
+      [0, 7],
+      [0.12, 9.5],
+      [0.45, 11],
+      [0.6, 11.5],
+      [0.75, 9.5],
+      [0.9, 6.5],
+      [1, 4.5]
+    ],
+    top: [
+      [0, 15.5],
+      [0.2, 16.4],
+      [0.5, 16],
+      [0.6, 16.6],
+      [0.78, 23],
+      [1, 31.5]
+    ],
+    bottom: [
+      [0, 10.5],
+      [0.15, 7],
+      [0.45, 5.5],
+      [0.58, 6.5],
+      [0.78, 14],
+      [1, 25.5]
     ]
   }
 ];
@@ -269,6 +319,8 @@ function cornerDrop(distanceCm: number, radius: number) {
 export type ShapeProfiles = {
   /** Largo en cm. */
   length: number;
+  /** Exponente de la sección de arriba (ver `squareness`). */
+  squareness: number;
   /** Medio ancho a la altura del hombro, con la cola y la punta redondeadas en planta. */
   halfWidth(u: number): number;
   top(u: number): number;
@@ -282,11 +334,12 @@ export function shapeProfiles(shape: SeatShape): ShapeProfiles {
   const bottom = profile(shape.bottom);
   const length = shape.length;
   // En planta, la cola y la punta son medio óvalo tan largo como su medio
-  // ancho (máx. 10 y 8 cm): la U de una silla de verdad, no una cúpula.
-  const tailReach = Math.min(width(0), 10) / length;
-  const noseReach = Math.min(width(1), 8) / length;
+  // ancho (con tope por forma): la U de una silla de verdad, no una cúpula.
+  const tailReach = Math.min(width(0), shape.tailRound ?? 10) / length;
+  const noseReach = Math.min(width(1), shape.noseRound ?? 8) / length;
   return {
     length,
+    squareness: shape.squareness ?? 3.4,
     halfWidth(u) {
       const a = u < tailReach ? u / tailReach : 1 - u < noseReach ? (1 - u) / noseReach : 1;
       return width(u) * (a >= 1 ? 1 : Math.sqrt(Math.max(0, 1 - (1 - a) ** 2)));
@@ -304,20 +357,23 @@ export function shapeProfiles(shape: SeatShape): ShapeProfiles {
 
 /**
  * Silueta de lado (la punta a la derecha) para el selector, como `d` de un
- * <path> en un viewBox de 0 0 90 20 (cm). Todas a la misma escala: se ve
+ * <path> en un viewBox de 0 0 100 32 (cm). Todas a la misma escala: se ve
  * cuál es más larga o más alta.
  */
+export const SILHOUETTE_WIDTH = 100;
+export const SILHOUETTE_HEIGHT = 32;
+
 export function silhouettePath(shape: SeatShape) {
   const p = shapeProfiles(shape);
   const steps = 48;
-  const x0 = (90 - p.length) / 2;
+  const x0 = (SILHOUETTE_WIDTH - p.length) / 2;
   const topLine: string[] = [];
   const bottomLine: string[] = [];
   for (let i = 0; i <= steps; i++) {
     const u = i / steps;
     const x = (x0 + u * p.length).toFixed(1);
-    topLine.push(`${x} ${(20 - p.top(u)).toFixed(1)}`);
-    bottomLine.unshift(`${x} ${(20 - p.bottom(u)).toFixed(1)}`);
+    topLine.push(`${x} ${(SILHOUETTE_HEIGHT - p.top(u)).toFixed(1)}`);
+    bottomLine.unshift(`${x} ${(SILHOUETTE_HEIGHT - p.bottom(u)).toFixed(1)}`);
   }
   return `M${topLine.join("L")}L${bottomLine.join("L")}Z`;
 }

@@ -133,6 +133,12 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
 
   const centerMaterial = leather(initial.center);
   const sideMaterial = leather(initial.sides);
+  // La franja mira hacia arriba, a la luz principal: con el brillo del cuero se
+  // vería casi blanca. Mismo color que los costados, pero mate.
+  const bandMaterial = leather(initial.sides);
+  bandMaterial.roughness = 0.78;
+  bandMaterial.clearcoat = 0;
+  bandMaterial.sheen = 0;
   // Plástico negro con algo de brillo: el contraluz le marca el canto sobre el fondo negro.
   const panMaterial = new MeshStandardMaterial({ color: 0x171717, roughness: 0.42, metalness: 0 });
   const stitchMaterial = new MeshStandardMaterial({ color: new Color(initial.stitch), roughness: 0.62 });
@@ -172,12 +178,12 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
   let stitches = makeStitches(current.stitches);
   seat.add(stitches);
 
-  // Vivo que cruza la silla en las de dos piezas (Calle, Deportiva).
+  // Franja que cruza el asiento (Calle, Deportiva, Enduro), del color de los costados.
   const emptyGeometry = new BufferGeometry();
-  const cross = new Mesh(current.crossPiping ?? emptyGeometry, sideMaterial);
-  cross.visible = current.crossPiping !== null;
-  cross.frustumCulled = false;
-  seat.add(cross);
+  const bandMesh = new Mesh(current.band ?? emptyGeometry, bandMaterial);
+  bandMesh.visible = current.band !== null;
+  bandMesh.frustumCulled = false;
+  seat.add(bandMesh);
 
   // Sombra de contacto bajo la base; se estira con el largo de la silla.
   const shadowTexture = createContactShadow();
@@ -226,9 +232,9 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
     stitches.dispose();
     stitches = makeStitches(target.stitches);
     seat.add(stitches);
-    if (cross.geometry !== emptyGeometry && cross.geometry !== target.crossPiping) cross.geometry.dispose();
-    cross.geometry = target.crossPiping ?? emptyGeometry;
-    cross.visible = target.crossPiping !== null;
+    if (bandMesh.geometry !== emptyGeometry && bandMesh.geometry !== target.band) bandMesh.geometry.dispose();
+    bandMesh.geometry = target.band ?? emptyGeometry;
+    bandMesh.visible = target.band !== null;
     current = target;
     seatLength = target.length;
     seatMiddle = target.middle;
@@ -259,7 +265,7 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
     // Las puntadas no se pueden transformar (cambia cuántas caben): se
     // esconden y vuelven con la forma nueva.
     stitches.visible = false;
-    cross.visible = false;
+    bandMesh.visible = false;
     morph = { start: performance.now(), target, from, fromLength: seatLength, fromMiddle: seatMiddle };
   }
 
@@ -300,7 +306,7 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
 
   function disposeGeometries(geometries: SeatGeometries) {
     for (const piece of PIECES) geometries[piece].dispose();
-    geometries.crossPiping?.dispose();
+    geometries.band?.dispose();
   }
 
   /* ------------------------------------------------------------ Look */
@@ -311,6 +317,7 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
     changeShape(look.shape);
     if (!textures) return;
     sideMaterial.color.set(look.sides);
+    bandMaterial.color.set(look.sides);
     stitchMaterial.color.set(look.stitch);
     if (look.pattern === "rombos") {
       diamondColor = paintDiamondColor(diamondColor, look.center, look.stitch);
@@ -348,6 +355,8 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
       textures.gripNormal.repeat.copy(toRepeat(DIAMOND_TILE_M));
       sideMaterial.normalMap = textures.grainNormal;
       sideMaterial.needsUpdate = true;
+      bandMaterial.normalMap = textures.grainNormal;
+      bandMaterial.needsUpdate = true;
       applyLook(currentLook);
       // Compila los shaders sin bloquear la página (KHR_parallel_shader_compile)
       // antes del primer cuadro; mientras tanto se sigue viendo la foto fija.
@@ -518,10 +527,10 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
       }
       stitches.dispose();
       stitchShape.dispose();
-      cross.geometry.dispose();
+      bandMesh.geometry.dispose();
       emptyGeometry.dispose();
       shadow.geometry.dispose();
-      [centerMaterial, sideMaterial, panMaterial, stitchMaterial, shadow.material].forEach((material) =>
+      [centerMaterial, sideMaterial, bandMaterial, panMaterial, stitchMaterial, shadow.material].forEach((material) =>
         material.dispose()
       );
       diamondColor?.dispose();

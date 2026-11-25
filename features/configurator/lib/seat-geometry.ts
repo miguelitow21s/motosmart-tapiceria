@@ -14,14 +14,13 @@
   cantidad de vértices, así una puede transformarse en otra suavemente.
 */
 import { BufferAttribute, BufferGeometry, CatmullRomCurve3, Matrix4, Quaternion, TubeGeometry, Vector3 } from "three";
-import { shapeProfiles, type SeatShape } from "./shapes";
+import { shapeProfiles, type SeatShape, type ShapeProfiles } from "./shapes";
 
 const CM = 1 / 50;
 
 /** Fracción del alto donde la silla es más ancha (la línea del hombro). */
 const SHOULDER = 0.64;
-/** Exponentes de la sección: más alto = más cuadrada. */
-const EXP_TOP = 3.4;
+/** Exponente de la parte de abajo de la sección (la de arriba depende de la forma). */
 const EXP_BOTTOM = 6;
 /** Cuánto se cierran los costados hacia la base (fracción del ancho). */
 const TAPER = 0.12;
@@ -46,7 +45,7 @@ function signedPow(value: number, power: number) {
   return Math.sign(value) * Math.abs(value) ** power;
 }
 
-type Profiles = ReturnType<typeof shapeProfiles>;
+type Profiles = ShapeProfiles;
 
 /**
  * Punto de la superficie. `phi` recorre la sección: 0 costado derecho (+z),
@@ -62,8 +61,8 @@ function surface(p: Profiles, u: number, phi: number, out: Vector3) {
   let y: number;
   let z: number;
   if (sn >= 0) {
-    z = a * signedPow(c, 2 / EXP_TOP);
-    y = shoulder + (top - shoulder) * signedPow(sn, 2 / EXP_TOP);
+    z = a * signedPow(c, 2 / p.squareness);
+    y = shoulder + (top - shoulder) * signedPow(sn, 2 / p.squareness);
     if (a > 0) y += CROWN * CM * (1 - (z / a) ** 2) * sn;
   } else {
     const depth = signedPow(-sn, 2 / EXP_BOTTOM);
@@ -143,17 +142,46 @@ function pipingGeometry(p: Profiles, phi: number) {
   return new TubeGeometry(new CatmullRomCurve3(points), PIPING_SEGMENTS, 0.0072, 8, false);
 }
 
-/** Vivo que cruza el asiento de costura a costura, donde se unen dos piezas. */
-function crossPipingGeometry(p: Profiles, u: number, phi0: number, phi1: number) {
-  const points: Vector3[] = [];
+/** Ancho de la franja que cruza el asiento, en cm. */
+const BAND_WIDTH = 6;
+
+/**
+ * Franja que cruza el asiento de costura a costura (en el taller, una tira del
+ * color de los costados cosida encima). Va 2 mm por encima del centro.
+ */
+function bandGeometry(p: Profiles, at: number, phi0: number, phi1: number) {
+  const rows = 14;
+  const cols = 48;
+  const half = BAND_WIDTH / 2 / p.length;
+  const position = new Float32Array((rows + 1) * (cols + 1) * 3);
+  const uv = new Float32Array((rows + 1) * (cols + 1) * 2);
+  const point = new Vector3();
   const normal = new Vector3();
-  for (let i = 0; i <= 40; i++) {
-    const phi = phi0 + ((phi1 - phi0) * i) / 40;
-    const point = surface(p, u, phi, new Vector3());
-    surfaceNormal(p, u, phi, normal);
-    points.push(point.addScaledVector(normal, 0.004));
+  for (let i = 0; i <= rows; i++) {
+    const u = at - half + (2 * half * i) / rows;
+    for (let j = 0; j <= cols; j++) {
+      const phi = phi0 + ((phi1 - phi0) * j) / cols;
+      surface(p, u, phi, point);
+      surfaceNormal(p, u, phi, normal);
+      point.addScaledVector(normal, 0.004);
+      position.set([point.x, point.y, point.z], (i * (cols + 1) + j) * 3);
+      uv.set([(u * p.length * CM) / 2, (j / cols) * 0.3], (i * (cols + 1) + j) * 2);
+    }
   }
-  return new TubeGeometry(new CatmullRomCurve3(points), 80, 0.0072, 8, false);
+  const index: number[] = [];
+  for (let i = 0; i < rows; i++) {
+    for (let j = 0; j < cols; j++) {
+      const k = i * (cols + 1) + j;
+      const n = k + cols + 1;
+      index.push(k, n, k + 1, n, n + 1, k + 1);
+    }
+  }
+  const geometry = new BufferGeometry();
+  geometry.setAttribute("position", new BufferAttribute(position, 3));
+  geometry.setAttribute("uv", new BufferAttribute(uv, 2));
+  geometry.setIndex(index);
+  geometry.computeVertexNormals();
+  return geometry;
 }
 
 /**
@@ -201,8 +229,8 @@ export type SeatGeometries = {
   rightPiping: BufferGeometry;
   leftPiping: BufferGeometry;
   stitches: Matrix4[];
-  /** Vivo transversal de las sillas de dos piezas; no se transforma (como las puntadas). */
-  crossPiping: BufferGeometry | null;
+  /** Franja que cruza el asiento, si la forma la lleva; no se transforma (como las puntadas). */
+  band: BufferGeometry | null;
   /** Largo en unidades de escena, para el encuadre y la sombra. */
   length: number;
   /** Altura del centro de la silla, para apuntar la cámara. */
@@ -228,7 +256,7 @@ export function buildSeatGeometries(shape: SeatShape): SeatGeometries {
     leftPiping: pipingGeometry(p, leftSeam),
     // Doble costura sobre el asiento, a unos 9 y 17 mm del vivo.
     stitches: stitchMatrices(p, [rightSeam + 0.07, rightSeam + 0.13, leftSeam - 0.07, leftSeam - 0.13]),
-    crossPiping: shape.splitAt === undefined ? null : crossPipingGeometry(p, shape.splitAt, rightSeam, leftSeam),
+    band: shape.bandAt === undefined ? null : bandGeometry(p, shape.bandAt, rightSeam, leftSeam),
     length: p.length * CM,
     middle: ((low + high) / 2) * CM
   };
