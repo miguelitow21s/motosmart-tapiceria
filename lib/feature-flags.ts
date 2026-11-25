@@ -35,3 +35,11 @@ export async function isFeatureEnabled(name: FeatureName, { onError = "closed" }
   if (!data) return false;
   return Boolean(data.enabled);
 }
+
+/**
+ * "Arma tu silla" (la silla en 3D): se ve con el módulo encendido. Con
+ * ADMIN_DEMO=1 (solo en local) se ve siempre, para revisarla sin tocar la base.
+ */
+export async function isCustomizerEnabled(options: { onError?: "open" | "closed" } = {}) {
+  return process.env.ADMIN_DEMO === "1" || isFeatureEnabled("customizer_enabled", options);
+}

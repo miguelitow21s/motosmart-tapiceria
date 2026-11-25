@@ -5,6 +5,8 @@ import { parseSeatColors } from "../lib/options";
 import { SeatConfigurator } from "./seat-configurator";
 
 export const SEAT_POSTER = "/arma-tu-silla/silla.webp";
+/** El mismo encuadre en el escenario 4:3 del teléfono. */
+const SEAT_POSTER_NARROW = "/arma-tu-silla/silla-movil.webp";
 
 /**
  * Bloque "Arma tu silla" sobre escenario negro. Título, texto y colores salen
@@ -31,7 +33,7 @@ export async function ConfiguratorSection({
           <p className="mt-3 text-lg text-ink-2">{settings.configurator_text}</p>
         </div>
         <div className="mt-8 md:mt-10">
-          <SeatConfigurator colors={colors} whatsappNumber={settings.whatsapp_number} poster={SEAT_POSTER} />
+          <SeatConfigurator colors={colors} whatsappNumber={settings.whatsapp_number} poster={{ narrow: SEAT_POSTER_NARROW, wide: SEAT_POSTER }} />
         </div>
       </div>
     </section>

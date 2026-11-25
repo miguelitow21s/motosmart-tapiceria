@@ -7,15 +7,18 @@ import { cn } from "@/lib/cn";
 
 const shopLinks = [
   { href: "/catalogo", label: "Catálogo" },
+  { href: "/arma-tu-silla", label: "Arma tu silla" },
   { href: "/pilotos", label: "Pilotos" },
   { href: "/sobre-nosotros", label: "Nosotros" },
   { href: "/contactanos", label: "Contacto" }
 ];
 
 // Pie negro, igual que la cabecera: el logo solo se lee sobre negro.
-export async function Footer() {
+export async function Footer({ customizerOn }: { customizerOn: boolean }) {
   const settings = await getSiteSettings();
   const year = new Date().getFullYear();
+  // "Arma tu silla" solo existe con su módulo encendido.
+  const links = customizerOn ? shopLinks : shopLinks.filter((link) => link.href !== "/arma-tu-silla");
 
   return (
     <footer className="bg-header pb-[env(safe-area-inset-bottom)] text-white/70 [--focus:#fff] [--line-strong:rgb(255_255_255/0.4)]">
@@ -30,7 +33,7 @@ export async function Footer() {
             Tienda
           </h2>
           <ul className="mt-3">
-            {shopLinks.map((link) => (
+            {links.map((link) => (
               <li key={link.href}>
                 <Link href={link.href} className="link-underline inline-flex min-h-11 items-center hover:text-white">
                   {link.label}

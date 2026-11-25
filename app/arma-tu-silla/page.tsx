@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { ClosingCta } from "@/components/shared/closing-cta";
 import { ConfiguratorSection, SEAT_POSTER } from "@/features/configurator/components/configurator-section";
-import { isFeatureEnabled } from "@/lib/feature-flags";
+import { isCustomizerEnabled } from "@/lib/feature-flags";
 import { pageMetadata } from "@/lib/seo";
 
 export function generateMetadata(): Promise<Metadata> {
@@ -17,9 +17,7 @@ export function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function ArmaTuSillaPage() {
-  // Con ADMIN_DEMO=1 (solo en local) se ve aunque el módulo esté apagado.
-  const enabled = process.env.ADMIN_DEMO === "1" || (await isFeatureEnabled("customizer_enabled", { onError: "open" }));
-  if (!enabled) redirect("/");
+  if (!(await isCustomizerEnabled({ onError: "open" }))) redirect("/");
   return (
     <>
       <ConfiguratorSection headingLevel="h1" />

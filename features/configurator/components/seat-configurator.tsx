@@ -39,7 +39,7 @@ export function SeatConfigurator({
 }: {
   colors: SeatColor[];
   whatsappNumber: string;
-  poster?: string;
+  poster?: { narrow: string; wide: string };
 }) {
   const stageRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -54,7 +54,12 @@ export function SeatConfigurator({
   const motoId = useId();
 
   const look = useMemo<SeatLook>(
-    () => ({ center: center.hex, sides: sides.hex, stitch: stitch.hex, pattern }),
+    () => ({
+      center: center.hex,
+      sides: sides.hex,
+      stitch: stitch.hex,
+      pattern
+    }),
     [center, sides, stitch, pattern]
   );
   const lookRef = useRef(look);
@@ -75,6 +80,12 @@ export function SeatConfigurator({
           return;
         }
         setStatus("loading");
+        const fail = (error: unknown) => {
+          console.error("Arma tu silla", error);
+          sceneRef.current?.dispose();
+          sceneRef.current = null;
+          if (!cancelled) setStatus("fallback");
+        };
         import("../lib/seat-scene")
           .then(({ mountSeatScene }) => {
             if (cancelled) return;
@@ -83,19 +94,27 @@ export function SeatConfigurator({
               reducedMotion,
               onReady: () => {
                 if (!cancelled) setStatus("ready");
-              }
+              },
+              onError: fail
             });
           })
-          .catch((error: unknown) => {
-            console.error("Arma tu silla", error);
-            if (!cancelled) setStatus("fallback");
-          });
+          .catch(fail);
       },
       { rootMargin: "300px 0px" }
     );
     observer.observe(stage);
+    // Si el teléfono se queda sin memoria de video, el navegador apaga el 3D:
+    // se vuelve a la foto fija en vez de dejar un cuadro negro.
+    const onContextLost = (event: Event) => {
+      event.preventDefault();
+      sceneRef.current?.dispose();
+      sceneRef.current = null;
+      if (!cancelled) setStatus("fallback");
+    };
+    canvas.addEventListener("webglcontextlost", onContextLost);
     return () => {
       cancelled = true;
+      canvas.removeEventListener("webglcontextlost", onContextLost);
       observer.disconnect();
       sceneRef.current?.dispose();
       sceneRef.current = null;
@@ -109,60 +128,86 @@ export function SeatConfigurator({
   const patternLabel = SEAT_PATTERNS.find((item) => item.id === pattern)?.label ?? pattern;
   const href = buildWhatsAppUrl(
     whatsappNumber,
-    seatQuoteMessage({ center: center.name, sides: sides.name, stitch: stitch.name, pattern: patternLabel, moto })
+    seatQuoteMessage({
+      center: center.name,
+      sides: sides.name,
+      stitch: stitch.name,
+      pattern: patternLabel,
+      moto
+    })
   );
 
   return (
     <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-center lg:gap-10 xl:grid-cols-[minmax(0,1fr)_24rem]">
       {/* En el teléfono la silla se queda fija bajo la cabecera mientras se
           eligen los colores: cada cambio se ve sin volver a subir. El fondo
-          del contenedor tapa lo que pasa por detrás en las esquinas. */}
-      <div className="z-10 bg-bg pb-3 max-lg:sticky max-lg:top-[calc(3.5rem+env(safe-area-inset-top))] lg:pb-0">
-      <div
-        ref={stageRef}
-        className="seat-stage relative aspect-[4/3] overflow-hidden rounded-xl md:aspect-[16/11]"
-        tabIndex={0}
-        role="group"
-        aria-roledescription="vista 3D"
-        aria-label="Silla en 3D. Arrástrala o usa las flechas del teclado para girarla."
-        onKeyDown={(event) => {
-          if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
-            event.preventDefault();
-            sceneRef.current?.rotateBy(event.key === "ArrowLeft" ? -0.3 : 0.3);
-            setTouched(true);
-          }
-        }}
-      >
-        {poster ? (
-          // eslint-disable-next-line @next/next/no-img-element -- imagen local fija, ya optimizada
-          <img
-            src={poster}
-            alt=""
+          del contenedor tapa lo que pasa por detrás en las esquinas. Con la
+          pantalla acostada (poca altura) no se pega: taparía los controles. */}
+      <div className="z-10 bg-bg pb-3 lg:pb-0 max-lg:[@media(min-height:35rem)]:sticky max-lg:[@media(min-height:35rem)]:top-[calc(3.5rem+env(safe-area-inset-top))]">
+        <div
+          ref={stageRef}
+          className="seat-stage relative aspect-[4/3] max-h-[45svh] w-full overflow-hidden rounded-xl md:aspect-[16/11] lg:max-h-none"
+          tabIndex={0}
+          role="group"
+          aria-roledescription="vista 3D"
+          aria-label="Silla en 3D. Arrástrala o usa las flechas del teclado para girarla."
+          onKeyDown={(event) => {
+            if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+              event.preventDefault();
+              sceneRef.current?.rotateBy(event.key === "ArrowLeft" ? -0.3 : 0.3);
+              setTouched(true);
+            }
+          }}
+        >
+          {poster ? (
+            // La foto fija tiene el mismo encuadre que la silla 3D en cada
+            // proporción del escenario (4:3 en el teléfono, 16:11 desde tableta).
+            <picture>
+              <source media="(min-width: 48rem)" srcSet={poster.wide} />
+              <img
+                src={poster.narrow}
+                alt=""
+                aria-hidden="true"
+                className={cx(
+                  "absolute inset-0 h-full w-full object-contain transition-opacity duration-500",
+                  status === "ready" ? "opacity-0" : "opacity-100"
+                )}
+              />
+            </picture>
+          ) : null}
+          <canvas
+            ref={canvasRef}
+            className={cx(
+              "absolute inset-0 h-full w-full cursor-grab touch-pan-y transition-opacity duration-500 active:cursor-grabbing",
+              status === "ready" ? "opacity-100" : "opacity-0"
+            )}
+            onPointerDown={() => setTouched(true)}
+          />
+          <p
             aria-hidden="true"
             className={cx(
-              "absolute inset-0 h-full w-full object-contain transition-opacity duration-500",
-              status === "ready" ? "opacity-0" : "opacity-100"
+              "pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-white/10 px-3 py-1.5 text-sm text-white/80 backdrop-blur transition-opacity duration-300",
+              status === "ready" && !touched ? "opacity-100" : "opacity-0"
             )}
-          />
-        ) : null}
-        <canvas
-          ref={canvasRef}
-          className={cx(
-            "absolute inset-0 h-full w-full cursor-grab touch-pan-y transition-opacity duration-500 active:cursor-grabbing",
-            status === "ready" ? "opacity-100" : "opacity-0"
-          )}
-          onPointerDown={() => setTouched(true)}
-        />
-        <p
-          aria-hidden="true"
-          className={cx(
-            "pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-white/10 px-3 py-1.5 text-sm text-white/80 backdrop-blur transition-opacity duration-300",
-            status === "ready" && !touched ? "opacity-100" : "opacity-0"
-          )}
-        >
-          Arrástrala para girarla
-        </p>
-      </div>
+          >
+            Arrástrala para girarla
+          </p>
+          {status === "fallback" ? (
+            // Sin 3D la foto no cambia: la elección se ve aquí y va en el mensaje.
+            <div className="absolute inset-x-3 bottom-3 flex items-center gap-3 rounded-lg bg-black/70 px-3 py-2 text-sm text-white backdrop-blur">
+              <span className="flex shrink-0 -space-x-1.5" aria-hidden="true">
+                {[center, sides, stitch].map((color, index) => (
+                  <span
+                    key={index}
+                    className="size-5 rounded-full ring-1 ring-white/45"
+                    style={{ backgroundColor: color.hex }}
+                  />
+                ))}
+              </span>
+              <span>Este teléfono no muestra la silla en 3D. Tus colores van en el mensaje.</span>
+            </div>
+          ) : null}
+        </div>
       </div>
 
       <form className="grid gap-5" onSubmit={(event) => event.preventDefault()}>

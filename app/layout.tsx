@@ -5,6 +5,7 @@ import { Navbar } from "@/components/shared/navbar";
 import { Footer } from "@/components/shared/footer";
 import { HideOnAdmin } from "@/components/shared/hide-on-admin";
 import { siteConfig } from "@/config/site";
+import { isCustomizerEnabled } from "@/lib/feature-flags";
 import { buildWhatsAppUrl, getSiteSettings } from "@/lib/settings";
 
 // Archivo variable con eje de ancho: un solo archivo da los títulos
@@ -68,7 +69,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export const revalidate = 300;
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const settings = await getSiteSettings();
+  const [settings, customizerOn] = await Promise.all([getSiteSettings(), isCustomizerEnabled()]);
   const whatsappHref = buildWhatsAppUrl(settings.whatsapp_number, settings.whatsapp_default_message);
 
   return (
@@ -85,12 +86,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </a>
         {/* WhatsApp vive en la cabecera fija (siempre a mano), así que ya no
             hay botón flotante tapando fotos y precios. */}
-        <Navbar whatsappHref={whatsappHref} />
+        <Navbar whatsappHref={whatsappHref} customizerOn={customizerOn} />
         <main id="contenido" tabIndex={-1} className="outline-none">
           {children}
         </main>
         <HideOnAdmin>
-          <Footer />
+          <Footer customizerOn={customizerOn} />
         </HideOnAdmin>
       </body>
     </html>

@@ -44,9 +44,10 @@ import {
   DIAMOND_TILE_M,
   GRAIN_TILE_M,
   createContactShadow,
-  createSeatTextures,
+  loadSeatTextures,
   paintDiamondColor,
-  type SeatPattern
+  type SeatPattern,
+  type SeatTextures
 } from "./textures";
 
 export type SeatLook = {
@@ -183,7 +184,7 @@ function loftPiece(phi0: number, phi1: number, rows: number, cols: number) {
     for (let j = 0; j <= cols; j++) {
       const k = i * (cols + 1) + j;
       // Escala 2:1 → metros reales = unidades / 2.
-      uv.set([(((u - 0.5) * LENGTH) / 2), (arcs[j] - arc / 2) / 2], k * 2);
+      uv.set([((u - 0.5) * LENGTH) / 2, (arcs[j] - arc / 2) / 2], k * 2);
     }
   }
   const index: number[] = [];
@@ -274,14 +275,24 @@ export type SeatSceneOptions = {
   reducedMotion: boolean;
   /** Se llama una vez, cuando el primer cuadro ya está pintado. */
   onReady?: () => void;
+  /** No se pudo preparar la silla (texturas o WebGL). */
+  onError?: (error: unknown) => void;
 };
 
 export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, options: SeatSceneOptions): SeatScene {
-  const renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: "high-performance" });
+  const renderer = new WebGLRenderer({
+    canvas,
+    antialias: true,
+    alpha: true,
+    powerPreference: "high-performance"
+  });
   renderer.outputColorSpace = SRGBColorSpace;
   renderer.toneMapping = ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.05;
   renderer.setClearColor(0x000000, 0);
+  // Revisar errores de shader obliga al navegador a esperar la compilación
+  // (casi un segundo en un teléfono modesto). Los shaders son de three.js.
+  renderer.debug.checkShaderErrors = process.env.NODE_ENV !== "production";
 
   const scene = new Scene();
   const pmrem = new PMREMGenerator(renderer);
@@ -302,11 +313,12 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
   rimLow.position.set(2.6, 0.4, -2);
   scene.add(key, rim, rimLow, new HemisphereLight(0xffffff, 0x222222, 0.35));
 
-  const textures = createSeatTextures();
+  // Los mapas de relieve se calculan en un worker: hasta que lleguen no se
+  // pinta nada (se sigue viendo la foto fija).
+  let textures: SeatTextures | null = null;
+  let compiled = false;
+  let disposed = false;
   const toRepeat = (tileMeters: number) => new Vector2(1 / tileMeters, 1 / tileMeters);
-  textures.grainNormal.repeat.copy(toRepeat(GRAIN_TILE_M));
-  textures.diamondNormal.repeat.copy(toRepeat(DIAMOND_TILE_M));
-  textures.gripNormal.repeat.copy(toRepeat(DIAMOND_TILE_M));
 
   const leather = (color: string) =>
     new MeshPhysicalMaterial({
@@ -318,14 +330,20 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
       sheen: 0.25,
       sheenRoughness: 0.6,
       sheenColor: new Color(0x333333),
-      normalMap: textures.grainNormal,
       normalScale: new Vector2(0.22, 0.22)
     });
 
   const centerMaterial = leather(initial.center);
   const sideMaterial = leather(initial.sides);
-  const panMaterial = new MeshStandardMaterial({ color: 0x0c0c0c, roughness: 0.72, metalness: 0 });
-  const stitchMaterial = new MeshStandardMaterial({ color: new Color(initial.stitch), roughness: 0.62 });
+  const panMaterial = new MeshStandardMaterial({
+    color: 0x0c0c0c,
+    roughness: 0.72,
+    metalness: 0
+  });
+  const stitchMaterial = new MeshStandardMaterial({
+    color: new Color(initial.stitch),
+    roughness: 0.62
+  });
   let diamondColor: CanvasTexture | null = null;
 
   const seat = new Group();
@@ -351,7 +369,12 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
   const shadowTexture = createContactShadow();
   const shadow = new Mesh(
     new PlaneGeometry(LENGTH * 1.25, 0.62),
-    new MeshBasicMaterial({ map: shadowTexture, transparent: true, depthWrite: false, opacity: 0.9 })
+    new MeshBasicMaterial({
+      map: shadowTexture,
+      transparent: true,
+      depthWrite: false,
+      opacity: 0.9
+    })
   );
   shadow.rotation.x = -Math.PI / 2;
   shadow.position.y = 0.018;
@@ -361,7 +384,10 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
   stage.add(seat);
   scene.add(stage);
 
+  let currentLook = initial;
   function applyLook(look: SeatLook) {
+    currentLook = look;
+    if (!textures) return;
     sideMaterial.color.set(look.sides);
     stitchMaterial.color.set(look.stitch);
     if (look.pattern === "rombos") {
@@ -387,7 +413,29 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
     }
     centerMaterial.needsUpdate = true;
   }
-  applyLook(initial);
+  loadSeatTextures()
+    .then((loaded) => {
+      if (disposed) {
+        loaded.dispose();
+        return;
+      }
+      textures = loaded;
+      textures.grainNormal.repeat.copy(toRepeat(GRAIN_TILE_M));
+      textures.diamondNormal.repeat.copy(toRepeat(DIAMOND_TILE_M));
+      textures.gripNormal.repeat.copy(toRepeat(DIAMOND_TILE_M));
+      sideMaterial.normalMap = textures.grainNormal;
+      sideMaterial.needsUpdate = true;
+      applyLook(currentLook);
+      // Compila los shaders sin bloquear la página (KHR_parallel_shader_compile)
+      // antes del primer cuadro; mientras tanto se sigue viendo la foto fija.
+      return renderer.compileAsync(scene, camera).then(() => {
+        if (disposed) return;
+        compiled = true;
+        needsRender = true;
+        wake();
+      });
+    })
+    .catch((error: unknown) => options.onError?.(error));
 
   /* ------------------------------------------------ Tamaño y encuadre */
 
@@ -468,6 +516,7 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
 
   function tick(now: number) {
     raf = 0;
+    if (!compiled) return;
     const dt = Math.min(1 / 30, (now - previous) / 1000);
     previous = now;
     let moving = false;
@@ -519,6 +568,7 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
       wake();
     },
     dispose() {
+      disposed = true;
       cancelAnimationFrame(raf);
       resizeObserver.disconnect();
       intersection.disconnect();
@@ -530,10 +580,12 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
       seat.traverse((object) => {
         if (object instanceof Mesh || object instanceof InstancedMesh) object.geometry.dispose();
       });
-      [centerMaterial, sideMaterial, panMaterial, stitchMaterial, shadow.material].forEach((material) => material.dispose());
+      [centerMaterial, sideMaterial, panMaterial, stitchMaterial, shadow.material].forEach((material) =>
+        material.dispose()
+      );
       diamondColor?.dispose();
       shadowTexture.dispose();
-      textures.dispose();
+      textures?.dispose();
       environment.dispose();
       room.dispose();
       pmrem.dispose();

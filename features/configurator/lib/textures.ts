@@ -5,7 +5,18 @@
   cuero no se estiran cuando la silla se angosta hacia la punta, porque las
   UV de la malla también están en metros (ver seat-scene.ts).
 */
-import { CanvasTexture, NoColorSpace, RepeatWrapping, SRGBColorSpace } from "three";
+import {
+  CanvasTexture,
+  DataTexture,
+  LinearFilter,
+  LinearMipmapLinearFilter,
+  NoColorSpace,
+  RGBAFormat,
+  RepeatWrapping,
+  SRGBColorSpace,
+  UnsignedByteType
+} from "three";
+import { GRAIN_SIZE, MAP_SIZE, buildNormalMaps, type NormalMaps } from "./texture-data";
 
 export type SeatPattern = "liso" | "rombos" | "antideslizante";
 
@@ -23,152 +34,58 @@ function makeCanvas(size = SIZE) {
   return canvas;
 }
 
-/** Pseudoaleatorio con semilla: la textura sale igual en cada visita. */
-function seeded(seed: number) {
-  let s = seed >>> 0;
-  return () => {
-    s = (s + 0x6d2b79f5) >>> 0;
-    let t = s;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-/**
- * Grano de cuero: ruido celular (Worley) que se repite sin costura. Devuelve
- * una altura 0..1 por píxel: las "piedritas" del cuero son altas en el centro
- * y bajan en los pliegues entre ellas.
- */
-function leatherGrain(size: number, cells: number, seed: number) {
-  const rand = seeded(seed);
-  const points: Array<[number, number]> = [];
-  for (let i = 0; i < cells; i++) points.push([rand() * size, rand() * size]);
-  const height = new Float32Array(size * size);
-  // Rejilla de cubetas para no comparar cada píxel con todos los puntos.
-  const grid = Math.max(1, Math.floor(Math.sqrt(cells)));
-  const cell = size / grid;
-  const buckets: number[][] = Array.from({ length: grid * grid }, () => []);
-  points.forEach(([x, y], index) => {
-    buckets[Math.min(grid - 1, Math.floor(y / cell)) * grid + Math.min(grid - 1, Math.floor(x / cell))].push(index);
-  });
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      const gx = Math.floor(x / cell);
-      const gy = Math.floor(y / cell);
-      let f1 = Infinity;
-      let f2 = Infinity;
-      for (let oy = -1; oy <= 1; oy++) {
-        for (let ox = -1; ox <= 1; ox++) {
-          const bx = (gx + ox + grid) % grid;
-          const by = (gy + oy + grid) % grid;
-          for (const index of buckets[by * grid + bx]) {
-            let dx = Math.abs(points[index][0] - x);
-            let dy = Math.abs(points[index][1] - y);
-            if (dx > size / 2) dx = size - dx;
-            if (dy > size / 2) dy = size - dy;
-            const d = dx * dx + dy * dy;
-            if (d < f1) {
-              f2 = f1;
-              f1 = d;
-            } else if (d < f2) {
-              f2 = d;
-            }
-          }
-        }
-      }
-      // F2 - F1: cero en el pliegue entre dos piedritas.
-      const edge = Math.sqrt(f2) - Math.sqrt(f1);
-      height[y * size + x] = Math.min(1, edge / (cell * 0.35));
-    }
-  }
-  return height;
-}
-
-function smoothstep(a: number, b: number, x: number) {
-  const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
-  return t * t * (3 - 2 * t);
-}
-
-/** Altura a mapa de normales (tangente), con vecinos que dan la vuelta. */
-function heightToNormal(height: Float32Array, size: number, strength: number) {
-  const canvas = makeCanvas(size);
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("Sin contexto 2D");
-  const image = ctx.createImageData(size, size);
-  const at = (x: number, y: number) => height[((y + size) % size) * size + ((x + size) % size)];
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      const nx = (at(x - 1, y) - at(x + 1, y)) * strength;
-      const ny = (at(x, y + 1) - at(x, y - 1)) * strength;
-      const len = Math.hypot(nx, ny, 1);
-      const i = (y * size + x) * 4;
-      image.data[i] = ((nx / len) * 0.5 + 0.5) * 255;
-      image.data[i + 1] = ((ny / len) * 0.5 + 0.5) * 255;
-      image.data[i + 2] = ((1 / len) * 0.5 + 0.5) * 255;
-      image.data[i + 3] = 255;
-    }
-  }
-  ctx.putImageData(image, 0, 0);
-  const texture = new CanvasTexture(canvas);
+/** Mapa de normales listo para WebGL, a partir de los bytes del worker. */
+function normalTexture(data: Uint8Array, size: number) {
+  const texture = new DataTexture(data, size, size, RGBAFormat, UnsignedByteType);
   texture.colorSpace = NoColorSpace;
   texture.wrapS = texture.wrapT = RepeatWrapping;
+  texture.magFilter = LinearFilter;
+  texture.minFilter = LinearMipmapLinearFilter;
+  texture.generateMipmaps = true;
   texture.anisotropy = 4;
+  texture.needsUpdate = true;
   return texture;
 }
 
-/** Distancia (en fracción de tesela) a la línea de rombos más cercana. */
-function diamondDistance(s: number, t: number) {
-  const a = s + t;
-  const b = s - t;
-  const da = Math.abs(a - Math.round(a));
-  const db = Math.abs(b - Math.round(b));
-  return Math.min(da, db) / Math.SQRT2;
-}
-
 export type SeatTextures = {
-  grainNormal: CanvasTexture;
-  diamondNormal: CanvasTexture;
-  gripNormal: CanvasTexture;
+  grainNormal: DataTexture;
+  diamondNormal: DataTexture;
+  gripNormal: DataTexture;
   dispose(): void;
 };
 
-export function createSeatTextures(): SeatTextures {
-  // Grano: una tesela de 6 cm con 140 piedritas (unos 5 mm cada una).
-  const grainSize = 256;
-  const grain = leatherGrain(grainSize, 220, 7);
-  const grainNormal = heightToNormal(grain, grainSize, 0.9);
-
-  // Rombos: cada tesela es un rombo de 10 cm, acolchado y hundido en la
-  // costura, con grano encima (a otra escala, también sin costura).
-  const fine = leatherGrain(SIZE, 900, 11);
-  const diamond = new Float32Array(SIZE * SIZE);
-  for (let y = 0; y < SIZE; y++) {
-    for (let x = 0; x < SIZE; x++) {
-      const d = diamondDistance(x / SIZE, y / SIZE);
-      // 0 en la costura, 1 en el centro del rombo: un cojín, no una pirámide.
-      const puff = Math.sqrt(smoothstep(0.0, 0.2, d));
-      diamond[y * SIZE + x] = puff * 0.9 + fine[y * SIZE + x] * 0.05;
+/** Calcula los mapas en un Web Worker; si no se puede, en el hilo principal. */
+function computeMaps(): Promise<NormalMaps> {
+  return new Promise((resolve, reject) => {
+    let worker: Worker;
+    try {
+      worker = new Worker(new URL("./textures.worker.ts", import.meta.url));
+    } catch {
+      resolve(buildNormalMaps());
+      return;
     }
-  }
-  const diamondNormal = heightToNormal(diamond, SIZE, 7);
+    worker.onmessage = (event: MessageEvent<NormalMaps>) => {
+      worker.terminate();
+      resolve(event.data);
+    };
+    worker.onerror = (event) => {
+      event.preventDefault();
+      worker.terminate();
+      try {
+        resolve(buildNormalMaps());
+      } catch (error) {
+        reject(error);
+      }
+    };
+    worker.postMessage(null);
+  });
+}
 
-  // Antideslizante: puntos en hexágono cada 5 mm (20 por tesela de 10 cm).
-  const grip = new Float32Array(SIZE * SIZE);
-  const rows = 20;
-  const pitch = SIZE / rows;
-  for (let y = 0; y < SIZE; y++) {
-    for (let x = 0; x < SIZE; x++) {
-      const row = Math.floor(y / pitch);
-      const offset = row % 2 === 0 ? 0 : pitch / 2;
-      const cx = (Math.floor((x - offset) / pitch) + 0.5) * pitch + offset;
-      const cy = (row + 0.5) * pitch;
-      const d = Math.hypot(x - cx, y - cy) / (pitch * 0.5);
-      grip[y * SIZE + x] = (1 - smoothstep(0.55, 0.85, d)) * 0.8 + fine[y * SIZE + x] * 0.06;
-    }
-  }
-  const gripNormal = heightToNormal(grip, SIZE, 3.2);
-
+export async function loadSeatTextures(): Promise<SeatTextures> {
+  const maps = await computeMaps();
+  const grainNormal = normalTexture(maps.grain, GRAIN_SIZE);
+  const diamondNormal = normalTexture(maps.diamond, MAP_SIZE);
+  const gripNormal = normalTexture(maps.grip, MAP_SIZE);
   return {
     grainNormal,
     diamondNormal,

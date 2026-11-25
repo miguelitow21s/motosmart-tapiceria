@@ -86,25 +86,29 @@
 /*
   Escenario negro: las secciones con data-theme="dark" continúan la barra
   negra del logo. Mismos nombres de token, valores invertidos, para que botones,
-  campos y textos funcionen igual dentro sin clases aparte. El rojo sube un
-  punto para mantener 4.5:1 como texto sobre negro.
+  campos y textos funcionen igual dentro sin clases aparte. Va en @layer base
+  para que una utilidad bg-* o text-* en el mismo elemento siga ganando.
+  Contraste: el rojo sobre negro da 3,9:1, así que en oscuro el rojo es solo
+  fondo de botón (texto blanco encima: 5,1:1), nunca texto.
 */
-[data-theme="dark"] {
-  color-scheme: dark;
-  --bg: #0a0a0a;
-  --surface: #171717;
-  --surface-2: #222222;
-  --ink: #f5f5f3;
-  --ink-2: #c4c4c0;
-  --ink-3: #9a9a96;
-  --line: #2a2a2a;
-  --line-strong: #3d3d3d;
-  --line-field: #6e6e6a;
-  --brand: #d71a37;
-  --brand-hover: #ee2a48;
-  --focus: #f5f5f3;
-  background-color: var(--bg);
-  color: var(--ink);
+@layer base {
+  [data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #0a0a0a;
+    --surface: #171717;
+    --surface-2: #222222;
+    --ink: #f5f5f3;
+    --ink-2: #c4c4c0;
+    --ink-3: #9a9a96;
+    --line: #2a2a2a;
+    --line-strong: #3d3d3d;
+    --line-field: #6e6e6a;
+    --brand: #d71a37;
+    --brand-hover: #e51e3d; /* blanco encima: 4,6:1 */
+    --focus: #f5f5f3;
+    background-color: var(--bg);
+    color: var(--ink);
+  }
 }
 
 /* Fondo del escenario de la silla 3D: un foco desde arriba, sin degradados de color. */

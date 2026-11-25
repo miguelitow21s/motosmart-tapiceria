@@ -189,7 +189,7 @@ MotoSmart se ve como la tienda estándar de tapicería para moto, hecha con el a
 La tienda se lee al sol y con una mano, así que el fondo es blanco, la tinta es casi negra y todo lo tocable mide 44 px o más. La única masa oscura es la barra negra de arriba (y el pie, que repite su color), porque el logo es un recorte transparente con letras blancas y solo se lee sobre negro. El panel de administración es la misma casa en modo de trabajo: hereda los tokens, cambia el rojo por tinta en la acción principal y reserva el rojo para borrar.
 
 **Key Characteristics:**
-- Tema claro único; fondo blanco, superficies de gris neutro apenas cálido, tinta `#111111`.
+- Tema claro de base; fondo blanco, superficies de gris neutro apenas cálido, tinta `#111111`. Desde la segunda pasada (25 de noviembre de 2026) una sección puede ir sobre escenario negro (`data-theme="dark"`), que continúa la barra del logo.
 - Un solo acento, el rojo de marca, y solo para actuar (botones y etiqueta de porcentaje; también tiñe el cursor de texto en los campos) y para el precio y la etiqueta de promoción.
 - Archivo variable: títulos condensados (ancho 75) y pesados (800), texto en ancho normal (400).
 - Tarjetas planas: borde de 1 px, radio de 8 px, sin sombra. Las sombras son solo para lo que flota.
@@ -317,9 +317,21 @@ Campo de búsqueda bajo el título de `/catalogo` y de `/catalogo/buscar`: campo
 
 ### Navigation
 - **Style:** barra superior negra de 56 px con el logo (44 px de alto, 93 px de ancho) a la izquierda. En escritorio: enlaces de 44 px de alto en 0.9375 rem 500, blancos al 75 % que pasan a blanco al pasar el cursor, y botón rojo "Cotizar por WhatsApp" a la derecha. La página activa va en blanco con subrayado blanco de 2 px, no rojo.
+- **Punto de quiebre:** los enlaces de escritorio aparecen desde 1024 px (`lg`); por debajo va el menú de hoja. Con "Arma tu silla" son seis enlaces y no caben a 768 px.
 - **Mobile:** botón de WhatsApp de 44 px (icono) y botón de menú de 44 px. El menú es una hoja a pantalla completa bajo la barra, con enlaces de 64 px de alto en `type-display` de 1.5 rem, que aparece con opacidad y 8 px de traslación en 220 ms con `ease-out`; atrapa el foco, bloquea el scroll de atrás y se cierra con Escape.
 - **Skip link:** "Saltar al contenido", blanco sobre la barra negra y por encima de ella (`z-90`), fuera de pantalla hasta recibir foco.
 - **Panel:** secciones en una columna lateral de 13 rem en escritorio (filas de 44 px, activa en `surface-2` con texto `ink`, no en rojo) y barra inferior de 64 px en teléfono (icono de 24 px y texto de 0.75 rem 600; activa en `ink` con una raya de 2 px arriba; inactiva en `ink-3`).
+
+### Escenario negro (`data-theme="dark"`)
+Una sección con `data-theme="dark"` reusa los mismos nombres de token con valores invertidos (en `@layer base` de `app/globals.css`): fondo `#0a0a0a`, superficie `#171717`, superficie 2 `#222222`, tinta `#f5f5f3`, tinta 2 `#c4c4c0`, tinta 3 `#9a9a96`, línea `#2a2a2a`, línea de campo `#6e6e6a`, rojo `#d71a37` (hover `#e51e3d`) y foco blanco. Botones, campos y textos funcionan igual adentro sin clases aparte. El rojo sobre ese negro da 3,9:1: en oscuro el rojo es solo fondo de botón (texto blanco encima: 5,1:1 y 4,6:1 en hover), nunca texto.
+
+### Arma tu silla (silla 3D)
+Silla de moto genérica hecha con código en three.js (`features/configurator/`), sin archivos 3D que descargar. Va sobre escenario negro, en una caja `seat-stage` (foco radial gris a negro, radio de 12 px) de 4:3 en teléfono y 16:11 desde tableta, con tope de 45 % del alto de pantalla en teléfono.
+- **Carga:** la página muestra primero una foto fija de la misma silla (`/arma-tu-silla/silla-movil.webp` para 4:3 y `silla.webp` para 16:11). three.js se descarga solo cuando la silla se acerca a la pantalla. Los mapas de relieve se calculan en un Web Worker y los shaders se compilan en paralelo, así que la página no se congela; la foto se funde con la silla 3D en 500 ms cuando el primer cuadro está listo.
+- **Gesto:** se gira arrastrando de lado (el desplazamiento vertical sigue siendo de la página) o con las flechas del teclado; tiene inercia y, sin tocarla, gira sola despacio (quieta con movimiento reducido). Se pausa fuera de pantalla.
+- **Controles:** muestras de color de 44 px (círculo de 32 px) para centro, costados y costura, un selector de textura de 3 segmentos (Rombos, Liso, Antideslizante), el campo "Tu moto" y el botón rojo "Cotizar esta silla", que arma el mensaje de WhatsApp con la combinación. Los colores se editan en el panel (Textos > Arma tu silla), uno por línea: `Rojo #b3121f`.
+- **Teléfono:** la silla se queda pegada bajo la cabecera mientras se eligen colores, excepto con poca altura de pantalla (teléfono acostado), donde taparía los controles.
+- **Sin 3D** (sin WebGL o si el navegador lo apaga): se queda la foto fija con una franja que muestra los tres colores elegidos y dice que van en el mensaje.
 
 ### Price
 Precio con "Desde" pequeño en `ink-3`, la cifra en Price (`ink`) y, con promoción vigente, la cifra en `brand`, el precio anterior tachado en `ink-3` y debajo la etiqueta en `brand` 600 con "ahorras $X" (en tarjeta angosta se omite porque ya lo dice el porcentaje) y "hasta el {fecha}" en `ink-3`. La etiqueta de porcentaje (`-20%`) va sobre la foto, arriba a la izquierda, en `brand` con texto blanco y radio de 6 px. La variante en línea ("Desde $145.000", 0.875 rem) va en los pies de foto.
@@ -368,7 +380,8 @@ Una sola gramática, con `transform` y `opacity`, y nada por encima de 300 ms. L
 - **Don't** usar rojo de marca para decorar, para marcar la página activa ni para seleccionar texto (`::selection` es tinta).
 - **Don't** usar el rojo de marca para borrar en el panel: borrar es `danger`, y la acción principal del panel es `dark`.
 - **Don't** hacer que algo aparezca al hacer scroll, ni que nada se mueva solo.
-- **Don't** usar fotos de stock ni ilustraciones donde va la foto de un trabajo real.
+- **Don't** usar fotos de stock ni ilustraciones donde va la foto de un trabajo real. La silla 3D va rotulada como vista de referencia y nunca ocupa el lugar de la foto de un diseño.
+- **Don't** usar el rojo de marca como texto sobre el escenario negro (3,9:1).
 - **Don't** darle a la tienda lenguaje de taller mecánico o de repuestos (placas, calcomanías, rótulos): es tapicería, un oficio de confección.
 - **Don't** animar `width`, `height`, `top` ni `left`; el interruptor y las hojas usan `translate` y `scale`.
 

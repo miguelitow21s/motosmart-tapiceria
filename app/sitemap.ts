@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { siteConfig } from "@/config/site";
 import { getStoreDesigns, getBrands } from "@/features/catalog/services/catalog.service";
-import { isFeatureEnabled } from "@/lib/feature-flags";
+import { isCustomizerEnabled, isFeatureEnabled } from "@/lib/feature-flags";
 
 /**
  * Solo páginas que Google debe indexar: sin /login (bloqueada en robots.txt) y
@@ -13,11 +13,12 @@ import { isFeatureEnabled } from "@/lib/feature-flags";
 export const revalidate = 300;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [brands, designs, catalogOn, ridersOn] = await Promise.all([
+  const [brands, designs, catalogOn, ridersOn, customizerOn] = await Promise.all([
     getBrands(),
     getStoreDesigns(),
     isFeatureEnabled("catalog_enabled"),
-    isFeatureEnabled("riders_enabled")
+    isFeatureEnabled("riders_enabled"),
+    isCustomizerEnabled()
   ]);
   const withDesigns = new Set(designs.map((design) => design.brand_id));
 
@@ -25,6 +26,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "",
     ...(catalogOn ? ["/catalogo"] : []),
     ...brands.filter((brand) => withDesigns.has(brand.id)).map((brand) => `/marca/${brand.slug}`),
+    ...(customizerOn ? ["/arma-tu-silla"] : []),
     ...(ridersOn ? ["/pilotos"] : []),
     "/sobre-nosotros",
     "/contactanos"
