@@ -1,13 +1,11 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { PageIntro } from "@/components/shared/page-intro";
-import { containerClasses } from "@/components/shared/section";
 import { WhatsAppLink } from "@/components/shared/whatsapp-link";
 import { Button } from "@/components/ui/button";
 import { WhatsAppIcon } from "@/components/ui/whatsapp-icon";
 import { isFeatureEnabled } from "@/lib/feature-flags";
 import { buildWhatsAppUrl, getSiteSettings } from "@/lib/settings";
-import { cn } from "@/lib/cn";
 
 export const metadata: Metadata = {
   title: "Agenda tu instalación",
@@ -32,15 +30,15 @@ export default async function CheckoutPage() {
       <PageIntro
         title="Agenda tu instalación"
         lead="Escríbenos con el diseño que elegiste y tu moto. Te confirmamos el precio final, el abono y el día de instalación en el taller."
-      />
-      <div className={cn(containerClasses, "pb-16 md:pb-24")}>
-        <Button asChild size="lg">
+      >
+        {/* La única acción de la página va en la cabecera negra, junto al texto. */}
+        <Button asChild size="lg" className="mt-7 w-full sm:w-auto">
           <WhatsAppLink href={href} source="checkout">
             <WhatsAppIcon />
             Agendar por WhatsApp
           </WhatsAppLink>
         </Button>
-      </div>
+      </PageIntro>
     </>
   );
 }
