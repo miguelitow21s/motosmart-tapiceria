@@ -27,7 +27,14 @@ export async function ConfiguratorSection({
     <section data-theme="dark" aria-labelledby="arma-tu-silla" className={className}>
       <div className={cn(containerClasses, "py-12 md:py-20")}>
         <div className="max-w-2xl">
-          <Heading id="arma-tu-silla" className={headingLevel === "h1" ? "text-display" : "text-title"}>
+          <Heading
+            id="arma-tu-silla"
+            className={
+              headingLevel === "h1"
+                ? "text-[clamp(2.25rem,1.3rem+3.4vw,4.75rem)] leading-[0.95] tracking-[-0.02em] uppercase"
+                : "text-title"
+            }
+          >
             {settings.configurator_title}
           </Heading>
           <p className="mt-3 text-lg text-ink-2">{settings.configurator_text}</p>

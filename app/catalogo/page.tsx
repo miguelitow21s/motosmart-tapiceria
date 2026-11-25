@@ -28,6 +28,8 @@ export async function generateMetadata(): Promise<Metadata> {
 /** Cuántas sillas de cada marca se muestran aquí antes de mandar a la página de la marca. */
 const PER_BRAND = 4;
 
+const SPAN = { 1: "lg:col-span-1", 2: "lg:col-span-2", 3: "lg:col-span-3", 4: "lg:col-span-4" } as const;
+
 export default async function CatalogoPage() {
   const [enabled, brands, designs] = await Promise.all([
     isFeatureEnabled("catalog_enabled", { onError: "open" }),
@@ -50,25 +52,41 @@ export default async function CatalogoPage() {
       </PageIntro>
       <BrandBar brands={brands} active="all" />
 
-      <div className={cn(containerClasses, "space-y-14 py-10 md:space-y-16 md:py-12")}>
+      {/* Desde 1024 px las marcas comparten fila: cada una ocupa tantas
+          columnas (de 4) como sillas muestra, así una marca con una sola
+          silla no deja la fila en blanco. */}
+      <div
+        className={cn(
+          containerClasses,
+          "space-y-14 py-10 md:space-y-16 md:py-12 lg:grid lg:grid-cols-4 lg:gap-x-4 lg:gap-y-16 lg:space-y-0"
+        )}
+      >
         {groups.length ? (
           groups.map(({ brand, designs: brandDesigns }, index) => (
-            <section key={brand.id} aria-labelledby={`marca-${brand.slug}`}>
-              <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
-                <div>
-                  <h2 id={`marca-${brand.slug}`} className="text-2xl md:text-3xl">
-                    {brand.name}
-                  </h2>
-                  <p className="mt-1 text-sm text-ink-3">
-                    {brandDesigns.length === 1 ? "1 diseño" : `${brandDesigns.length} diseños`}
-                  </p>
-                </div>
-                <Link href={`/marca/${brand.slug}`} className="link-underline inline-flex min-h-11 items-center font-semibold">
+            <section
+              key={brand.id}
+              aria-labelledby={`marca-${brand.slug}`}
+              className={cn("border-t-2 border-ink pt-4", SPAN[Math.min(PER_BRAND, brandDesigns.length) as 1 | 2 | 3 | 4])}
+            >
+              {/* Dos líneas de alto fijo (nombre; cuenta y enlace): las fotos de
+                  marcas vecinas en la misma fila arrancan a la misma altura. */}
+              <h2 id={`marca-${brand.slug}`} className="text-4xl leading-none uppercase md:text-5xl lg:truncate">
+                {brand.name}
+              </h2>
+              <div className="mt-1 flex items-center justify-between gap-x-4">
+                <p className="tabular shrink-0 text-sm text-ink-3">
+                  {brandDesigns.length === 1 ? "1 diseño" : `${brandDesigns.length} diseños`}
+                </p>
+                <Link
+                  href={`/marca/${brand.slug}`}
+                  className="link-underline block min-w-0 truncate py-2.5 font-semibold"
+                >
                   {brandDesigns.length > PER_BRAND ? `Ver los ${brandDesigns.length} de ${brand.name}` : `Ir a ${brand.name}`}
                 </Link>
               </div>
-              <div className="mt-5">
+              <div className="mt-3">
                 <DesignGrid
+                  columns={Math.min(PER_BRAND, brandDesigns.length) as 1 | 2 | 3 | 4}
                   designs={brandDesigns.slice(0, PER_BRAND)}
                   showBrand={false}
                   priorityCount={index === 0 ? 2 : 0}

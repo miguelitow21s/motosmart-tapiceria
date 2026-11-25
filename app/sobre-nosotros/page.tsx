@@ -3,6 +3,7 @@ import { ClosingCta } from "@/components/shared/closing-cta";
 import { ContactDetails } from "@/components/shared/contact-details";
 import { PageIntro } from "@/components/shared/page-intro";
 import { containerClasses } from "@/components/shared/section";
+import { ServicesList } from "@/components/shared/services-list";
 import { SmartImage } from "@/components/shared/smart-image";
 import { getCarouselSlides } from "@/features/catalog/services/catalog.service";
 import { pageMetadata } from "@/lib/seo";
@@ -22,33 +23,58 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function SobreNosotrosPage() {
   const [settings, slides] = await Promise.all([getSiteSettings(), getCarouselSlides()]);
-  // Dos trabajos reales del carrusel semanal; nunca fotos de stock.
-  const photos = slides.slice(1, 3).length === 2 ? slides.slice(1, 3) : slides.slice(0, 2);
+  // Tres trabajos reales del carrusel semanal (sin la primera, que abre el
+  // inicio); nunca fotos de stock.
+  const photos = (slides.length > 3 ? slides.slice(1) : slides).slice(0, 3);
 
   return (
     <>
-      <PageIntro title="Sobre nosotros" />
-      <div
-        className={cn(
-          containerClasses,
-          "grid gap-10 pb-12 md:pb-16",
-          photos.length && "lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-16"
-        )}
-      >
-        <div>
-          <p className="max-w-[60ch] text-lg leading-relaxed text-ink-2">{settings.about_description}</p>
-          <h2 className="mt-10 text-2xl">{settings.business_district ? "Dónde encontrarnos" : "Cómo contactarnos"}</h2>
-          <ContactDetails className="mt-5" />
-        </div>
-        {photos.length ? (
-          <div className="grid grid-cols-2 gap-3 sm:gap-4">
-            {photos.map((photo) => (
-              <div key={photo.id} className="relative aspect-3/4 overflow-hidden rounded-lg bg-surface">
-                <SmartImage src={photo.image} alt={photo.alt} sizes="(min-width: 1024px) 300px, 50vw" />
-              </div>
+      <PageIntro title="Sobre nosotros" lead={settings.about_description} />
+
+      {photos.length ? (
+        // La franja de fotos sigue en el escenario negro de la cabecera.
+        <div data-theme="dark">
+          <ul
+            className={cn(
+              containerClasses,
+              "grid gap-3 pb-10 sm:gap-4 md:pb-14",
+              photos.length === 1 ? "grid-cols-1" : photos.length === 2 ? "grid-cols-2" : "grid-cols-2 md:grid-cols-3"
+            )}
+          >
+            {photos.map((photo, index) => (
+              <li
+                key={photo.id}
+                className={cn(
+                  "relative overflow-hidden rounded-lg bg-surface",
+                  photos.length === 3 && index === 0 ? "col-span-2 aspect-4/3 md:col-span-1 md:aspect-3/4" : "aspect-3/4"
+                )}
+              >
+                <SmartImage
+                  src={photo.image}
+                  alt={photo.alt}
+                  sizes={photos.length === 3 && index === 0 ? "(min-width: 768px) 33vw, 100vw" : "(min-width: 768px) 33vw, 50vw"}
+                  priority={index === 0}
+                />
+              </li>
             ))}
-          </div>
-        ) : null}
+          </ul>
+        </div>
+      ) : null}
+
+      <div className={cn(containerClasses, "grid gap-12 py-12 md:py-16 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:gap-16")}>
+        <section aria-labelledby="que-hacemos">
+          <h2 id="que-hacemos" className="text-title">
+            {settings.services_title}
+          </h2>
+          <p className="mt-3 max-w-2xl text-lg text-ink-2">{settings.services_text}</p>
+          <ServicesList settings={settings} className="mt-8" />
+        </section>
+        <section aria-labelledby="donde">
+          <h2 id="donde" className="text-title">
+            {settings.business_district ? "Dónde encontrarnos" : "Cómo contactarnos"}
+          </h2>
+          <ContactDetails className="mt-6" />
+        </section>
       </div>
       <ClosingCta />
     </>

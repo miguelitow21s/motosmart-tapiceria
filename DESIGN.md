@@ -20,6 +20,14 @@ colors:
   warning: "#8a5300"
   header: "#000000"
 typography:
+  poster:
+    fontFamily: "Archivo, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "clamp(2.25rem, 1.1rem + 4.6vw, 5.75rem)"
+    fontWeight: 800
+    lineHeight: 0.95
+    letterSpacing: "-0.02em"
+    textTransform: uppercase
+    fontVariation: "'wdth' 75"
   display:
     fontFamily: "Archivo, ui-sans-serif, system-ui, sans-serif"
     fontSize: "clamp(2.125rem, 1.45rem + 2.9vw, 3.75rem)"
@@ -189,7 +197,8 @@ MotoSmart se ve como la tienda estándar de tapicería para moto, hecha con el a
 La tienda se lee al sol y con una mano, así que el fondo es blanco, la tinta es casi negra y todo lo tocable mide 44 px o más. La única masa oscura es la barra negra de arriba (y el pie, que repite su color), porque el logo es un recorte transparente con letras blancas y solo se lee sobre negro. El panel de administración es la misma casa en modo de trabajo: hereda los tokens, cambia el rojo por tinta en la acción principal y reserva el rojo para borrar.
 
 **Key Characteristics:**
-- Tema claro de base; fondo blanco, superficies de gris neutro apenas cálido, tinta `#111111`. Desde la segunda pasada (25 de noviembre de 2026) una sección puede ir sobre escenario negro (`data-theme="dark"`), que continúa la barra del logo.
+- Tema claro de base; fondo blanco, superficies de gris neutro apenas cálido, tinta `#111111`. Desde la segunda pasada (25 de noviembre de 2026) cada página arranca en escenario negro (`data-theme="dark"`) que continúa la barra del logo: el héroe del inicio, la cabecera de cada página interna (`PageIntro`), la galería de pilotos y Arma tu silla. Las rejillas de sillas y los formularios siguen en blanco, para leer al sol.
+- Cada página cierra con una franja roja de marca (`ClosingCta`) justo antes del pie negro: negro arriba, tienda blanca al medio, rojo y negro abajo.
 - Un solo acento, el rojo de marca, y solo para actuar (botones y etiqueta de porcentaje; también tiñe el cursor de texto en los campos) y para el precio y la etiqueta de promoción.
 - Archivo variable: títulos condensados (ancho 75) y pesados (800), texto en ancho normal (400).
 - Tarjetas planas: borde de 1 px, radio de 8 px, sin sombra. Las sombras son solo para lo que flota.
@@ -208,7 +217,7 @@ Un blanco limpio con grises neutros, una tinta casi negra y un rojo de bandera q
 
 ### Neutral
 - **Blanco Papel** (`bg`): fondo de página, de tarjetas, de campos, de diálogos y de la barra inferior del panel.
-- **Gris Taller** (`surface`): marco de las fotos mientras cargan, fondo de la sección de cierre, hover de botones secundarios y fantasmas, esqueletos.
+- **Gris Taller** (`surface`): marco de las fotos mientras cargan, hover de botones secundarios y fantasmas, esqueletos.
 - **Gris Taller Hondo** (`surface-2`): navegación lateral activa del panel, insignia neutra, esqueleto del título.
 - **Tinta** (`ink`): texto principal, botón oscuro del panel, chip de marca activo, selección de texto (`::selection`), foco.
 - **Tinta Segunda** (`ink-2`): texto de apoyo, párrafos largos y hover del botón oscuro (8,5:1 sobre blanco).
@@ -224,7 +233,7 @@ Un blanco limpio con grises neutros, una tinta casi negra y un rojo de bandera q
 - **Ámbar de Estado** (`warning`): insignia de aviso, foto que no carga, punto de pendiente. 6,3:1 sobre blanco.
 
 ### Named Rules
-**The Rojo Que Actúa Rule.** El rojo de marca es para hacer algo (cotizar, escribir) o para decir que algo cuesta menos hoy. No decora, no marca la página activa, no selecciona texto. En el panel la acción principal es tinta y el rojo (el de peligro) solo borra.
+**The Rojo Que Actúa Rule.** El rojo de marca es para hacer algo (cotizar, escribir) o para decir que algo cuesta menos hoy. No marca la página activa ni selecciona texto. En el panel la acción principal es tinta y el rojo (el de peligro) solo borra. Dos excepciones, desde la pasada de noviembre de 2026: la franja roja de cierre (una por página, es el bloque de cotizar: texto blanco a 5,9:1 y botón blanco con tinta) y los números 01 a 03 de la lista de servicios (rojo sobre blanco, 5,9:1). Fuera de eso el rojo no decora.
 
 **The Un Solo Acento Rule.** No hay segundo acento. Ni verde WhatsApp ni azul de enlace: el glifo de WhatsApp va blanco sobre el rojo. Verde y ámbar son estados del panel, nunca acentos de la tienda.
 
@@ -239,8 +248,9 @@ Un blanco limpio con grises neutros, una tinta casi negra y un rojo de bandera q
 **Character:** Una sola fuente en dos anchos. Los títulos son condensados y pesados, eco del "Tapiceria" condensado del logo; el texto respira en ancho normal. El archivo es `app/fonts/archivo-latin-var.woff2` (local, recortado a latín, ejes de peso 400 a 800 y ancho 75 a 100), con Arial ajustada a sus métricas como respaldo para que el texto no salte al cargar.
 
 ### Hierarchy
-- **Display** (800, `clamp(2.125rem, 1.45rem + 2.9vw, 3.75rem)`, 1): el h1 del inicio (unos 34 px a 390 px de ancho). Utilidad `text-display`.
-- **Title** (800, `clamp(1.75rem, 1.35rem + 1.6vw, 2.625rem)`, 1.04): h1 de las páginas internas y h2 de las secciones. Utilidad `text-title`.
+- **Cartel** (800 condensado, MAYÚSCULAS, altura de línea 0.95, `tracking -0.02em`): la voz de las piezas que abren o cierran una página. h1 del inicio `clamp(2.25rem, 1.1rem + 4.6vw, 5.75rem)` (36 px a 390, 92 px a 1440); h1 de las páginas internas, de Arma tu silla y de la 404 `clamp(2.25rem, 1.3rem + 3.4vw, 4.75rem)`; h2 del adelanto de Arma tu silla `clamp(2.25rem, 1.4rem + 3.2vw, 4.5rem)`; h2 de la franja de cierre `clamp(2rem, 1.3rem + 2.8vw, 3.75rem)`; nombre de cada marca en el catálogo `text-4xl`/`text-5xl`. Se escribe con utilidades sueltas, no hay token.
+- **Display** (800, `clamp(2.125rem, 1.45rem + 2.9vw, 3.75rem)`, 1): utilidad `text-display`; desde la pasada de noviembre de 2026 ya no la usa ningún título de la tienda.
+- **Title** (800, `clamp(1.75rem, 1.35rem + 1.6vw, 2.625rem)`, 1.04): h2 de las secciones, en mayúsculas y minúsculas. Utilidad `text-title`.
 - **Headline** (800, 1.125 rem en teléfono y 1.25 rem desde `sm`, `leading-tight`): nombre del diseño en la tarjeta; en el panel, títulos de panel (`text-xl`) y de pestaña (`text-3xl` a `text-4xl`).
 - **Price** (800, 1.375 rem o 1.75 rem en tamaño grande, 1, cifras tabulares): precio en la tarjeta y la ficha. Utilidad `type-display` más `tabular`.
 - **Body** (400, 1 rem, 1.55): todo el texto corrido. Los campos usan 16 px para que iOS no haga zoom.
@@ -259,7 +269,9 @@ Los h1 a h3 reciben por defecto Archivo 800, `font-stretch: 75%`, `letter-spacin
 
 Una columna angosta que se vuelve rejilla. El contenedor de toda la tienda es `max-w-7xl` (80 rem, 1280 px) con márgenes laterales de 16, 24 y 32 px (a partir de 40 rem y 64 rem), de modo que los bordes izquierdo y derecho coinciden en todas las secciones. Las filas que se deslizan (trabajos de la semana, marcas) sangran a todo el ancho de la pantalla pero su primer elemento arranca alineado con el contenido (`bleed-row`).
 
-Las secciones respiran 48 px arriba y abajo en el teléfono y 64 px desde `md`; las cabeceras de página usan 24 px y 40 px. La rejilla de sillas es de dos columnas en el teléfono, tres desde `md` y cuatro desde `xl` (tres si la cantidad no llena filas de cuatro). En la vista previa de `/catalogo` (cuatro sillas por marca), entre `md` y `xl` se muestran solo tres, para que la cuarta no quede sola en una fila; el enlace "Ver los N de {marca}" lleva a todas. Separación de 12 px de separación y 16 px desde `sm`. El héroe de escritorio parte en dos desde `lg`: texto a la izquierda y una foto vertical de 26 rem (30 rem desde `xl`) a la derecha con 64 px entre ambas; en el teléfono la foto destacada no se muestra y la primera tarjeta de "Trabajos de la semana" asoma en la primera pantalla. Las tarjetas del carrusel miden 13,5 rem en teléfono, 16 rem desde `sm` y 18 rem desde `lg`, con `scroll-snap` obligatorio.
+Las secciones respiran 48 px arriba y abajo en el teléfono y 64 px desde `md`; las cabeceras de página usan 24 px y 40 px. La rejilla de sillas es de dos columnas en el teléfono, tres desde `md` y cuatro desde `xl` (tres si la cantidad no llena filas de cuatro). En la vista previa de `/catalogo` (cuatro sillas por marca), entre `md` y `lg` se muestran solo tres, para que la cuarta no quede sola en una fila; el enlace "Ver los N de {marca}" lleva a todas. Separación de 12 px de separación y 16 px desde `sm`. El héroe del inicio va en escenario negro. En escritorio parte en dos desde `lg`: título, texto y botones abajo a la izquierda, y la primera foto del carrusel semanal, vertical 3:4, de 28 rem (32 rem desde `xl`) a la derecha, con 64 px entre ambas; debajo del texto, una raya y las cifras reales de la base (diseños en el catálogo y marcas, `text-5xl` condensado) junto a `hero_note`. En el teléfono la foto va bajo el botón y su alto es `clamp(14rem, 100svh - 26rem, 34rem)`: a 390×844 y a 360×640 el título, el botón y la foto con su precio entran enteros en la primera pantalla. Desde `sm` hasta `lg` la foto es 4:3. "Trabajos de la semana" recibe las fotos sin la del héroe.
+
+En `/catalogo` cada marca va bajo una raya de 2 px en tinta, con el nombre en Cartel y una segunda línea de alto fijo (cuenta y enlace), para que las fotos de marcas vecinas arranquen a la misma altura. Desde `lg` el catálogo es una rejilla de cuatro columnas donde cada marca ocupa tantas columnas como sillas muestra (hasta cuatro): las marcas con una o dos sillas comparten fila en lugar de dejar la fila en blanco. Las tarjetas del carrusel miden 13,5 rem en teléfono, 16 rem desde `sm` y 18 rem desde `lg`, con `scroll-snap` obligatorio.
 
 La barra negra mide 56 px y es pegajosa; la barra de marcas (chips de 44 px) se pega justo debajo, así que `scroll-padding-top` es 8,5 rem y las tarjetas llevan `scroll-mt-36`. Los puntos de quiebre son los de Tailwind sin cambios (`sm` 40 rem, `md` 48 rem, `lg` 64 rem, `xl` 80 rem); el menú móvil de la tienda cambia a barra de enlaces en `md`.
 
@@ -267,7 +279,7 @@ El panel usa el mismo contenedor. En escritorio (`lg`), una columna lateral de 1
 
 ## Elevation & Depth
 
-El sistema es plano por tono y borde. Las tarjetas, paneles, campos y chips se separan con un borde de 1 px (`line`) o de `line-strong`, sin sombra en reposo ni al pasar el cursor; el fondo `surface` marca zonas (cierre, marcos de foto). Lo único con sombra es lo que flota sobre la página: diálogos y hojas y la tarjeta de espera del panel.
+El sistema es plano por tono y borde. Las tarjetas, paneles, campos y chips se separan con un borde de 1 px (`line`) o de `line-strong`, sin sombra en reposo ni al pasar el cursor; el fondo `surface` marca zonas (marcos de foto, esqueletos). Lo único con sombra es lo que flota sobre la página: diálogos y hojas y la tarjeta de espera del panel.
 
 ### Shadow Vocabulary
 - **Flotante** (`box-shadow: 0 12px 32px -12px rgb(17 17 17 / 0.28), 0 2px 6px -2px rgb(17 17 17 / 0.12)`, token `--shadow-float`): diálogos, hojas y la tarjeta de "Guardando". Tinte de la tinta, desplazada hacia abajo.
@@ -325,6 +337,14 @@ Campo de búsqueda bajo el título de `/catalogo` y de `/catalogo/buscar`: campo
 ### Escenario negro (`data-theme="dark"`)
 Una sección con `data-theme="dark"` reusa los mismos nombres de token con valores invertidos (en `@layer base` de `app/globals.css`): fondo `#0a0a0a`, superficie `#171717`, superficie 2 `#222222`, tinta `#f5f5f3`, tinta 2 `#c4c4c0`, tinta 3 `#9a9a96`, línea `#2a2a2a`, línea de campo `#6e6e6a`, rojo `#d71a37` (hover `#e51e3d`) y foco blanco. Botones, campos y textos funcionan igual adentro sin clases aparte. El rojo sobre ese negro da 3,9:1: en oscuro el rojo es solo fondo de botón (texto blanco encima: 5,1:1 y 4,6:1 en hover), nunca texto.
 
+Dentro del escenario, `data-theme="light"` devuelve los tokens claros. Lo usa la etiqueta blanca de precio sobre la foto del héroe: así un precio en promoción vuelve a ser rojo sobre blanco (5,9:1) y nunca rojo sobre negro.
+
+### Franja de cierre
+`ClosingCta`, al final de casi todas las páginas: fondo `brand`, título en Cartel blanco, texto blanco (5,9:1) y botón blanco con tinta (`secondary` con fondo y borde blancos) y el glifo de WhatsApp en tinta. Foco blanco. Es el único bloque rojo de la página.
+
+### Servicios numerados
+`ServicesList` (inicio y Sobre nosotros): los tres servicios de `service_1..3` bajo una raya de 2 px en tinta, cada uno con su número 01 a 03 en Archivo condensado rojo (`text-4xl`, `text-5xl` desde `sm`), título y texto; filas separadas por `line`.
+
 ### Arma tu silla (silla 3D)
 Silla de moto genérica hecha con código en three.js (`features/configurator/`), sin archivos 3D que descargar. Va sobre escenario negro, en una caja `seat-stage` (foco radial gris a negro, radio de 12 px) de 4:3 en teléfono y 16:11 desde tableta, con tope de 45 % del alto de pantalla en teléfono.
 - **Carga:** la página muestra primero una foto fija de la misma silla (`/arma-tu-silla/silla-movil.webp` para 4:3 y `silla.webp` para 16:11). three.js se descarga solo cuando la silla se acerca a la pantalla. Los mapas de relieve se calculan en un Web Worker y los shaders se compilan en paralelo, así que la página no se congela; la foto se funde con la silla 3D en 500 ms cuando el primer cuadro está listo.
@@ -376,12 +396,13 @@ Una sola gramática, con `transform` y `opacity`, y nada por encima de 300 ms. L
 - **Do** usar solo `transform` y `opacity` para mover cosas, con `--ease-out` (`cubic-bezier(0.23, 1, 0.32, 1)`) o `--ease-drawer`, y nada por encima de 300 ms.
 - **Do** dar a cada hover la guarda de puntero fino y a cada animación su salida con `prefers-reduced-motion` (fundido corto o quieto).
 - **Do** mostrar "Consultar precio" cuando el precio guardado es implausible, y "Foto no disponible" cuando la foto falla en el navegador.
+- **Do** abrir cada página en escenario negro (héroe o `PageIntro`) y cerrarla con la franja roja; una sola franja roja por página.
 - **Do** dejar fuera de la tienda los diseños sin foto propia (sin foto, foto de stock o foto borrada de Storage): `getStoreDesigns` los filtra en el servidor y el Resumen del panel cuenta cuántos quedan fuera. Una marca sin diseños con foto muestra su estado vacío con WhatsApp.
 
 ### Don't:
 - **Don't** poner el logo sobre blanco o sobre rojo; vive sobre `header` negro puro.
 - **Don't** añadir un segundo acento (verde WhatsApp, azul de enlace, neón) ni un degradado o brillo; verde y ámbar son estados del panel.
-- **Don't** usar rojo de marca para decorar, para marcar la página activa ni para seleccionar texto (`::selection` es tinta).
+- **Don't** usar rojo de marca para decorar (fuera de la franja de cierre y los números de servicios), para marcar la página activa ni para seleccionar texto (`::selection` es tinta).
 - **Don't** usar el rojo de marca para borrar en el panel: borrar es `danger`, y la acción principal del panel es `dark`.
 - **Don't** hacer que algo aparezca al hacer scroll, ni que nada se mueva solo.
 - **Don't** usar fotos de stock ni ilustraciones donde va la foto de un trabajo real. La silla 3D va rotulada como vista de referencia y nunca ocupa el lugar de la foto de un diseño.

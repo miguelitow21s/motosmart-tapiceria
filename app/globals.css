@@ -109,6 +109,26 @@
     background-color: var(--bg);
     color: var(--ink);
   }
+
+  /* De vuelta al tema claro dentro del escenario negro: la etiqueta blanca de
+     precio sobre una foto. Así un precio en promoción vuelve a ser rojo sobre
+     blanco (5,9:1) y nunca rojo sobre negro. */
+  [data-theme="light"] {
+    color-scheme: light;
+    --bg: #ffffff;
+    --surface: #f5f5f3;
+    --surface-2: #ebebe8;
+    --ink: #111111;
+    --ink-2: #4d4d4d;
+    --ink-3: #6b6b6b;
+    --line: #e2e2df;
+    --line-strong: #c9c9c5;
+    --line-field: #858581;
+    --brand: #c8102e;
+    --brand-hover: #a50d26;
+    --focus: #111111;
+    color: var(--ink);
+  }
 }
 
 /* Fondo del escenario de la silla 3D: un foco desde arriba, sin degradados de color. */
