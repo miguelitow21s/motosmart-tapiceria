@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ClosingCta } from "@/components/shared/closing-cta";
 import { Hero } from "@/components/shared/hero";
+import { ServicesList } from "@/components/shared/services-list";
 import { Section, SectionHeader, containerClasses } from "@/components/shared/section";
 import { SmartImage } from "@/components/shared/smart-image";
 import { BrandBar } from "@/features/catalog/components/brand-bar";
@@ -77,11 +78,6 @@ export default async function HomePage() {
   // Para el bloque de servicios, la foto más lejos de la primera (que ya
   // está en el héroe).
   const servicesPhoto = slides.length > 1 ? slides[slides.length - 1] : null;
-  const services = [
-    { title: settings.service_1_title, text: settings.service_1_text },
-    { title: settings.service_2_title, text: settings.service_2_text },
-    { title: settings.service_3_title, text: settings.service_3_text }
-  ];
 
   return (
     <>
@@ -123,20 +119,7 @@ export default async function HomePage() {
               {settings.services_title}
             </h2>
             <p className="mt-3 max-w-2xl text-lg text-ink-2">{settings.services_text}</p>
-            <ol className="mt-8 border-t-2 border-ink">
-              {services.map((service, index) => (
-                <li
-                  key={service.title}
-                  className="grid grid-cols-[3.25rem_1fr] gap-x-4 border-b border-line py-5 sm:grid-cols-[4.5rem_13rem_1fr] sm:gap-x-6"
-                >
-                  <span aria-hidden="true" className="type-display tabular row-span-2 text-4xl leading-none text-brand sm:row-span-1 sm:text-5xl">
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
-                  <h3 className="text-xl leading-tight">{service.title}</h3>
-                  <p className="text-ink-2">{service.text}</p>
-                </li>
-              ))}
-            </ol>
+            <ServicesList settings={settings} className="mt-8" />
           </div>
           {servicesPhoto ? (
             <div className="relative aspect-4/3 overflow-hidden rounded-lg bg-surface lg:col-start-1 lg:row-start-1 lg:aspect-3/4">
