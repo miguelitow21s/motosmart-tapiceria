@@ -13,7 +13,7 @@ import { MoldeMatches } from "@/features/catalog/components/molde-matches";
 import { parseMoldes, searchMoldes } from "@/features/catalog/lib/moldes";
 import { readQuery, searchDesigns } from "@/features/catalog/lib/search";
 import { getBrands, getSearchableDesigns } from "@/features/catalog/services/catalog.service";
-import { isFeatureEnabled } from "@/lib/feature-flags";
+import { isCustomizerEnabled, isFeatureEnabled } from "@/lib/feature-flags";
 import { buildWhatsAppUrl, getSiteSettings } from "@/lib/settings";
 import { cn } from "@/lib/cn";
 
@@ -36,11 +36,12 @@ function countLabel(count: number) {
 export default async function BuscarPage({ searchParams }: Props) {
   const query = readQuery((await searchParams).q);
 
-  const [enabled, brands, designs, settings] = await Promise.all([
+  const [enabled, brands, designs, settings, customizerOn] = await Promise.all([
     isFeatureEnabled("catalog_enabled", { onError: "open" }),
     getBrands(),
     getSearchableDesigns(),
-    getSiteSettings()
+    getSiteSettings(),
+    isCustomizerEnabled({ onError: "closed" })
   ]);
   if (!enabled) redirect("/");
 
@@ -87,6 +88,7 @@ export default async function BuscarPage({ searchParams }: Props) {
             <MoldeMatches
               matches={moldes}
               whatsappNumber={settings.whatsapp_number}
+            withConfigurator={customizerOn}
               lead="Cualquier diseño se corta con el molde de tu modelo. Te cotizamos por WhatsApp:"
               className="mt-14 md:mt-16"
             />
@@ -95,6 +97,7 @@ export default async function BuscarPage({ searchParams }: Props) {
           <MoldeMatches
             matches={moldes}
             whatsappNumber={settings.whatsapp_number}
+            withConfigurator={customizerOn}
             lead="Todavía no hay fotos publicadas de esa moto, pero la silla se corta con su molde. Escríbenos y te cotizamos el color, la textura y el bordado:"
           />
         ) : (
