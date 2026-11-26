@@ -6,7 +6,7 @@ import { SeatConfigurator } from "./seat-configurator";
 
 export const SEAT_POSTER = "/arma-tu-silla/silla.webp";
 /** El mismo encuadre en el escenario 4:3 del teléfono. */
-const SEAT_POSTER_NARROW = "/arma-tu-silla/silla-movil.webp";
+export const SEAT_POSTER_NARROW = "/arma-tu-silla/silla-movil.webp";
 
 /**
  * Bloque "Arma tu silla" sobre escenario negro. Título, texto y colores salen

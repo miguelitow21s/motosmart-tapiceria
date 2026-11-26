@@ -89,12 +89,29 @@ export function SeatConfigurator({
   // Desde un diseño de la tienda se llega con ?moto=Yamaha RX-100: queda
   // escrita, con su forma y su marca bordada. Se lee en el navegador para
   // que la página siga siendo estática.
+  // Desde el inicio se llega con ?forma=enduro&lados=Azul&bordado=DT: lo que
+  // el cliente ya tocó allá sigue igual aquí.
   useEffect(() => {
-    const fromLink = readMotoParam(new URLSearchParams(window.location.search).get("moto"));
-    if (!fromLink) return;
-    setMoto(fromLink);
-    const guessed = guessSeatShape(fromLink);
-    if (guessed) setShapeId(guessed);
+    const params = new URLSearchParams(window.location.search);
+    const fromLink = readMotoParam(params.get("moto"));
+    if (fromLink) {
+      setMoto(fromLink);
+      const guessed = guessSeatShape(fromLink);
+      if (guessed) setShapeId(guessed);
+    }
+    const forma = params.get("forma");
+    const known = SEAT_SHAPES.find((item) => item.id === forma);
+    if (known) setShapeId(known.id);
+    const lados = params.get("lados")?.toLowerCase();
+    const color = lados ? colors.find((item) => item.name.toLowerCase() === lados) : undefined;
+    if (color) {
+      setSides(color);
+      setStitch(color);
+    }
+    const bordado = params.get("bordado")?.replace(/[^\p{L}\p{N} .#-]/gu, "").trim().toUpperCase().slice(0, EMBROIDERY_MAX);
+    if (bordado) setCustomEmbroidery(bordado);
+    // Solo al abrir la página: después manda lo que el cliente toque.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const motoId = useId();
   const embroideryId = useId();

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ErrorState, Panel, TabHeader } from "@/features/admin/components/primitives";
 import { CAROUSEL_MAX } from "@/features/admin/lib/actions";
 import { describeActivity } from "@/features/admin/lib/activity-text";
-import { formatRelative, plural, priceNeedsReview } from "@/features/admin/lib/format";
+import { designNameIsGeneric, formatRelative, plural, priceNeedsReview } from "@/features/admin/lib/format";
 import { promoState } from "@/features/admin/lib/promo";
 import { useCarouselImages } from "@/features/admin/lib/selectors";
 import { goToTab, tabHref } from "@/features/admin/lib/tabs";
@@ -19,7 +19,7 @@ type Pending = { id: string; text: string; action: string; onClick: () => void }
 
 const SUMMARY_KEYS = ["designs", "brands", "images", "settings"] as const;
 
-function showDesigns(filter: "no-photo" | "promo" | "hidden" | "check-price") {
+function showDesigns(filter: "no-photo" | "promo" | "hidden" | "check-price" | "generic-name") {
   setAdminState({ designFilter: filter, designQuery: "", designBrand: "all" });
   goToTab("catalog");
 }
@@ -29,6 +29,7 @@ export function OverviewTab() {
   const designs = useAdminStore((state) => state.designs);
   const brands = useAdminStore((state) => state.brands);
   const images = useAdminStore((state) => state.images);
+  const settings = useAdminStore((state) => state.settings);
   const activity = useAdminStore((state) => state.activity);
   const status = useAdminStore((state) => state.status);
   const carousel = useCarouselImages();
@@ -79,6 +80,15 @@ export function OverviewTab() {
           onClick: () => showDesigns("check-price")
         });
       }
+      const generic = designs.filter((design) => design.is_active && designNameIsGeneric(design.name)).length;
+      if (generic) {
+        list.push({
+          id: "generic-name",
+          text: `${plural(generic, "diseño visible se llama", "diseños visibles se llaman")} «Diseño 2», «Design 4»…: con un nombre de verdad se ve mejor en la tienda y en Google`,
+          action: "Cambiar",
+          onClick: () => showDesigns("generic-name")
+        });
+      }
       if (expired) {
         list.push({
           id: "expired",
@@ -96,6 +106,23 @@ export function OverviewTab() {
         });
       }
     }
+    if (status.settings === "ready") {
+      // Lo que el cliente busca antes de escribir: dónde queda, a qué hora y el Instagram con más trabajos.
+      const missing = [
+        !settings.business_district?.trim() && "el barrio",
+        !settings.business_hours?.trim() && "el horario",
+        !settings.instagram_url?.trim() && "el Instagram"
+      ].filter((item): item is string => Boolean(item));
+      if (missing.length) {
+        const list_ = missing.length === 1 ? missing[0] : `${missing.slice(0, -1).join(", ")} y ${missing[missing.length - 1]}`;
+        list.push({
+          id: "contact",
+          text: `Falta ${list_} en Contacto: la tienda no los muestra hasta que los escribas`,
+          action: "Escribirlos",
+          onClick: () => goToTab("settings")
+        });
+      }
+    }
     if (carouselReady && carousel.length === 0) {
       list.push({
         id: "carousel",
@@ -105,7 +132,7 @@ export function OverviewTab() {
       });
     }
     return list;
-  }, [designs, designsReady, brands.length, status.brands, carousel.length, carouselReady]);
+  }, [designs, designsReady, brands.length, status.brands, status.settings, settings, carousel.length, carouselReady]);
 
   // Lo que no cargó se dice y se puede reintentar: antes el resumen se quedaba
   // en «Revisando la tienda…» y con las cifras parpadeando para siempre.
