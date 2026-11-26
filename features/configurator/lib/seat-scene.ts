@@ -37,6 +37,7 @@ import { buildSeatGeometries, type SeatGeometries } from "./seat-geometry";
 import { seatShape, type SeatShapeId } from "./shapes";
 import {
   DIAMOND_TILE_M,
+  FINE_TILE_M,
   GRAIN_TILE_M,
   SATIN_ANGLE,
   createContactShadow,
@@ -46,9 +47,13 @@ import {
   paintEmbroidery,
   type EmbroideryStyle,
   type EmbroideryTextures,
+  type GripType,
   type SeatPattern,
   type SeatTextures
 } from "./textures";
+
+/** Para aclarar el brillo de la gamuza hacia el blanco. */
+const WHITE = new Color(0xffffff);
 
 export type SeatLook = {
   shape: SeatShapeId;
@@ -56,6 +61,8 @@ export type SeatLook = {
   sides: string;
   stitch: string;
   pattern: SeatPattern;
+  /** Cuál antideslizante, cuando pattern es "antideslizante". */
+  grip: GripType;
   /** Texto bordado en los dos costados; vacío, sin bordado. */
   embroidery: string;
   /** Color del hilo del bordado. */
@@ -462,6 +469,11 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
     sideMaterial.color.set(look.sides);
     bandMaterial.color.set(look.sides);
     stitchMaterial.color.set(look.stitch);
+    // Cuero: algo de laca y brillo suave. La lija y la gamuza lo cambian abajo.
+    centerMaterial.clearcoat = 0.12;
+    centerMaterial.sheen = 0.25;
+    centerMaterial.sheenRoughness = 0.6;
+    centerMaterial.sheenColor.set(0x333333);
     if (look.pattern === "rombos") {
       diamondColor = paintDiamondColor(diamondColor, look.center, look.stitch);
       diamondColor.repeat.copy(toRepeat(DIAMOND_TILE_M));
@@ -470,6 +482,27 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
       centerMaterial.normalMap = textures.diamondNormal;
       centerMaterial.normalScale.set(0.8, 0.8);
       centerMaterial.roughness = 0.52;
+    } else if (look.pattern === "antideslizante" && look.grip === "lija") {
+      // Granos finos y apretados, sin nada de brillo: se ve áspera.
+      centerMaterial.map = null;
+      centerMaterial.color.set(look.center);
+      centerMaterial.normalMap = textures.gritNormal;
+      centerMaterial.normalScale.set(1.5, 1.5);
+      centerMaterial.roughness = 0.96;
+      centerMaterial.clearcoat = 0;
+      centerMaterial.sheen = 0.08;
+    } else if (look.pattern === "antideslizante" && look.grip === "gamuza") {
+      // Gamuza: casi sin relieve, mate, con el brillo aterciopelado que le sale
+      // en los bordes cuando la luz la roza (sheen del mismo color, más claro).
+      centerMaterial.map = null;
+      centerMaterial.color.set(look.center);
+      centerMaterial.normalMap = textures.suedeNormal;
+      centerMaterial.normalScale.set(0.35, 0.35);
+      centerMaterial.roughness = 1;
+      centerMaterial.clearcoat = 0;
+      centerMaterial.sheen = 0.55;
+      centerMaterial.sheenRoughness = 0.8;
+      centerMaterial.sheenColor.set(look.center).lerp(WHITE, 0.1);
     } else if (look.pattern === "antideslizante") {
       centerMaterial.map = null;
       centerMaterial.color.set(look.center);
@@ -498,6 +531,8 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
       textures.grainNormal.repeat.copy(toRepeat(GRAIN_TILE_M));
       textures.diamondNormal.repeat.copy(toRepeat(DIAMOND_TILE_M));
       textures.gripNormal.repeat.copy(toRepeat(DIAMOND_TILE_M));
+      textures.gritNormal.repeat.copy(toRepeat(FINE_TILE_M));
+      textures.suedeNormal.repeat.copy(toRepeat(FINE_TILE_M));
       sideMaterial.normalMap = textures.grainNormal;
       sideMaterial.needsUpdate = true;
       bandMaterial.normalMap = textures.grainNormal;
