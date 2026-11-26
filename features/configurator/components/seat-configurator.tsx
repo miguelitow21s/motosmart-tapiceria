@@ -6,7 +6,7 @@ import { WhatsAppIcon } from "@/components/ui/whatsapp-icon";
 import { WhatsAppLink } from "@/components/shared/whatsapp-link";
 import { buildWhatsAppUrl } from "@/lib/settings-defaults";
 import { cx } from "@/lib/utils";
-import { SEAT_PATTERNS, seatQuoteMessage, type SeatColor } from "../lib/options";
+import { SEAT_GRIPS, SEAT_PATTERNS, seatQuoteMessage, type SeatColor } from "../lib/options";
 import type { SeatLook, SeatScene, SeatView } from "../lib/seat-scene";
 import {
   DEFAULT_SEAT_SHAPE,
@@ -17,7 +17,7 @@ import {
   silhouettePath,
   type SeatShapeId
 } from "../lib/shapes";
-import type { EmbroideryStyle, SeatPattern } from "../lib/textures";
+import type { EmbroideryStyle, GripType, SeatPattern } from "../lib/textures";
 
 const VIEWS: Array<{ id: SeatView; label: string }> = [
   { id: "tres-cuartos", label: "3/4" },
@@ -76,6 +76,7 @@ export function SeatConfigurator({
   const [sides, setSides] = useState(() => pick(colors, "rojo", 2));
   const [stitch, setStitch] = useState(() => pick(colors, "rojo", 2));
   const [pattern, setPattern] = useState<SeatPattern>("antideslizante");
+  const [grip, setGrip] = useState<GripType>("grueso");
   const [shapeId, setShapeId] = useState<SeatShapeId>(DEFAULT_SEAT_SHAPE);
   const [moto, setMoto] = useState("");
   // Mientras el cliente no escriba su bordado, se borda la marca de su moto
@@ -96,11 +97,12 @@ export function SeatConfigurator({
       sides: sides.hex,
       stitch: stitch.hex,
       pattern,
+      grip,
       embroidery,
       thread: thread.hex,
       embroideryStyle: letter
     }),
-    [shapeId, center, sides, stitch, pattern, embroidery, thread, letter]
+    [shapeId, center, sides, stitch, pattern, grip, embroidery, thread, letter]
   );
   const lookRef = useRef(look);
   lookRef.current = look;
@@ -165,7 +167,11 @@ export function SeatConfigurator({
     sceneRef.current?.update(look);
   }, [look]);
 
-  const patternLabel = SEAT_PATTERNS.find((item) => item.id === pattern)?.label ?? pattern;
+  const gripOption = SEAT_GRIPS.find((item) => item.id === grip) ?? SEAT_GRIPS[0];
+  const patternLabel =
+    pattern === "antideslizante"
+      ? `Antideslizante ${gripOption.label.toLowerCase()}`
+      : (SEAT_PATTERNS.find((item) => item.id === pattern)?.label ?? pattern);
   const href = buildWhatsAppUrl(
     whatsappNumber,
     seatQuoteMessage({
@@ -355,6 +361,35 @@ export function SeatConfigurator({
               </label>
             ))}
           </div>
+          {pattern === "antideslizante" ? (
+            <fieldset className="mt-3">
+              <legend className="text-sm font-semibold text-ink-2">
+                Tipo de antideslizante: <span className="text-ink">{gripOption.label}</span>
+              </legend>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {SEAT_GRIPS.map((item) => (
+                  <label
+                    key={item.id}
+                    className={cx(
+                      "flex min-h-11 cursor-pointer items-center rounded-full border px-4 text-sm font-semibold transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ink",
+                      grip === item.id ? "border-ink bg-ink text-bg" : "border-line-strong text-ink-2 hover:border-ink hover:text-ink"
+                    )}
+                  >
+                    <input
+                      type="radio"
+                      name="antideslizante"
+                      value={item.id}
+                      checked={grip === item.id}
+                      onChange={() => setGrip(item.id)}
+                      className="sr-only"
+                    />
+                    {item.label}
+                  </label>
+                ))}
+              </div>
+              <p className="mt-2 text-sm text-ink-3">{gripOption.note}</p>
+            </fieldset>
+          ) : null}
         </fieldset>
         <Swatches legend="Costados" colors={colors} value={sides} onChange={setSides} />
         <Swatches legend="Costura" colors={colors} value={stitch} onChange={setStitch} />

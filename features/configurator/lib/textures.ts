@@ -16,9 +16,13 @@ import {
   SRGBColorSpace,
   UnsignedByteType
 } from "three";
-import { GRAIN_SIZE, MAP_SIZE, buildNormalMaps, type NormalMaps } from "./texture-data";
+import { FINE_TILE_M, GRAIN_SIZE, MAP_SIZE, buildNormalMaps, type NormalMaps } from "./texture-data";
+
+export { FINE_TILE_M };
 
 export type SeatPattern = "liso" | "rombos" | "antideslizante";
+/** Los tres antideslizantes del taller. */
+export type GripType = "grueso" | "lija" | "gamuza";
 
 /** Lado del rombo (de punta a punta), en metros. Una tesela = un rombo. */
 export const DIAMOND_TILE_M = 0.1;
@@ -51,6 +55,8 @@ export type SeatTextures = {
   grainNormal: DataTexture;
   diamondNormal: DataTexture;
   gripNormal: DataTexture;
+  gritNormal: DataTexture;
+  suedeNormal: DataTexture;
   dispose(): void;
 };
 
@@ -86,14 +92,20 @@ export async function loadSeatTextures(): Promise<SeatTextures> {
   const grainNormal = normalTexture(maps.grain, GRAIN_SIZE);
   const diamondNormal = normalTexture(maps.diamond, MAP_SIZE);
   const gripNormal = normalTexture(maps.grip, MAP_SIZE);
+  const gritNormal = normalTexture(maps.grit, MAP_SIZE);
+  const suedeNormal = normalTexture(maps.suede, MAP_SIZE);
   return {
     grainNormal,
     diamondNormal,
     gripNormal,
+    gritNormal,
+    suedeNormal,
     dispose() {
       grainNormal.dispose();
       diamondNormal.dispose();
       gripNormal.dispose();
+      gritNormal.dispose();
+      suedeNormal.dispose();
     }
   };
 }
@@ -157,6 +169,10 @@ export function createContactShadow() {
 
 /** Resolución del bordado: píxeles de textura por cm de silla. */
 const EMBROIDERY_PX_PER_CM = 44;
+/** Alto de las letras bordadas, en cm: el de un bordado de costado real. */
+const LETTER_HEIGHT_CM = 3;
+/** Fracción del largo del parche que puede ocupar la palabra. */
+const LETTER_MAX_WIDTH = 0.6;
 /** Grosor del hilo del relleno (satín), en cm: unos 0,9 mm reales por puntada. */
 const SATIN_PITCH_CM = 0.09;
 /** Ángulo de las puntadas del relleno en el lienzo (rad): satín inclinado. */
@@ -287,10 +303,11 @@ export function paintEmbroidery(
   setFont(ctx, 100);
   const probe = ctx.measureText(label);
   const probeHeight = probe.actualBoundingBoxAscent + probe.actualBoundingBoxDescent || 72;
-  // Letras de dos tercios del alto del parche (el resto es aire para la sombra).
-  let size = (100 * height * 0.66) / probeHeight;
+  // Letras de unos 3 cm, sin pasar de dos tercios del parche (el resto es aire
+  // para la sombra).
+  let size = (100 * Math.min(height * 0.66, LETTER_HEIGHT_CM * scale)) / probeHeight;
   let squeeze = 1;
-  const maxWidth = width * 0.9;
+  const maxWidth = width * LETTER_MAX_WIDTH;
   const textWidth = ((probe.width + slant * probeHeight) * size) / 100;
   if (textWidth > maxWidth) {
     // Primero se aprietan un poco las letras; si no alcanza, se achican.

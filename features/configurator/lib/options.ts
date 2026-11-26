@@ -1,4 +1,4 @@
-import type { SeatPattern } from "./textures";
+import type { GripType, SeatPattern } from "./textures";
 
 /*
   Opciones de "Arma tu silla". Los colores los escribe Natalia en el panel
@@ -13,6 +13,13 @@ export const SEAT_PATTERNS: Array<{ id: SeatPattern; label: string }> = [
   { id: "antideslizante", label: "Antideslizante" },
   { id: "liso", label: "Liso" },
   { id: "rombos", label: "Rombos" }
+];
+
+/** Los antideslizantes del taller; el grueso es el que más sale. */
+export const SEAT_GRIPS: Array<{ id: GripType; label: string; note: string }> = [
+  { id: "grueso", label: "Grueso", note: "Relieve de puntos, el más agarre." },
+  { id: "lija", label: "Tipo lija", note: "Grano fino y áspero, como una lija." },
+  { id: "gamuza", label: "Tipo gamuza", note: "Suave al tacto y mate, no resbala." }
 ];
 
 export const DEFAULT_SEAT_COLORS_TEXT = [

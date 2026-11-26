@@ -18,8 +18,74 @@ export const GRAIN_SIZE = 256;
 export type NormalMaps = {
   grain: Uint8Array;
   diamond: Uint8Array;
+  /** Antideslizante grueso: puntos en hexágono. */
   grip: Uint8Array;
+  /** Antideslizante tipo lija: granos finos y apretados. */
+  grit: Uint8Array;
+  /** Antideslizante tipo gamuza: pelo corto, casi sin relieve. */
+  suede: Uint8Array;
 };
+
+/** Tesela de la lija y de la gamuza, en metros (5 cm en MAP_SIZE píxeles). */
+export const FINE_TILE_M = 0.05;
+
+/**
+ * Granos de lija: domos pequeños de radio al azar, muchos encimados, que se
+ * repiten sin costura. Altura 0..1.
+ */
+function sandGrit(size: number, grains: number, seed: number) {
+  const rand = seeded(seed);
+  const height = new Float32Array(size * size);
+  for (let i = 0; i < grains; i++) {
+    const cx = rand() * size;
+    const cy = rand() * size;
+    // 0,4 a 1 mm de radio: a 5 cm por tesela, 1 mm son unos 10 px.
+    const r = (0.4 + rand() * 0.6) * (size / (FINE_TILE_M * 1000));
+    const top = 0.55 + rand() * 0.45;
+    const reach = Math.ceil(r);
+    for (let oy = -reach; oy <= reach; oy++) {
+      for (let ox = -reach; ox <= reach; ox++) {
+        const d = Math.hypot(ox, oy) / r;
+        if (d >= 1) continue;
+        const x = (Math.floor(cx) + ox + size) % size;
+        const y = (Math.floor(cy) + oy + size) % size;
+        const h = top * Math.sqrt(1 - d * d);
+        const k = y * size + x;
+        if (h > height[k]) height[k] = h;
+      }
+    }
+  }
+  return height;
+}
+
+/**
+ * Ruido de valor suave que se repite sin costura: la base del pelo de la
+ * gamuza. `cells` es cuántas celdas caben en el lado.
+ */
+function valueNoise(size: number, cells: number, seed: number) {
+  const rand = seeded(seed);
+  const lattice = new Float32Array(cells * cells);
+  for (let i = 0; i < lattice.length; i++) lattice[i] = rand();
+  const height = new Float32Array(size * size);
+  const step = size / cells;
+  const fade = (t: number) => t * t * (3 - 2 * t);
+  for (let y = 0; y < size; y++) {
+    const gy = Math.floor(y / step);
+    const ty = fade(y / step - gy);
+    const y0 = gy % cells;
+    const y1 = (gy + 1) % cells;
+    for (let x = 0; x < size; x++) {
+      const gx = Math.floor(x / step);
+      const tx = fade(x / step - gx);
+      const x0 = gx % cells;
+      const x1 = (gx + 1) % cells;
+      const a = lattice[y0 * cells + x0] + (lattice[y0 * cells + x1] - lattice[y0 * cells + x0]) * tx;
+      const b = lattice[y1 * cells + x0] + (lattice[y1 * cells + x1] - lattice[y1 * cells + x0]) * tx;
+      height[y * size + x] = a + (b - a) * ty;
+    }
+  }
+  return height;
+}
 
 /** Pseudoaleatorio con semilla: la textura sale igual en cada visita. */
 function seeded(seed: number) {
@@ -159,5 +225,22 @@ export function buildNormalMaps(): NormalMaps {
   }
   const grip = heightToNormal(gripHeight, size, 3.2);
 
-  return { grain, diamond, grip };
+  // Lija: unos 12 granos por cm² sobre la tesela de 5 cm, más una ondulación
+  // leve para que no se vea como un estampado parejo.
+  const gritBase = sandGrit(size, 3000, 23);
+  const gritWave = valueNoise(size, 8, 29);
+  const gritHeight = new Float32Array(size * size);
+  for (let i = 0; i < gritHeight.length; i++) gritHeight[i] = gritBase[i] * 0.85 + gritWave[i] * 0.15;
+  const grit = heightToNormal(gritHeight, size, 4);
+
+  // Gamuza: pelo muy fino en tres escalas, con poco relieve. Lo que la hace
+  // gamuza es el material (mate y aterciopelado), no el relieve.
+  const fuzzA = valueNoise(size, 128, 31);
+  const fuzzB = valueNoise(size, 256, 37);
+  const nap = valueNoise(size, 16, 41);
+  const suedeHeight = new Float32Array(size * size);
+  for (let i = 0; i < suedeHeight.length; i++) suedeHeight[i] = fuzzA[i] * 0.45 + fuzzB[i] * 0.35 + nap[i] * 0.2;
+  const suede = heightToNormal(suedeHeight, size, 1.1);
+
+  return { grain, diamond, grip, grit, suede };
 }

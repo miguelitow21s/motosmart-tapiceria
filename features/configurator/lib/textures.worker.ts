@@ -8,5 +8,11 @@ const scope = self as unknown as {
 
 scope.onmessage = () => {
   const maps = buildNormalMaps();
-  scope.postMessage(maps, [maps.grain.buffer, maps.diamond.buffer, maps.grip.buffer]);
+  scope.postMessage(maps, [
+    maps.grain.buffer,
+    maps.diamond.buffer,
+    maps.grip.buffer,
+    maps.grit.buffer,
+    maps.suede.buffer
+  ]);
 };
