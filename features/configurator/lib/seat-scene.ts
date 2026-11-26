@@ -119,7 +119,9 @@ function easeInOut(t: number) {
 export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, options: SeatSceneOptions): SeatScene {
   const renderer = new WebGLRenderer({
     canvas,
-    antialias: true,
+    // En pantallas densas (todo teléfono) el suavizado de bordes cuesta mucho
+    // y casi no se nota: la densidad ya suaviza. Solo en pantallas comunes.
+    antialias: (window.devicePixelRatio || 1) < 1.5,
     alpha: true,
     powerPreference: "high-performance"
   });
@@ -571,11 +573,19 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
     needsRender = true;
   }
 
+  // Resolución del lienzo. Si el teléfono no alcanza a dibujar fluido, se baja
+  // de a poco (ver tick) y no se vuelve a subir: mejor un poco menos nítida que
+  // a saltos.
+  let qualityDrop = 0;
+  function pixelRatio(width: number) {
+    const max = Math.min(window.devicePixelRatio || 1, width < 640 ? 1.75 : 2);
+    return Math.max(1, max - qualityDrop);
+  }
+
   function frame() {
     const width = canvas.clientWidth || 1;
     const height = canvas.clientHeight || 1;
-    const narrow = width < 640;
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, narrow ? 1.75 : 2));
+    renderer.setPixelRatio(pixelRatio(width));
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
     placeCamera();
@@ -595,6 +605,12 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
   let raf = 0;
   let previous = performance.now();
   let readyFired = false;
+  // Velocidad del giro solo: arranca suave en vez de a toda velocidad.
+  let spin = 0;
+  // Cuadros seguidos (sin pausas entre medio) para medir si va fluido.
+  let chained = false;
+  let slowSum = 0;
+  let slowCount = 0;
   let viewTween: { start: number; fromYaw: number; toYaw: number; fromElevation: number; toElevation: number } | null =
     null;
 
@@ -659,10 +675,28 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
   };
   document.addEventListener("visibilitychange", onVisibility);
 
+  /** Con cuadros de más de 24 ms (menos de ~40 por segundo), baja la resolución. */
+  function measure(interval: number) {
+    if (!chained) return;
+    slowSum += interval;
+    slowCount += 1;
+    if (slowCount < 24) return;
+    const average = slowSum / slowCount;
+    slowSum = 0;
+    slowCount = 0;
+    const width = canvas.clientWidth || 1;
+    if (average > 24 && pixelRatio(width) > 1) {
+      qualityDrop += 0.25;
+      renderer.setPixelRatio(pixelRatio(width));
+      renderer.setSize(width, canvas.clientHeight || 1, false);
+    }
+  }
+
   function tick(now: number) {
     raf = 0;
     if (!compiled) return;
-    const dt = Math.min(1 / 30, (now - previous) / 1000);
+    const interval = now - previous;
+    const dt = Math.min(1 / 30, interval / 1000);
     previous = now;
     let moving = morph !== null;
     stepMorph(now);
@@ -673,11 +707,13 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
         velocity *= Math.exp(-4 * dt);
         moving = true;
       } else if (!options.reducedMotion && now - lastInteraction > 2600) {
-        // Turntable lento mientras nadie la toca.
-        yaw += dt * 0.32;
+        // Turntable lento mientras nadie la toca; acelera en casi un segundo.
+        spin += (0.32 - spin) * (1 - Math.exp(-3 * dt));
+        yaw += dt * spin;
         moving = true;
       }
     }
+    if (dragging || viewTween || now - lastInteraction <= 2600) spin = 0;
     stage.rotation.y = yaw;
     if (moving || needsRender || dragging) {
       renderer.render(scene, camera);
@@ -687,7 +723,12 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
         options.onReady?.();
       }
     }
-    if ((moving || dragging) && visible && !document.hidden) raf = requestAnimationFrame(tick);
+    if (moving || dragging) measure(interval);
+    chained = false;
+    if ((moving || dragging) && visible && !document.hidden) {
+      raf = requestAnimationFrame(tick);
+      chained = true;
+    }
   }
 
   function wake() {
