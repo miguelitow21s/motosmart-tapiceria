@@ -4,12 +4,14 @@
 -- pertenece a supabase/fresh_start_runbook.md, no a una migracion versionada.
 create schema if not exists public;
 
--- Permisos básicos para roles de Supabase (anon / authenticated)
+-- Permisos básicos para roles de Supabase (anon / authenticated).
+-- NO volver a poner aquí `grant select on all tables` ni `alter default
+-- privileges ... grant select on tables`: reejecutar esta migración sobre una
+-- base con datos volvía a abrir la lectura de TODAS las tablas (pedidos,
+-- pagos, intentos de login) que la 011 y la 016 cerraron. Los SELECT van por
+-- tabla, al final del archivo, con la misma lista que la 011.
 grant usage on schema public to anon, authenticated;
-grant select on all tables in schema public to anon, authenticated;
 grant usage, select on all sequences in schema public to anon, authenticated;
-alter default privileges in schema public grant select on tables to anon, authenticated;
-alter default privileges in schema public grant usage, select on sequences to anon, authenticated;
 
 create extension if not exists "pgcrypto";
 
@@ -212,11 +214,14 @@ drop policy if exists "admin manage settings" on public.settings;
 create policy "admin manage settings" on public.settings
 for all using (public.is_admin_or_editor()) with check (public.is_admin_or_editor());
 
--- Sobrescrita por la 011 (solo 3 flags publicos); se deja aqui la version
--- original solo para que un fresh-install intermedio no quede sin policy.
+-- Ya en su forma final (la de la 011 y la 016): qué módulo es público vive
+-- en la fila. Antes era `using (true)` y reejecutar esta migración volvía a
+-- mostrar a cualquiera los módulos internos.
+alter table public.features add column if not exists is_public boolean not null default false;
 drop policy if exists "public read features" on public.features;
 create policy "public read features" on public.features
-for select using (true);
+for select to anon, authenticated
+using (is_public = true);
 
 drop policy if exists "admin manage features" on public.features;
 create policy "admin manage features" on public.features
@@ -226,11 +231,9 @@ drop policy if exists "admin read analytics" on public.analytics_events;
 create policy "admin read analytics" on public.analytics_events
 for select using (public.is_admin_or_editor());
 
--- Revocada por la 011 (anon ya no inserta analitica directo); se deja para
--- que un fresh-install que aun no llegue a la 011 no rompa el endpoint.
+-- Sin policy de insert: la analítica la escribe solo el servidor
+-- (service_role, que salta RLS). Antes era `with check (true)`.
 drop policy if exists "anon insert analytics" on public.analytics_events;
-create policy "anon insert analytics" on public.analytics_events
-for insert with check (true);
 
 drop policy if exists "admin read activity logs" on public.admin_activity_logs;
 create policy "admin read activity logs" on public.admin_activity_logs
@@ -244,19 +247,24 @@ drop policy if exists "admin read login attempts" on public.login_attempts;
 create policy "admin read login attempts" on public.login_attempts
 for select using (public.is_admin_or_editor());
 
+-- Sin policy de insert: los intentos de login los escribe solo el servidor
+-- (service_role). Antes era `with check (true)`.
 drop policy if exists "service insert login attempts" on public.login_attempts;
-create policy "service insert login attempts" on public.login_attempts
-for insert with check (true);
 
 drop policy if exists "users own profile" on public.users;
 create policy "users own profile" on public.users
 for select using (auth.uid() = id or public.is_admin_or_editor());
 
--- Sobrescrita por la 011 (status forzado a 'pending'); se deja aqui para que
--- un fresh-install intermedio no quede sin policy de insert.
+-- Ya en su forma final (la de la 011): un pedido nuevo siempre nace
+-- 'pending'. Antes no lo exigía y reejecutar esta migración dejaba crear
+-- pedidos ya aprobados con la llave pública.
 drop policy if exists "user create custom order" on public.custom_orders;
 create policy "user create custom order" on public.custom_orders
-for insert with check (auth.uid() = user_id or user_id is null);
+for insert to anon, authenticated
+with check (
+  (auth.uid() = user_id or user_id is null)
+  and status = 'pending'
+);
 
 drop policy if exists "user read own custom orders" on public.custom_orders;
 create policy "user read own custom orders" on public.custom_orders
@@ -271,4 +279,19 @@ values
   ('customizer_enabled', true),
   ('checkout_enabled', false),
   ('admin_uploads_enabled', true)
-on conflict (name) do update set enabled = excluded.enabled, updated_at = now();
+-- do nothing: reejecutar la migración no puede encender ni apagar un módulo
+-- que el panel ya cambió.
+on conflict (name) do nothing;
+update public.features set is_public = true
+where is_public = false and name in ('catalog_enabled', 'customizer_enabled', 'checkout_enabled');
+
+-- Lectura pública por tabla (misma lista que la 011). Una tabla nueva no
+-- queda legible con SELECT hasta que su migración lo diga; los demás
+-- permisos los cierra cada migración con `revoke all` (como la 016).
+grant select on public.brands, public.designs, public.products, public.categories,
+                public.features, public.settings, public.images
+  to anon;
+grant select on public.brands, public.designs, public.products, public.categories,
+                public.features, public.settings, public.images,
+                public.users, public.roles, public.custom_orders
+  to authenticated;

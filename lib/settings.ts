@@ -4,9 +4,11 @@ import { DEFAULT_SETTINGS, OPTIONAL_SETTING_KEYS, type SiteSettings } from "@/li
 
 export {
   buildWhatsAppUrl,
+  howtoSteps,
   DEFAULT_SETTINGS,
   instagramHandle,
   OPTIONAL_SETTING_KEYS,
+  processSteps,
   PUBLIC_SETTING_KEYS,
   type SiteSettings
 } from "@/lib/settings-defaults";

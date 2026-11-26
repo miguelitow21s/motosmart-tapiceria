@@ -76,4 +76,5 @@ values
   ('customizer_enabled', false),
   ('checkout_enabled', true),
   ('admin_uploads_enabled', true)
-on conflict (name) do update set enabled = excluded.enabled;
+-- do nothing: correr el seed no cambia un módulo que el panel ya cambió.
+on conflict (name) do nothing;
