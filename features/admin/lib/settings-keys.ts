@@ -1,5 +1,6 @@
 import { OPTIONAL_SETTING_KEYS, type SiteSettings } from "@/lib/settings-defaults";
 import { isWebUrl } from "@/lib/url";
+import { invalidMoldeLines } from "@/features/catalog/lib/moldes";
 import { invalidSeatColorLines } from "@/features/configurator/lib/options";
 
 /*
@@ -8,7 +9,7 @@ import { invalidSeatColorLines } from "@/features/configurator/lib/options";
   Para añadir uno nuevo, ver lib/settings-defaults.ts.
 */
 
-export type SettingKind = "text" | "textarea" | "tel" | "url" | "colors";
+export type SettingKind = "text" | "textarea" | "tel" | "url" | "colors" | "models";
 
 export type SettingField = {
   key: keyof SiteSettings;
@@ -113,6 +114,21 @@ export const SETTING_GROUPS: SettingGroup[] = [
     ]
   },
   {
+    id: "modelos",
+    title: "Modelos con molde",
+    description:
+      "Las motos que el taller ya tiene en molde. Salen en el catálogo y en el buscador: quien busca su moto ve que se la cortan a la medida.",
+    fields: [
+      {
+        key: "molde_models",
+        label: "Modelos",
+        hint: "Uno por línea: la marca, dos puntos y el modelo. Ej.: Yamaha: DT 125/175. " + EMPTY_HIDES,
+        kind: "models",
+        max: 15000
+      }
+    ]
+  },
+  {
     id: "pagos",
     title: "Pagos en línea",
     description: "Lo que el cliente lee antes de pagar con Wompi. Los pagos se encienden en «Módulos».",
@@ -197,6 +213,10 @@ export function validateSetting(field: SettingField, raw: string): string | null
     const count = value.split(/\r?\n/).filter((line) => line.trim()).length;
     if (count < 2) return "Escribe al menos 2 colores.";
     if (count > 14) return `Máximo 14 colores (llevas ${count}).`;
+  }
+  if (field.kind === "models") {
+    const bad = invalidMoldeLines(value);
+    if (bad.length) return `No entiendo «${bad[0].slice(0, 60)}». Escribe la marca, dos puntos y el modelo, así: Yamaha: DT 125/175`;
   }
   return null;
 }
