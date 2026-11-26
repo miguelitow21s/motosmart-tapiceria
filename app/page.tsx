@@ -2,12 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ClosingCta } from "@/components/shared/closing-cta";
 import { Hero } from "@/components/shared/hero";
-import { ServicesList } from "@/components/shared/services-list";
 import { Section, SectionHeader, containerClasses } from "@/components/shared/section";
 import { SmartImage } from "@/components/shared/smart-image";
 import { BrandBar } from "@/features/catalog/components/brand-bar";
+import { CatalogSearch } from "@/features/catalog/components/catalog-search";
 import { DesignGrid } from "@/features/catalog/components/design-grid";
 import { WeeklyWork } from "@/features/catalog/components/weekly-work";
+import { parseMoldes } from "@/features/catalog/lib/moldes";
 import { getBrands, getCarouselSlides, getFeaturedDesigns, getStoreDesigns } from "@/features/catalog/services/catalog.service";
 import { ConfiguratorTeaser } from "@/features/configurator/components/configurator-teaser";
 import { isCustomizerEnabled } from "@/lib/feature-flags";
@@ -75,9 +76,10 @@ export default async function HomePage() {
   ]);
 
   const featured = slides[0] ?? null;
-  // Para el bloque de servicios, la foto más lejos de la primera (que ya
-  // está en el héroe).
-  const servicesPhoto = slides.length > 1 ? slides[slides.length - 1] : null;
+  // Para el bloque de moldes, la foto más lejos de la primera (que ya está
+  // en el héroe).
+  const moldesPhoto = slides.length > 1 ? slides[slides.length - 1] : null;
+  const moldeCount = parseMoldes(settings.molde_models).length;
 
   return (
     <>
@@ -106,28 +108,40 @@ export default async function HomePage() {
 
       {customizerOn ? <ConfiguratorTeaser /> : null}
 
-      <section aria-labelledby="servicios" className={cn(!customizerOn && "border-t border-line")}>
-        <div
-          className={cn(
-            containerClasses,
-            "grid gap-8 py-12 md:py-20",
-            servicesPhoto && "lg:grid-cols-[minmax(0,28rem)_1fr] lg:items-center lg:gap-16"
-          )}
-        >
-          <div className={cn(servicesPhoto && "lg:col-start-2")}>
-            <h2 id="servicios" className="text-title">
-              {settings.services_title}
-            </h2>
-            <p className="mt-3 max-w-2xl text-lg text-ink-2">{settings.services_text}</p>
-            <ServicesList settings={settings} className="mt-8" />
-          </div>
-          {servicesPhoto ? (
-            <div className="relative aspect-4/3 overflow-hidden rounded-lg bg-surface lg:col-start-1 lg:row-start-1 lg:aspect-3/4">
-              <SmartImage src={servicesPhoto.image} alt={servicesPhoto.alt} sizes="(min-width: 1024px) 448px, 100vw" />
+      {/* Los servicios viven en «Nosotros»; aquí, la pregunta del que llega:
+          ¿me la hacen para mi moto? La lista sale de Textos > «Modelos con molde». */}
+      {moldeCount ? (
+        <section aria-labelledby="molde-inicio" className={cn(!customizerOn && "border-t border-line")}>
+          <div
+            className={cn(
+              containerClasses,
+              "grid gap-8 py-12 md:py-20",
+              moldesPhoto && "lg:grid-cols-[minmax(0,28rem)_1fr] lg:items-center lg:gap-16"
+            )}
+          >
+            <div className={cn(moldesPhoto && "lg:col-start-2")}>
+              <h2 id="molde-inicio" className="text-title">
+                <span className="tabular">{moldeCount}</span> modelos con molde en el taller
+              </h2>
+              <p className="mt-3 max-w-2xl text-lg text-ink-2">
+                Escribe tu moto: si la tenemos en molde, la silla se corta con el patrón de tu modelo. Si no, igual te la
+                hacemos a medida.
+              </p>
+              <CatalogSearch />
+              <p className="mt-4">
+                <Link href="/catalogo#moldes" className="link-underline inline-flex min-h-11 items-center font-semibold">
+                  Ver la lista por marca
+                </Link>
+              </p>
             </div>
-          ) : null}
-        </div>
-      </section>
+            {moldesPhoto ? (
+              <div className="relative aspect-4/3 overflow-hidden rounded-lg bg-surface lg:col-start-1 lg:row-start-1 lg:aspect-3/4">
+                <SmartImage src={moldesPhoto.image} alt={moldesPhoto.alt} sizes="(min-width: 1024px) 448px, 100vw" />
+              </div>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
 
       <ClosingCta />
     </>
