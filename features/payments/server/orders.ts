@@ -85,9 +85,16 @@ export async function startPayment(supabase: Admin, config: WompiConfig, order: 
   });
 }
 
+/** La tabla no existe todavía (falta correr la migración 016): 42P01 en Postgres, PGRST205 en PostgREST. */
+export function isMissingTable(error: { code?: string } | null | undefined) {
+  return error?.code === "42P01" || error?.code === "PGRST205";
+}
+
 export async function findOrderByToken(supabase: Admin, token: string): Promise<Order | null> {
   if (!/^[\w-]{20,64}$/.test(token)) return null;
   const { data, error } = await supabase.from("orders").select(ORDER_COLUMNS).eq("token", token).maybeSingle();
+  // Sin la migración no hay pedidos: el enlace no existe (y no un error 500).
+  if (isMissingTable(error)) return null;
   if (error) throw new Error(error.message);
   return (data as Order | null) ?? null;
 }
