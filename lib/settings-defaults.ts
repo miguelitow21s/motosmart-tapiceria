@@ -38,6 +38,7 @@ export type SiteSettings = {
   configurator_text: string;
   configurator_colors: string;
   closing_text: string;
+  payment_note: string;
   meta_title: string;
   meta_description: string;
 };
@@ -77,6 +78,8 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   configurator_text:
     "Elige tu tipo de moto, los colores, la textura y la marca bordada en los costados. Te la cotizamos por WhatsApp y la cortamos a la medida de tu moto.",
   configurator_colors: DEFAULT_SEAT_COLORS_TEXT,
+  payment_note:
+    "Después del pago te escribimos por WhatsApp para confirmar la medida de tu moto, la fecha de entrega y si la instalas en el taller o te la enviamos.",
   meta_title: "MotoSmart Tapicería | Tapicería premium en Medellín",
   meta_description:
     "Tapicería premium para motos en Medellín. Asientos a medida, materiales de alto agarre y acabados profesionales. Cotiza por WhatsApp."

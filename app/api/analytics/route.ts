@@ -11,6 +11,8 @@ const eventSchema = z.object({
 export async function POST(request: Request) {
   const parsed = eventSchema.safeParse(await readJson(request));
   if (!parsed.success) return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+  // En local (ADMIN_DEMO=1) las llaves son las de producción: nada de escribir ahí.
+  if (process.env.ADMIN_DEMO === "1") return NextResponse.json({ ok: true, demo: true }, { status: 201 });
 
   // Antes usaba el cliente anon: con RLS "with check (true)" y grant insert a
   // anon, cualquiera podia escribir directo contra PostgREST con la anon key

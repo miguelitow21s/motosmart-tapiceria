@@ -52,9 +52,12 @@ export function Price({
   design,
   size = "md",
   compact = false,
+  label = "Desde",
   className
 }: {
   design: PriceSource;
+  /** Lo que va antes de la cifra. "Total" donde se paga ese valor exacto (página de compra). */
+  label?: string;
   size?: "md" | "lg";
   /** En tarjetas angostas: sin "ahorras", que ya lo dice la etiqueta de porcentaje. */
   compact?: boolean;
@@ -77,7 +80,7 @@ export function Price({
   return (
     <div className={cn("tabular", className)}>
       <p className="flex flex-wrap items-baseline gap-x-2">
-        <span className="text-sm text-ink-3">Desde</span>
+        <span className="text-sm text-ink-3">{label}</span>
         <data
           value={value}
           className={cn(

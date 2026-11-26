@@ -15,6 +15,8 @@ import {
   mapRiderPhoto,
   parseSettingValue
 } from "@/features/admin/lib/mappers";
+import { mapOrder } from "@/features/payments/map";
+import type { Order, PaymentsSetup } from "@/features/payments/types";
 import type { ActivityEntry, AdminImage, Brand, Design, Feature, Product, RiderPhoto, UploadDraft } from "@/features/admin/types";
 
 /*
@@ -24,7 +26,7 @@ import type { ActivityEntry, AdminImage, Brand, Design, Feature, Product, RiderP
   dos veces).
 */
 
-export type DataKey = "designs" | "brands" | "images" | "settings" | "features" | "activity" | "products" | "riders";
+export type DataKey = "designs" | "brands" | "images" | "settings" | "features" | "activity" | "products" | "riders" | "orders";
 type Status = "idle" | "loading" | "ready" | "error";
 
 type DesignFilter = "all" | "active" | "hidden" | "promo" | "no-photo" | "check-price";
@@ -40,6 +42,12 @@ export type AdminState = {
   activity: ActivityEntry[];
   products: Product[];
   riders: RiderPhoto[];
+  /** Pedidos y ventas, los más nuevos primero. */
+  orders: Order[];
+  /** Cómo está la conexión con Wompi (nunca las llaves). */
+  paymentsSetup: PaymentsSetup | null;
+  /** Dirección pública de la tienda, para armar los enlaces de pago. */
+  siteUrl: string;
   status: Record<DataKey, Status>;
 
   /** Textos editados y aún sin guardar: sobreviven al cambiar de pestaña. */
@@ -62,7 +70,8 @@ const INITIAL_STATUS: Record<DataKey, Status> = {
   features: "idle",
   activity: "idle",
   products: "idle",
-  riders: "idle"
+  riders: "idle",
+  orders: "idle"
 };
 
 function initialAdminState(): AdminState {
@@ -76,6 +85,9 @@ function initialAdminState(): AdminState {
     activity: [],
     products: [],
     riders: [],
+    orders: [],
+    paymentsSetup: null,
+    siteUrl: "",
     status: INITIAL_STATUS,
     settingsEdits: {},
     uploadQueue: [],
@@ -139,6 +151,18 @@ const LOADERS: Record<DataKey, () => Promise<Loaded | string>> = {
   async products() {
     const data = await list("/api/admin/products", "No se pudo cargar el inventario.", mapProduct);
     return typeof data === "string" ? data : { products: data };
+  },
+  async orders() {
+    const res = await adminGet<{ data?: unknown[]; setup?: PaymentsSetup; site?: string }>(
+      "/api/admin/orders",
+      "No se pudieron cargar las ventas."
+    );
+    if (!res.ok) return res.error;
+    return {
+      orders: (res.data.data ?? []).map(mapOrder),
+      paymentsSetup: res.data.setup ?? null,
+      siteUrl: res.data.site ?? ""
+    };
   },
   async riders() {
     const data = await list("/api/admin/rider-photos", "No se pudieron cargar las fotos de pilotos.", mapRiderPhoto);

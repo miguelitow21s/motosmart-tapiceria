@@ -47,7 +47,9 @@ export function createDemoTransport(seed: DemoSeed) {
     features: clone(seed.features),
     activity: clone(seed.activity),
     products: clone(seed.products),
-    riders: clone(seed.riders)
+    riders: clone(seed.riders),
+    orders: clone(seed.orders),
+    payments: clone(seed.payments)
   };
 
   function log(action: string, entity: string, entityId: string | null, detail: Row | null) {
@@ -327,9 +329,84 @@ export function createDemoTransport(seed: DemoSeed) {
     return fail("Método no permitido", 405);
   }
 
+  // Misma forma que /api/admin/orders. En la demo, Wompi está "conectado" en modo de pruebas.
+  function paymentsSetup() {
+    return {
+      enabled: Boolean(db.features.find((feature) => feature.name === "payments_enabled")?.enabled),
+      environment: "test",
+      missing: [],
+      mixed: false
+    };
+  }
+
+  const isPaid = (status: unknown) => status === "pagado" || status === "en_proceso" || status === "entregado";
+
+  async function orders(method: string, body: Row, search: URLSearchParams) {
+    if (method === "GET") {
+      const id = search.get("id");
+      if (id) return json({ data: db.payments.filter((payment) => payment.order_id === id) });
+      return json({ data: db.orders, setup: paymentsSetup(), site: window.location.origin });
+    }
+    if (method === "POST") {
+      const amount = Number(body.amount_cop);
+      if (!Number.isInteger(amount) || amount < 1500) return fail("El monto mínimo es $1.500");
+      if (amount > MAX_PRICE) return fail("El monto es demasiado alto: revisa que no sobre un cero.");
+      if (body.kind === "cobro" && !paymentsSetup().enabled) {
+        return fail("Los pagos en línea están apagados: enciéndelos en «Módulos» (y revisa que Wompi esté conectado).", 409);
+      }
+      const design = body.kind === "manual" && body.design_id ? find(db.designs, body.design_id) : undefined;
+      const brand = design ? find(db.brands, design.brand_id) : undefined;
+      const phone = str(body.customer_phone).replace(/\D/g, "");
+      const now = new Date().toISOString();
+      const row: Row = {
+        id: newId(),
+        code: "MS-" + Math.random().toString(36).slice(2, 8).toUpperCase().replace(/[01OIL]/g, "Q"),
+        token: "demo-" + Date.now(),
+        kind: body.kind,
+        status: body.kind === "manual" ? "pagado" : "esperando_pago",
+        design_id: design?.id ?? null,
+        design_name: design?.name ?? null,
+        brand_name: brand?.name ?? null,
+        description: str(body.description).trim(),
+        customer_name: str(body.customer_name).trim() || null,
+        customer_phone: phone ? "57" + phone.replace(/^57/, "") : null,
+        customer_email: null,
+        customer_city: str(body.customer_city).trim() || null,
+        notes: str(body.notes).trim() || null,
+        amount_cop: amount,
+        cost_cop: typeof body.cost_cop === "number" ? body.cost_cop : null,
+        payment_method: body.kind === "manual" ? body.payment_method : null,
+        paid_at: body.kind === "manual" ? (body.paid_on ? new Date(str(body.paid_on) + "T12:00:00-05:00").toISOString() : now) : null,
+        created_at: now,
+        updated_at: now
+      };
+      db.orders.unshift(row);
+      log(body.kind === "cobro" ? "create_charge" : "register_sale", "order", row.id as string, { code: row.code, amount_cop: amount });
+      return json({ ok: true, data: row }, 201);
+    }
+    if (method === "PATCH") {
+      const current = find(db.orders, body.id);
+      if (!current) return fail("Pedido no encontrado", 404);
+      const changes: Row = { ...body, updated_at: new Date().toISOString() };
+      delete changes.id;
+      if (typeof changes.customer_phone === "string") {
+        const digits = changes.customer_phone.replace(/\D/g, "");
+        changes.customer_phone = digits ? "57" + digits.replace(/^57/, "") : null;
+      }
+      if (body.status && body.status !== current.status) {
+        if (isPaid(body.status) && !current.paid_at) changes.paid_at = new Date().toISOString();
+        if (body.status === "esperando_pago") changes.paid_at = null;
+      }
+      Object.assign(current, changes);
+      log("update", "order", current.id as string, { code: current.code, ...(body.status ? { status: body.status } : {}) });
+      return json({ ok: true, data: current });
+    }
+    return fail("Método no permitido", 405);
+  }
+
   return async function demoTransport(path: string, init: RequestInit): Promise<Response> {
     await new Promise((resolve) => setTimeout(resolve, LATENCY_MS));
-    const { pathname } = new URL(path, "http://demo.local");
+    const { pathname, searchParams } = new URL(path, "http://demo.local");
     const method = (init.method ?? "GET").toUpperCase();
     const raw = init.body;
     const body: Row | FormData =
@@ -352,6 +429,8 @@ export function createDemoTransport(seed: DemoSeed) {
         return products(method, body as Row);
       case "/api/admin/rider-photos":
         return riders(method, body);
+      case "/api/admin/orders":
+        return orders(method, body as Row, searchParams);
       default:
         return fail("Ruta no encontrada", 404);
     }

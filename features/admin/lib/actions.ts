@@ -430,7 +430,8 @@ export async function toggleFeature(feature: Feature, label: string) {
     return;
   }
   notify("success", `${label}: ${enabled ? "encendido" : "apagado"}`);
-  void refreshLoaded("activity");
+  // «Ventas» muestra si los pagos en línea están listos: se pone al día.
+  void refreshLoaded("activity", ...(feature.name === "payments_enabled" ? (["orders"] as const) : []));
 }
 
 /* --------------------------------------------------------------- Inventario */

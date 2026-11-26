@@ -1,14 +1,22 @@
 import { createPublicSupabaseClient } from "@/lib/supabase/public";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { wompiConfig } from "@/lib/wompi";
 
 type FeatureName =
   | "catalog_enabled"
   | "customizer_enabled"
   | "checkout_enabled"
   | "admin_uploads_enabled"
-  | "riders_enabled";
+  | "riders_enabled"
+  | "payments_enabled";
 
-const PUBLIC_FLAGS = new Set<FeatureName>(["catalog_enabled", "customizer_enabled", "checkout_enabled", "riders_enabled"]);
+const PUBLIC_FLAGS = new Set<FeatureName>([
+  "catalog_enabled",
+  "customizer_enabled",
+  "checkout_enabled",
+  "riders_enabled",
+  "payments_enabled"
+]);
 
 /**
  * `onError: "closed"` (por defecto): si la consulta falla, apagado. Es lo que
@@ -42,4 +50,16 @@ export async function isFeatureEnabled(name: FeatureName, { onError = "closed" }
  */
 export async function isCustomizerEnabled(options: { onError?: "open" | "closed" } = {}) {
   return process.env.ADMIN_DEMO === "1" || isFeatureEnabled("customizer_enabled", options);
+}
+
+/**
+ * Pagos en línea: el módulo encendido Y las cuatro llaves de Wompi en Vercel.
+ * Con solo una de las dos cosas, la tienda sigue cotizando por WhatsApp como
+ * siempre. Con ADMIN_DEMO=1 (solo en local) los botones se ven para
+ * revisarlos, pero no crean pedidos ni van a Wompi.
+ */
+export async function arePaymentsReady(options: { onError?: "open" | "closed" } = {}) {
+  if (process.env.ADMIN_DEMO === "1") return true;
+  if (!wompiConfig()) return false;
+  return isFeatureEnabled("payments_enabled", options);
 }

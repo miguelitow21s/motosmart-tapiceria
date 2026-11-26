@@ -27,6 +27,8 @@ export type DemoSeed = {
   activity: Row[];
   products: Row[];
   riders: Row[];
+  orders: Row[];
+  payments: Row[];
 };
 
 export type PublicData = {
@@ -54,8 +56,119 @@ const FEATURES: Row[] = [
   { name: "riders_enabled", enabled: true },
   { name: "checkout_enabled", enabled: true },
   { name: "admin_uploads_enabled", enabled: true },
-  { name: "customizer_enabled", enabled: true }
+  { name: "customizer_enabled", enabled: true },
+  { name: "payments_enabled", enabled: true }
 ];
+
+/*
+  Ventas de muestra de los últimos 12 meses: compras de la tienda, cobros por
+  enlace y ventas a mano, con la temporada alta de diciembre. Datos
+  inventados solo para la demo (nunca se guardan).
+*/
+const CUSTOMERS = [
+  ["Carlos Restrepo", "Medellín"],
+  ["Daniela Gómez", "Envigado"],
+  ["Andrés Ospina", "Bello"],
+  ["Laura Zapata", "Itagüí"],
+  ["Juan Pablo Arango", "Rionegro"],
+  ["Sebastián Cardona", "Sabaneta"],
+  ["Valentina Mejía", "Bogotá"],
+  ["Mateo Henao", "Cali"],
+  ["Natalia Ruiz", "Medellín"],
+  ["Esteban Vélez", "La Estrella"]
+];
+const ONLINE_METHODS = ["CARD", "NEQUI", "PSE", "CARD", "BANCOLOMBIA_TRANSFER", "NEQUI", "CARD"];
+const HAND_METHODS = ["EFECTIVO", "TRANSFERENCIA", "DATAFONO", "EFECTIVO", "TRANSFERENCIA"];
+const CUSTOM_JOBS = [
+  "Forro antideslizante con costura roja",
+  "Retapizado completo con espuma nueva",
+  "Silla con marca bordada",
+  "Arreglo de costura y cambio de cremallera",
+  "Forro rombos para parrillero"
+];
+// Ventas por mes, del más viejo al actual (diciembre fuerte, enero flojo).
+const MONTHLY = [18, 6, 8, 7, 9, 8, 11, 10, 12, 9, 13, 9];
+
+/** Número pseudoaleatorio fijo por semilla: la demo se ve igual cada vez. */
+function seeded(seed: number) {
+  const x = Math.sin(seed * 9301 + 49297) * 233280;
+  return x - Math.floor(x);
+}
+
+function demoSales(designs: Row[], brands: Row[], now: number): { orders: Row[]; payments: Row[] } {
+  const brandName = new Map(brands.map((brand) => [brand.id, brand.name as string]));
+  const priced = designs.filter((design) => Number(design.base_price) >= 1500);
+  const orders: Row[] = [];
+  const payments: Row[] = [];
+  let n = 0;
+  MONTHLY.forEach((count, monthIndex) => {
+    const monthsAgo = MONTHLY.length - 1 - monthIndex;
+    for (let i = 0; i < count; i += 1) {
+      n += 1;
+      const r = seeded(n);
+      // El mes en curso solo llega hasta hoy.
+      const daysAgo = monthsAgo * 30 + Math.floor(seeded(n + 99) * (monthsAgo === 0 ? 20 : 29)) + 0.2;
+      const kind = r < 0.45 ? "tienda" : r < 0.75 ? "cobro" : "manual";
+      const design = kind !== "cobro" && priced.length ? priced[n % priced.length] : null;
+      const [name, city] = CUSTOMERS[n % CUSTOMERS.length];
+      const amount = design ? Number(design.discount_price ?? design.base_price) : [85000, 120000, 145000, 185000, 230000, 65000][n % 6];
+      const status =
+        monthsAgo === 0 && i % 4 === 0
+          ? "esperando_pago"
+          : monthsAgo === 0 && i % 4 === 1
+            ? "en_proceso"
+            : n % 23 === 0
+              ? "cancelado"
+              : n % 3 === 0
+                ? "pagado"
+                : "entregado";
+      const paid = status !== "esperando_pago" && status !== "cancelado";
+      const created = ago(daysAgo + 1, now);
+      const id = demoId("o", n);
+      const method = paid ? (kind === "manual" ? HAND_METHODS[n % HAND_METHODS.length] : ONLINE_METHODS[n % ONLINE_METHODS.length]) : null;
+      orders.push({
+        id,
+        code: "MS-" + (0x5a3c1 + n * 7919).toString(36).toUpperCase().slice(-6).padStart(6, "Q"),
+        token: "demo-" + n,
+        kind,
+        status,
+        design_id: design?.id ?? null,
+        design_name: design ? design.name : null,
+        brand_name: design ? (brandName.get(design.brand_id) ?? null) : null,
+        description: design ? "Silla " + String(design.name) : CUSTOM_JOBS[n % CUSTOM_JOBS.length],
+        customer_name: name,
+        customer_phone: "5730" + String(10000000 + n * 7331).slice(-8),
+        customer_email: kind === "tienda" ? "cliente" + n + "@correo.example" : null,
+        customer_city: city,
+        notes: n % 5 === 0 ? "Va con envío por Servientrega." : null,
+        amount_cop: amount,
+        // Casi siempre con costo anotado (como en la hoja de costos del taller).
+        cost_cop: n % 4 === 0 ? null : Math.round((amount * (0.45 + seeded(n + 7) * 0.15)) / 1000) * 1000,
+        payment_method: method,
+        paid_at: paid ? ago(daysAgo, now) : null,
+        created_at: created,
+        updated_at: ago(daysAgo, now)
+      });
+      if (kind !== "manual" && (paid || (status === "esperando_pago" && i % 2 === 0))) {
+        payments.push({
+          id: demoId("y", n),
+          order_id: id,
+          reference: n + "-DEMO",
+          status: paid ? "APPROVED" : "DECLINED",
+          amount_in_cents: amount * 100,
+          wompi_transaction_id: "12345-" + (1700000000 + n) + "-" + (10000 + n),
+          payment_method_type: paid ? method : "CARD",
+          environment: "test",
+          created_at: created,
+          updated_at: ago(daysAgo, now)
+        });
+      }
+    }
+  });
+  orders.sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+  return { orders, payments };
+}
+
 
 function baseSeed(data: PublicData, now: number): DemoSeed {
   const brands: Row[] = data.brands.map((brand) => ({
@@ -136,7 +249,8 @@ function baseSeed(data: PublicData, now: number): DemoSeed {
     features: FEATURES,
     activity,
     products,
-    riders: data.riders.map((rider, index) => ({ ...rider, display_order: index }))
+    riders: data.riders.map((rider, index) => ({ ...rider, display_order: index })),
+    ...demoSales(designs, brands, now)
   };
 }
 
@@ -294,7 +408,9 @@ function emptySeed(): DemoSeed {
     features: FEATURES,
     activity: [],
     products: [],
-    riders: []
+    riders: [],
+    orders: [],
+    payments: []
   };
 }
 

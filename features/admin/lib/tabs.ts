@@ -11,6 +11,7 @@ import {
   ToggleRight,
   Type,
   Users,
+  Wallet,
   GalleryHorizontalEnd
 } from "lucide-react";
 import type { TabKey } from "@/features/admin/types";
@@ -30,6 +31,7 @@ export type TabInfo = {
 
 export const TABS: TabInfo[] = [
   { key: "overview", label: "Resumen", hash: "resumen", icon: LayoutDashboard, group: "inicio" },
+  { key: "sales", label: "Ventas", hash: "ventas", icon: Wallet, group: "inicio" },
   { key: "catalog", label: "Diseños", hash: "disenos", icon: Tags, group: "tienda" },
   { key: "gallery", label: "Fotos", hash: "fotos", icon: Images, group: "tienda" },
   { key: "carousel", label: "Carrusel", hash: "carrusel", icon: GalleryHorizontalEnd, group: "tienda" },
@@ -43,7 +45,7 @@ export const TABS: TabInfo[] = [
 export const TAB_BY_KEY = new Map(TABS.map((tab) => [tab.key, tab]));
 
 /** En el teléfono, la barra inferior lleva lo que se usa a diario; el resto va en "Más". */
-export const MOBILE_PRIMARY: TabKey[] = ["overview", "catalog", "gallery", "carousel"];
+export const MOBILE_PRIMARY: TabKey[] = ["overview", "sales", "catalog", "gallery"];
 
 // Anclas viejas del menú (/admin#designs…) siguen funcionando.
 const LEGACY: Record<string, TabKey> = {
@@ -51,7 +53,8 @@ const LEGACY: Record<string, TabKey> = {
   media: "gallery",
   brands: "brands",
   riders: "riders",
-  features: "features"
+  features: "features",
+  pedidos: "sales"
 };
 
 function tabFromHash(hash: string): TabKey {

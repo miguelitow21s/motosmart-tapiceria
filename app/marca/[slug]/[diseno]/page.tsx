@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Box, Ruler, Truck } from "lucide-react";
+import { Box, CreditCard, Ruler, Truck } from "lucide-react";
 import { JsonLd } from "@/components/seo/json-ld";
 import { ClosingCta } from "@/components/shared/closing-cta";
 import { containerClasses } from "@/components/shared/section";
@@ -15,7 +15,8 @@ import { DesignGrid } from "@/features/catalog/components/design-grid";
 import { designHref } from "@/features/catalog/lib/links";
 import { designQuoteMessage } from "@/features/catalog/lib/whatsapp";
 import { getCarouselSlides, getStoreDesigns } from "@/features/catalog/services/catalog.service";
-import { isCustomizerEnabled } from "@/lib/feature-flags";
+import { MIN_CHARGE_COP } from "@/features/payments/types";
+import { arePaymentsReady, isCustomizerEnabled } from "@/lib/feature-flags";
 import { pageMetadata } from "@/lib/seo";
 import { buildWhatsAppUrl, getSiteSettings } from "@/lib/settings";
 import { cn } from "@/lib/cn";
@@ -57,15 +58,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function DesignPage({ params }: Props) {
   const { slug, diseno } = await params;
-  const [{ design, siblings }, settings, slides, customizerOn] = await Promise.all([
+  const [{ design, siblings }, settings, slides, customizerOn, paymentsOn] = await Promise.all([
     loadDesign(slug, diseno),
     getSiteSettings(),
     getCarouselSlides(),
-    isCustomizerEnabled({ onError: "open" })
+    isCustomizerEnabled({ onError: "open" }),
+    arePaymentsReady()
   ]);
   if (!design) notFound();
 
   const { value, showable } = currentPrice(design);
+  // Comprar en línea: con los pagos encendidos y un precio que se pueda cobrar.
+  const canBuy = paymentsOn && showable && value >= MIN_CHARGE_COP;
   const href = buildWhatsAppUrl(
     settings.whatsapp_number,
     designQuoteMessage({ name: design.name, slug: design.slug, brandName: design.brand_name, price: showable ? value : null })
@@ -77,7 +81,13 @@ export default async function DesignPage({ params }: Props) {
   const url = `${siteConfig.url}${designHref(design)}`;
 
   const facts = [
-    { icon: Ruler, text: "Hecha a la medida de tu moto. El precio final lo confirmamos por WhatsApp con tu modelo." },
+    {
+      icon: Ruler,
+      // Con la compra en línea el precio ya es el que se paga: solo queda confirmar la medida.
+      text: canBuy
+        ? "Hecha a la medida de tu moto. Si la compras aquí, te escribimos por WhatsApp para confirmar la medida."
+        : "Hecha a la medida de tu moto. El precio final lo confirmamos por WhatsApp con tu modelo."
+    },
     settings.hero_note ? { icon: Truck, text: settings.hero_note } : null,
     { icon: Box, text: "Cuéntanos si quieres otro color, otra textura o tu marca bordada." }
   ].filter((fact): fact is { icon: typeof Ruler; text: string } => fact !== null);
@@ -167,13 +177,29 @@ export default async function DesignPage({ params }: Props) {
             <Price design={design} size="lg" className="mt-6" />
 
             <div className="mt-7 flex flex-col gap-3 sm:flex-row lg:flex-col xl:flex-row">
-              <Button asChild size="lg" className="w-full sm:w-auto lg:w-full xl:w-auto">
+              {canBuy ? (
+                <Button asChild size="lg" className="w-full sm:w-auto lg:w-full xl:w-auto">
+                  <Link href={`/comprar/${design.brand_slug}/${design.slug}`}>
+                    <CreditCard aria-hidden="true" />
+                    Comprar y pagar en línea
+                  </Link>
+                </Button>
+              ) : null}
+              <Button
+                asChild
+                size="lg"
+                variant={canBuy ? "secondary" : "default"}
+                className="w-full sm:w-auto lg:w-full xl:w-auto"
+              >
                 <WhatsAppLink href={href} source="diseno" reference={design.slug}>
                   <WhatsAppIcon />
                   Cotizar por WhatsApp
                 </WhatsAppLink>
               </Button>
             </div>
+            {canBuy ? (
+              <p className="mt-3 text-sm text-ink-2">Tarjeta, PSE, Nequi o Bancolombia, con Wompi.</p>
+            ) : null}
 
             <ul className="mt-8 space-y-4 border-t border-line pt-6">
               {facts.map(({ icon: Icon, text }) => (

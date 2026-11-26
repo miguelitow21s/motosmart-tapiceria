@@ -31,6 +31,7 @@ function TabSkeleton() {
 */
 const loading = () => <TabSkeleton />;
 const OverviewTab = dynamic(() => import("@/features/admin/components/tabs/overview-tab").then((m) => m.OverviewTab), { loading });
+const SalesTab = dynamic(() => import("@/features/admin/components/tabs/sales-tab").then((m) => m.SalesTab), { loading });
 const DesignsTab = dynamic(() => import("@/features/admin/components/tabs/designs-tab").then((m) => m.DesignsTab), { loading });
 const GalleryTab = dynamic(() => import("@/features/admin/components/tabs/gallery-tab").then((m) => m.GalleryTab), { loading });
 const CarouselTab = dynamic(() => import("@/features/admin/components/tabs/carousel-tab").then((m) => m.CarouselTab), { loading });
@@ -46,6 +47,7 @@ const DesignDialogHost = dynamic(() =>
 /** Las mismas rutas que arriba: webpack las sirve del mismo archivo, ya en caché. */
 function preloadTabs() {
   void import("@/features/admin/components/tabs/overview-tab");
+  void import("@/features/admin/components/tabs/sales-tab");
   void import("@/features/admin/components/tabs/designs-tab");
   void import("@/features/admin/components/tabs/gallery-tab");
   void import("@/features/admin/components/tabs/carousel-tab");
@@ -58,6 +60,8 @@ function preloadTabs() {
 
 function ActiveTab({ tab, canPurge }: { tab: TabKey; canPurge: boolean }) {
   switch (tab) {
+    case "sales":
+      return <SalesTab />;
     case "catalog":
       return <DesignsTab />;
     case "gallery":
