@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { WhatsAppLink } from "@/components/shared/whatsapp-link";
 import { Button } from "@/components/ui/button";
 import { WhatsAppIcon } from "@/components/ui/whatsapp-icon";
@@ -16,11 +17,14 @@ export function MoldeMatches({
   matches,
   whatsappNumber,
   lead,
+  withConfigurator = false,
   className
 }: {
   matches: MoldeModel[];
   whatsappNumber: string;
   lead: string;
+  /** "Arma tu silla" encendido: enlace para verla en 3D con la primera moto ya escrita. */
+  withConfigurator?: boolean;
   className?: string;
 }) {
   if (!matches.length) return null;
@@ -60,6 +64,16 @@ export function MoldeMatches({
       {rest > 0 ? (
         <p className="mt-3 text-sm text-ink-3">
           Y {rest === 1 ? "1 modelo más" : `${rest} modelos más`}: escribe el modelo completo, con el cilindraje.
+        </p>
+      ) : null}
+      {withConfigurator ? (
+        <p className="mt-6">
+          <Link
+            href={`/arma-tu-silla?moto=${encodeURIComponent(`${shown[0].brand} ${shown[0].model}`)}`}
+            className="link-underline inline-flex min-h-11 items-center font-semibold"
+          >
+            ¿Con qué colores? Ármala en 3D →
+          </Link>
         </p>
       ) : null}
     </section>

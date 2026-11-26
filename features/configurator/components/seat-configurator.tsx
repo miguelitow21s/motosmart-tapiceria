@@ -7,6 +7,7 @@ import { WhatsAppLink } from "@/components/shared/whatsapp-link";
 import { buildWhatsAppUrl } from "@/lib/settings-defaults";
 import { cx } from "@/lib/utils";
 import { SEAT_GRIPS, SEAT_PATTERNS, seatQuoteMessage, type SeatColor } from "../lib/options";
+import { guessSeatShape, readMotoParam } from "../lib/guess-shape";
 import type { SeatLook, SeatScene, SeatView } from "../lib/seat-scene";
 import {
   DEFAULT_SEAT_SHAPE,
@@ -85,6 +86,16 @@ export function SeatConfigurator({
   const [thread, setThread] = useState(() => pick(colors, "blanco", 0));
   const [letter, setLetter] = useState<EmbroideryStyle>("recta");
   const [view, setView] = useState<SeatView | null>("tres-cuartos");
+  // Desde un diseño de la tienda se llega con ?moto=Yamaha RX-100: queda
+  // escrita, con su forma y su marca bordada. Se lee en el navegador para
+  // que la página siga siendo estática.
+  useEffect(() => {
+    const fromLink = readMotoParam(new URLSearchParams(window.location.search).get("moto"));
+    if (!fromLink) return;
+    setMoto(fromLink);
+    const guessed = guessSeatShape(fromLink);
+    if (guessed) setShapeId(guessed);
+  }, []);
   const motoId = useId();
   const embroideryId = useId();
   const shape = seatShape(shapeId);

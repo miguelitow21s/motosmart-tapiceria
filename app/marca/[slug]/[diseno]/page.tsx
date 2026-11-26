@@ -56,6 +56,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   });
 }
 
+/** La moto para "Arma tu silla": la marca y el modelo, sin repetir la marca ni usar "Varios". */
+function motoForConfigurator(brand: string, name: string) {
+  if (/^varios$/i.test(brand.trim()) || name.toLowerCase().startsWith(brand.toLowerCase())) return name;
+  return `${brand} ${name}`;
+}
+
 export default async function DesignPage({ params }: Props) {
   const { slug, diseno } = await params;
   const [{ design, siblings }, settings, slides, customizerOn, paymentsOn] = await Promise.all([
@@ -213,7 +219,7 @@ export default async function DesignPage({ params }: Props) {
 
             {customizerOn ? (
               <Link
-                href="/arma-tu-silla"
+                href={`/arma-tu-silla?moto=${encodeURIComponent(motoForConfigurator(design.brand_name, design.name))}`}
                 className="group mt-8 flex items-center justify-between gap-4 rounded-lg bg-[#0b0b0b] px-5 py-4 text-white transition-[background-color,scale] duration-150 ease-out hover:bg-[#1a1a1a] active:scale-[0.99]"
               >
                 <span>
