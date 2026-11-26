@@ -462,7 +462,7 @@ function DesignDialog({ target, open }: { target: string; open: boolean }) {
               id={ids.slug}
               label="Dirección"
               error={errors.slug}
-              hint={`motosmartapiceria.com/marca/${brandSlug ?? "marca"}#diseno-${draft.slug || toSlug(draft.name) || "nombre"}`}
+              hint={`motosmartapiceria.com/marca/${brandSlug ?? "marca"}/${draft.slug || toSlug(draft.name) || "nombre"}`}
             >
               <Input
                 id={ids.slug}

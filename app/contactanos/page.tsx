@@ -18,6 +18,13 @@ export function generateMetadata(): Promise<Metadata> {
   });
 }
 
+/** Lo que pasa después de escribir: así nadie se queda preguntando qué sigue. */
+const STEPS = [
+  { title: "Nos escribes", text: "Con tu moto (marca, modelo y año) y, si puedes, una foto de la silla como está hoy." },
+  { title: "Te cotizamos", text: "Te mandamos el precio y las opciones de color, textura y bordado por WhatsApp." },
+  { title: "Hacemos tu silla", text: "La hacemos a mano en Medellín. La instalas en el taller o te la enviamos." }
+];
+
 export default async function ContactanosPage() {
   const [settings, slides] = await Promise.all([getSiteSettings(), getCarouselSlides()]);
   // Un trabajo real del carrusel semanal junto a los datos; nunca stock.
@@ -43,6 +50,24 @@ export default async function ContactanosPage() {
           ) : null}
         </div>
       </div>
+      <section aria-labelledby="como-funciona" className="border-t border-line">
+        <div className={cn(containerClasses, "py-12 md:py-16")}>
+          <h2 id="como-funciona" className="text-title">
+            Así funciona
+          </h2>
+          <ol className="mt-8 grid gap-x-8 border-t-2 border-ink md:grid-cols-3">
+            {STEPS.map((step, index) => (
+              <li key={step.title} className="grid grid-cols-[3.25rem_1fr] gap-x-4 border-b border-line py-5 md:block md:border-b-0 md:py-6">
+                <span aria-hidden="true" className="type-display tabular row-span-2 text-4xl leading-none text-brand md:text-5xl">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <h3 className="text-xl leading-tight md:mt-4">{step.title}</h3>
+                <p className="mt-1 text-ink-2">{step.text}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
     </>
   );
 }

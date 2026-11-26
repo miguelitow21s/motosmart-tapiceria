@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { currentPrice } from "@/components/ui/price";
 import { WhatsAppIcon } from "@/components/ui/whatsapp-icon";
 import { SmartImage } from "@/components/shared/smart-image";
 import { WhatsAppLink } from "@/components/shared/whatsapp-link";
+import { designHref } from "@/features/catalog/lib/links";
 import { designQuoteMessage } from "@/features/catalog/lib/whatsapp";
 import type { DesignWithBrand } from "@/features/catalog/services/catalog.service";
 import { isShowablePrice } from "@/lib/price-limits";
@@ -14,7 +16,9 @@ export const designGridSizes = "(max-width: 767px) 50vw, (max-width: 1279px) 33v
 /**
  * Tarjeta de una silla: la foto real es la tarjeta. Encima, sobre un degradado
  * negro, la marca, el modelo y el precio, y el botón redondo que abre WhatsApp
- * con el diseño, la marca y el precio ya escritos.
+ * con el diseño, la marca y el precio ya escritos. Toda la tarjeta lleva a la
+ * página del diseño (un enlace que la cubre entera); el texto deja pasar el
+ * toque y el botón de WhatsApp queda encima y abre el chat.
  *
  * Los colores del texto sobre la foto son fijos (blanco sobre negro), no
  * tokens: la tarjeta se ve igual en la tienda blanca y en el escenario negro.
@@ -59,12 +63,18 @@ export function DesignCard({
         priority={priority}
         className="transition-transform duration-300 ease-out group-hover:scale-[1.03] motion-reduce:transition-none"
       />
+      <Link
+        href={designHref(design)}
+        className="absolute inset-0 rounded-lg focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-white"
+      >
+        <span className="sr-only">Ver {design.name}</span>
+      </Link>
       {showBase ? (
-        <span className="tabular absolute top-2 left-2 rounded-md bg-brand px-2 py-1 text-sm font-bold text-white">
+        <span className="tabular pointer-events-none absolute top-2 left-2 rounded-md bg-brand px-2 py-1 text-sm font-bold text-white">
           -{promo.percentOff}%
         </span>
       ) : null}
-      <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/90 via-black/70 to-transparent px-3 pt-16 pb-3 text-white sm:px-4 sm:pb-4">
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-black/90 via-black/70 to-transparent px-3 pt-16 pb-3 text-white sm:px-4 sm:pb-4">
         {showBrand && design.brand_name ? (
           <p className="text-xs font-semibold tracking-[0.08em] text-white/75 uppercase">{design.brand_name}</p>
         ) : null}
@@ -97,7 +107,7 @@ export function DesignCard({
             source="silla"
             reference={design.slug}
             aria-label={`Cotizar ${design.name} por WhatsApp`}
-            className="inline-flex size-12 shrink-0 items-center justify-center gap-2 rounded-full bg-brand text-sm font-semibold text-white transition-[background-color,transform] duration-150 hover:bg-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white active:scale-[0.97] md:w-auto md:px-4"
+            className="pointer-events-auto relative inline-flex size-12 shrink-0 items-center justify-center gap-2 rounded-full bg-brand text-sm font-semibold text-white transition-[background-color,transform] duration-150 hover:bg-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white active:scale-[0.97] md:w-auto md:px-4"
           >
             <WhatsAppIcon className="size-5" />
             <span className="hidden md:inline">Cotizar</span>
