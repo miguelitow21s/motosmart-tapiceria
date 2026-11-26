@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { payAccess, TEST_MODE_NOTE } from "@/features/payments/server/access";
 import { notFound, redirect } from "next/navigation";
 import { containerClasses } from "@/components/shared/section";
 import { SmartImage } from "@/components/shared/smart-image";
@@ -10,7 +11,6 @@ import { designQuoteMessage } from "@/features/catalog/lib/whatsapp";
 import { getStoreDesigns } from "@/features/catalog/services/catalog.service";
 import { CheckoutForm } from "@/features/payments/components/checkout-form";
 import { MIN_CHARGE_COP } from "@/features/payments/types";
-import { arePaymentsReady } from "@/lib/feature-flags";
 import { buildWhatsAppUrl, getSiteSettings } from "@/lib/settings";
 import { cn } from "@/lib/cn";
 
@@ -26,13 +26,13 @@ export const metadata: Metadata = {
 
 export default async function BuyPage({ params }: Props) {
   const { marca, diseno } = await params;
-  const [designs, ready, settings] = await Promise.all([getStoreDesigns(), arePaymentsReady(), getSiteSettings()]);
+  const [designs, access, settings] = await Promise.all([getStoreDesigns(), payAccess(), getSiteSettings()]);
   const design = designs.find((item) => item.brand_slug === marca && item.slug === diseno);
   if (!design) notFound();
 
   const { value, showable } = currentPrice(design);
   // Sin pagos o sin precio para cobrar, la ficha del diseño (cotizar por WhatsApp).
-  if (!ready || !showable || value < MIN_CHARGE_COP) redirect(designHref(design));
+  if (!access.ok || !showable || value < MIN_CHARGE_COP) redirect(designHref(design));
 
   const whatsapp = buildWhatsAppUrl(
     settings.whatsapp_number,
@@ -52,6 +52,11 @@ export default async function BuyPage({ params }: Props) {
       </nav>
 
       <h1 className="mt-4 text-[clamp(2rem,1.5rem+2vw,3rem)] leading-[0.95] tracking-[-0.02em] uppercase">Comprar tu silla</h1>
+      {access.test ? (
+        <p role="status" className="mt-4 max-w-2xl rounded-md border border-line bg-surface px-4 py-3 text-sm text-ink-2">
+          {TEST_MODE_NOTE}
+        </p>
+      ) : null}
 
       <div className="mt-8 grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:gap-16">
         <aside aria-label="Tu pedido" className="lg:sticky lg:top-24 lg:self-start">

@@ -46,7 +46,7 @@ export function monthLabel(key: string, style: "long" | "short" | "initial" = "l
 
 /** Cuenta como venta cuando ya entró el dinero. Su fecha es la del pago. */
 export function isSale(order: Order): boolean {
-  return isPaidStatus(order.status);
+  return isPaidStatus(order.status) && !order.is_test;
 }
 
 export function saleMonth(order: Order): string {
@@ -144,7 +144,9 @@ function csvCell(value: string | number | null | undefined): string {
   const text = String(value);
   // Un texto que empieza por = + - @ lo abre Excel como fórmula: se neutraliza.
   const safe = /^[=+\-@\t\r]/.test(text) && typeof value === "string" ? `'${text}` : text;
-  return /[";\n\r]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
+  // También las comas: si alguien lo abre con coma como separador, una
+  // celda «x,=1+1» no se parte en una fórmula.
+  return /[";,\n\r]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
 }
 
 function csvDate(value: string | null): string {

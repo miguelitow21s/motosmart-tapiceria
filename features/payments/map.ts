@@ -38,6 +38,7 @@ export function mapOrder(raw: unknown): Order {
     cost_cop: row.cost_cop == null ? null : num(row.cost_cop),
     payment_method: nullableText(row.payment_method),
     paid_at: nullableText(row.paid_at),
+    is_test: row.is_test === true,
     created_at: text(row.created_at),
     updated_at: text(row.updated_at)
   };

@@ -54,12 +54,17 @@ export async function isCustomizerEnabled(options: { onError?: "open" | "closed"
 
 /**
  * Pagos en línea: el módulo encendido Y las cuatro llaves de Wompi en Vercel.
- * Con solo una de las dos cosas, la tienda sigue cotizando por WhatsApp como
- * siempre. Con ADMIN_DEMO=1 (solo en local) los botones se ven para
- * revisarlos, pero no crean pedidos ni van a Wompi.
+ *   off   falta algo: la tienda sigue cotizando por WhatsApp como siempre.
+ *   test  llaves de pruebas: la tienda no muestra «Comprar»; solo el
+ *         administrador con sesión puede ensayar (features/payments/server/access).
+ *   live  llaves de producción: cualquiera compra.
+ * Con ADMIN_DEMO=1 (solo en local) los botones se ven para revisarlos, pero
+ * no crean pedidos ni van a Wompi.
  */
-export async function arePaymentsReady(options: { onError?: "open" | "closed" } = {}) {
-  if (process.env.ADMIN_DEMO === "1") return true;
-  if (!wompiConfig()) return false;
-  return isFeatureEnabled("payments_enabled", options);
+export async function paymentsMode(options: { onError?: "open" | "closed" } = {}): Promise<"off" | "test" | "live"> {
+  if (process.env.ADMIN_DEMO === "1") return "live";
+  const config = wompiConfig();
+  if (!config) return "off";
+  if (!(await isFeatureEnabled("payments_enabled", options))) return "off";
+  return config.environment === "prod" ? "live" : "test";
 }

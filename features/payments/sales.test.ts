@@ -26,6 +26,7 @@ function order(changes: Partial<Order>): Order {
     cost_cop: null,
     payment_method: "CARD",
     paid_at: "2026-11-10T15:00:00.000Z",
+    is_test: false,
     created_at: "2026-11-10T14:00:00.000Z",
     updated_at: "2026-11-10T15:00:00.000Z",
     ...changes
@@ -49,6 +50,8 @@ test("solo cuentan los pedidos pagados, por la fecha del pago", () => {
     order({ status: "entregado", amount_cop: 100000 }),
     order({ status: "esperando_pago", paid_at: null, amount_cop: 999000 }),
     order({ status: "cancelado", paid_at: null, amount_cop: 50000 }),
+    // Pagado con llaves de pruebas: no es venta.
+    order({ is_test: true, amount_cop: 777000 }),
     // Pedido de octubre pagado en noviembre: es venta de noviembre.
     order({ created_at: "2026-10-30T20:00:00.000Z", paid_at: "2026-11-02T15:00:00.000Z", amount_cop: 30000 })
   ];

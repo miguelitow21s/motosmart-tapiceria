@@ -201,8 +201,9 @@ function SetupNotice({ setup, siteUrl }: { setup: PaymentsSetup | null; siteUrl:
       <p role="status" className="flex items-start gap-2.5 rounded-lg border border-warning/30 bg-warning/5 px-4 py-3 text-ink">
         <TriangleAlert aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-warning" />
         <span>
-          <strong className="font-semibold">Modo de pruebas.</strong> Los pagos no son reales: sirven para ensayar con las tarjetas de prueba de
-          Wompi. Cuando todo funcione, cambia en Vercel a las llaves de producción.
+          <strong className="font-semibold">Modo de pruebas.</strong> Los clientes todavía no ven «Comprar»: solo tú puedes ensayar, en este
+          navegador con la sesión abierta, con las tarjetas de prueba de Wompi (crea un cobro y abre su enlace). Esos pedidos salen como
+          «Prueba» y no cuentan como ventas. Cuando todo funcione, cambia en Vercel a las llaves de producción.
         </span>
       </p>
     ) : (
@@ -267,7 +268,8 @@ function SetupNotice({ setup, siteUrl }: { setup: PaymentsSetup | null; siteUrl:
           </span>
         </Step>
         <Step n={4} title="Encender «Pagos en línea» en Módulos">
-          Primero con las llaves de pruebas para ensayar; después con las de producción.
+          Primero con las llaves de pruebas: solo tú puedes ensayar (con la sesión del panel abierta) y los clientes no ven «Comprar».
+          Después, con las de producción, la tienda empieza a cobrar.
         </Step>
       </ol>
     </Panel>
@@ -681,6 +683,7 @@ function OrdersPanel({ orders, onOpen }: { orders: Order[]; onOpen: (order: Orde
                     </span>
                     <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-2">
                       <Badge tone={STATUS_TONE[order.status]}>{STATUS_LABEL[order.status]}</Badge>
+                      {order.is_test ? <Badge tone="neutral">Prueba</Badge> : null}
                       <span className="tabular">{order.code}</span>
                       {order.customer_name ? <span className="min-w-0 truncate">· {order.customer_name}</span> : null}
                       <span className="text-ink-3">

@@ -16,7 +16,7 @@ import { designHref } from "@/features/catalog/lib/links";
 import { designQuoteMessage } from "@/features/catalog/lib/whatsapp";
 import { getCarouselSlides, getStoreDesigns } from "@/features/catalog/services/catalog.service";
 import { MIN_CHARGE_COP } from "@/features/payments/types";
-import { arePaymentsReady, isCustomizerEnabled } from "@/lib/feature-flags";
+import { isCustomizerEnabled, paymentsMode } from "@/lib/feature-flags";
 import { pageMetadata } from "@/lib/seo";
 import { buildWhatsAppUrl, getSiteSettings } from "@/lib/settings";
 import { cn } from "@/lib/cn";
@@ -63,7 +63,8 @@ export default async function DesignPage({ params }: Props) {
     getSiteSettings(),
     getCarouselSlides(),
     isCustomizerEnabled({ onError: "open" }),
-    arePaymentsReady()
+    // Página pública en caché: el botón solo sale con llaves de producción.
+    paymentsMode().then((mode) => mode === "live")
   ]);
   if (!design) notFound();
 

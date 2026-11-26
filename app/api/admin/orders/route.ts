@@ -3,7 +3,7 @@ import { z } from "zod";
 import { siteConfig } from "@/config/site";
 import { logAdminActivity } from "@/lib/admin-activity";
 import { invalidPayload, internalError, readJson } from "@/lib/api-response";
-import { canAccessAdmin, getCurrentUserRole } from "@/lib/auth";
+import { getCurrentUserRole, isAdmin } from "@/lib/auth";
 import { isFeatureEnabled } from "@/lib/feature-flags";
 import { MAX_PRICE } from "@/lib/price-limits";
 import { assertCsrf, sanitizeText } from "@/lib/security";
@@ -22,7 +22,9 @@ import { MANUAL_METHODS, MIN_CHARGE_COP, ORDER_STATUSES, type PaymentsSetup } fr
   eso lo dice Wompi.
 */
 
-const LIST_LIMIT = 3000;
+// Supabase devuelve como mucho 1000 filas por consulta: se pide por páginas.
+const PAGE = 1000;
+const LIST_CAP = 20000;
 
 const optionalText = (max: number) =>
   z
@@ -95,8 +97,9 @@ async function guard(request?: Request) {
       return { error: NextResponse.json({ error: "CSRF invalido" }, { status: 403 }) };
     }
   }
+  // Plata y datos de clientes: solo el administrador, no el editor del catálogo.
   const { user, role } = await getCurrentUserRole();
-  if (!canAccessAdmin(role)) return { error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
+  if (!isAdmin(role)) return { error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
   return { user };
 }
 
@@ -117,12 +120,27 @@ export async function GET(request: Request) {
     return NextResponse.json({ data });
   }
 
-  const [orders, payments] = await Promise.all([
-    supabase.from("orders").select(ORDER_COLUMNS).order("created_at", { ascending: false }).limit(LIST_LIMIT),
-    setup()
-  ]);
+  const [orders, payments] = await Promise.all([allOrders(supabase), setup()]);
   if (orders.error) return internalError("orders GET", orders.error);
   return NextResponse.json({ data: orders.data, setup: payments, site: siteConfig.url });
+}
+
+/** Todos los pedidos, de 1000 en 1000 (las cifras de ventas se suman sobre la lista completa). */
+async function allOrders(supabase: ReturnType<typeof createAdminSupabaseClient>) {
+  const rows: unknown[] = [];
+  for (let from = 0; from < LIST_CAP; from += PAGE) {
+    const { data, error } = await supabase
+      .from("orders")
+      .select(ORDER_COLUMNS)
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
+      .range(from, from + PAGE - 1);
+    if (error) return { data: null, error };
+    rows.push(...(data ?? []));
+    if (!data || data.length < PAGE) return { data: rows, error: null };
+  }
+  console.warn("orders GET: se llegó al tope de", LIST_CAP, "pedidos");
+  return { data: rows, error: null };
 }
 
 /** Medianoche de Medellín (UTC-5, sin horario de verano) del día dado, más el mediodía para no caer en el día anterior. */
@@ -204,7 +222,7 @@ export async function PATCH(request: Request) {
   const supabase = createAdminSupabaseClient();
   const { data: current, error: readError } = await supabase
     .from("orders")
-    .select("id,code,status,paid_at")
+    .select("id,code,kind,status,paid_at,payment_method")
     .eq("id", id)
     .maybeSingle();
   if (readError) return internalError("orders PATCH read", readError);
@@ -215,7 +233,28 @@ export async function PATCH(request: Request) {
   for (const [key, value] of Object.entries(rest)) {
     if (value !== undefined) changes[key] = value;
   }
+  // El medio de pago de Wompi lo dice Wompi: solo se anota en ventas a mano o
+  // en un cobro que se pagó por fuera (todavía sin medio).
+  if ("payment_method" in changes && current.kind !== "manual" && current.payment_method) {
+    delete changes.payment_method;
+  }
   if (status && status !== current.status) {
+    // Un pago que Wompi aprobó no se deshace desde el panel (el cliente
+    // podría pagar dos veces); si hubo devolución, se marca «Cancelado».
+    if (status === "esperando_pago") {
+      const { count, error: approvedError } = await supabase
+        .from("payments")
+        .select("id", { count: "exact", head: true })
+        .eq("order_id", id)
+        .eq("status", "APPROVED");
+      if (approvedError) return internalError("orders PATCH approved", approvedError);
+      if (count) {
+        return NextResponse.json(
+          { error: "Este pedido ya lo pagaron por Wompi: no puede volver a «Esperando pago». Si devolviste la plata, márcalo «Cancelado»." },
+          { status: 409 }
+        );
+      }
+    }
     changes.status = status;
     // Pagado a mano (transferencia de un cobro, por ejemplo): queda la fecha.
     if ((status === "pagado" || status === "en_proceso" || status === "entregado") && !current.paid_at) {
@@ -224,8 +263,14 @@ export async function PATCH(request: Request) {
     if (status === "esperando_pago") changes.paid_at = null;
   }
 
-  const { data, error } = await supabase.from("orders").update(changes).eq("id", id).select(ORDER_COLUMNS).single();
+  let update = supabase.from("orders").update(changes).eq("id", id);
+  // Si el estado cambió mientras tanto (llegó el pago de Wompi), no se pisa.
+  if ("status" in changes) update = update.eq("status", current.status);
+  const { data, error } = await update.select(ORDER_COLUMNS).maybeSingle();
   if (error) return internalError("orders PATCH", error);
+  if (!data) {
+    return NextResponse.json({ error: "El pedido cambió mientras lo editabas (quizás entró el pago). Ciérralo y ábrelo de nuevo." }, { status: 409 });
+  }
 
   await logAdminActivity({
     action: "update",

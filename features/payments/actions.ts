@@ -1,12 +1,21 @@
 "use server";
 
+import { headers } from "next/headers";
 import { z } from "zod";
 import { currentPrice } from "@/components/ui/price";
-import { arePaymentsReady } from "@/lib/feature-flags";
 import { sanitizeText } from "@/lib/security";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { wompiConfig } from "@/lib/wompi";
-import { findOrderByToken, insertOrder, startPayment, storeOrderAllowed } from "@/features/payments/server/orders";
+import { payAccess } from "@/features/payments/server/access";
+import {
+  findOrderByToken,
+  insertOrder,
+  ipFingerprint,
+  paymentAttemptAllowed,
+  startPayment,
+  STORE_ORDER_TTL_MS,
+  storeOrderAllowed
+} from "@/features/payments/server/orders";
 import { MIN_CHARGE_COP } from "@/features/payments/types";
 
 /*
@@ -64,7 +73,7 @@ export async function startStoreCheckout(_prev: CheckoutState, form: FormData): 
   });
   if (!parsed.success) return { error: "Revisa los datos marcados.", fields: fieldErrors(parsed.error) };
 
-  if (!(await arePaymentsReady())) return { error: UNAVAILABLE };
+  if (!(await payAccess()).ok) return { error: UNAVAILABLE };
   if (process.env.ADMIN_DEMO === "1") return { url: DEMO_URL };
   const config = wompiConfig();
   if (!config) return { error: UNAVAILABLE };
@@ -91,7 +100,9 @@ export async function startStoreCheckout(_prev: CheckoutState, form: FormData): 
     if (!showable || value < MIN_CHARGE_COP) {
       return { error: "Este diseño se cotiza por WhatsApp: escríbenos y te damos el precio." };
     }
-    if (!(await storeOrderAllowed(supabase, phone))) {
+    // x-real-ip la pone Vercel (el cliente no la controla).
+    const ipHash = ipFingerprint((await headers()).get("x-real-ip"), config.integritySecret);
+    if (!(await storeOrderAllowed(supabase, phone, ipHash))) {
       return { error: "Ya abriste varios pagos hace poco. Espera unos minutos o escríbenos por WhatsApp." };
     }
 
@@ -107,7 +118,8 @@ export async function startStoreCheckout(_prev: CheckoutState, form: FormData): 
       customer_city: input.city,
       notes: [`Moto: ${input.moto}`, input.notes].filter(Boolean).join("\n"),
       amount_cop: value,
-      cost_cop: null
+      cost_cop: null,
+      client_ip_hash: ipHash
     });
     return { url: await startPayment(supabase, config, order) };
   } catch (error) {
@@ -119,7 +131,7 @@ export async function startStoreCheckout(_prev: CheckoutState, form: FormData): 
 /** "Pagar" en el enlace de un cobro que armó Natalia (/pagar/<token>). */
 export async function startChargePayment(_prev: CheckoutState, form: FormData): Promise<CheckoutState> {
   const token = String(form.get("token") ?? "");
-  if (!(await arePaymentsReady())) return { error: UNAVAILABLE };
+  if (!(await payAccess()).ok) return { error: UNAVAILABLE };
   if (process.env.ADMIN_DEMO === "1") return { url: DEMO_URL };
   const config = wompiConfig();
   if (!config) return { error: UNAVAILABLE };
@@ -128,6 +140,12 @@ export async function startChargePayment(_prev: CheckoutState, form: FormData): 
     const order = await findOrderByToken(supabase, token);
     if (!order) return { error: "No encontramos este cobro. Pídenos el enlace de nuevo por WhatsApp." };
     if (order.status !== "esperando_pago") return { error: "Este cobro ya está pagado o fue cancelado." };
+    if (order.kind === "tienda" && Date.now() - Date.parse(order.created_at) > STORE_ORDER_TTL_MS) {
+      return { error: "Este pedido venció (el precio pudo cambiar). Vuelve a la tienda para comprar de nuevo, o escríbenos por WhatsApp." };
+    }
+    if (!(await paymentAttemptAllowed(supabase, order.id))) {
+      return { error: "Hiciste muchos intentos de pago seguidos. Espera un rato o escríbenos por WhatsApp y te ayudamos." };
+    }
     return { url: await startPayment(supabase, config, order) };
   } catch (error) {
     console.error("startChargePayment", error instanceof Error ? error.message : error);

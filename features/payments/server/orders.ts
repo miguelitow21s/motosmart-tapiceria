@@ -1,4 +1,4 @@
-import { randomBytes, randomInt } from "node:crypto";
+import { createHash, randomBytes, randomInt } from "node:crypto";
 import { siteConfig } from "@/config/site";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { checkoutUrl, type WompiConfig, type WompiTransaction } from "@/lib/wompi";
@@ -13,7 +13,7 @@ import type { Order, PaymentAttempt } from "@/features/payments/types";
 type Admin = ReturnType<typeof createAdminSupabaseClient>;
 
 export const ORDER_COLUMNS =
-  "id,code,token,kind,status,design_id,design_name,brand_name,description,customer_name,customer_phone,customer_email,customer_city,notes,amount_cop,cost_cop,payment_method,paid_at,created_at,updated_at";
+  "id,code,token,kind,status,design_id,design_name,brand_name,description,customer_name,customer_phone,customer_email,customer_city,notes,amount_cop,cost_cop,payment_method,paid_at,is_test,created_at,updated_at";
 
 export const PAYMENT_COLUMNS =
   "id,reference,status,amount_in_cents,wompi_transaction_id,payment_method_type,environment,created_at,updated_at";
@@ -34,12 +34,13 @@ function orderToken() {
 
 export type NewOrder = Omit<
   Order,
-  "id" | "code" | "token" | "created_at" | "updated_at" | "status" | "paid_at" | "payment_method"
+  "id" | "code" | "token" | "created_at" | "updated_at" | "status" | "paid_at" | "payment_method" | "is_test"
 > & {
   status?: Order["status"];
   paid_at?: string | null;
   payment_method?: string | null;
   created_by?: string | null;
+  client_ip_hash?: string | null;
 };
 
 /** Crea el pedido. El código es corto: si choca con otro (muy raro), se intenta con uno nuevo. */
@@ -103,14 +104,15 @@ export async function latestAttempt(supabase: Admin, orderId: string): Promise<P
   return (data as PaymentAttempt | null) ?? null;
 }
 
-const FINAL = new Set(["APPROVED", "DECLINED", "VOIDED", "ERROR"]);
-
 export type ApplyResult = "unknown-reference" | "ignored" | "updated" | "unchanged";
+
+const RESULTS = new Set<ApplyResult>(["unknown-reference", "ignored", "updated", "unchanged"]);
 
 /**
  * Aplica lo que dice Wompi de una transacción (llegue por el evento o por la
- * consulta al volver de pagar). Seguro de repetir: Wompi reenvía eventos y
- * los dos caminos pueden llegar a la vez.
+ * consulta al volver de pagar). Todo pasa en una sola transacción de la base
+ * (función apply_wompi_transaction, migración 016): intento y pedido cambian
+ * juntos o no cambian, y dos llamadas a la vez se esperan. Seguro de repetir.
  *
  * - Un intento que ya terminó no vuelve atrás (aprobado no pasa a "en curso").
  *   La única excepción es una anulación de un pago aprobado.
@@ -124,83 +126,59 @@ export async function applyTransaction(
   environment: "test" | "prod",
   raw: unknown
 ): Promise<ApplyResult> {
-  const { data: payment, error } = await supabase
-    .from("payments")
-    .select("id,order_id,status,amount_in_cents,wompi_transaction_id")
-    .eq("reference", tx.reference)
-    .maybeSingle();
+  const { data, error } = await supabase.rpc("apply_wompi_transaction", {
+    p_reference: tx.reference,
+    p_tx_id: tx.id,
+    p_status: tx.status,
+    p_amount_in_cents: tx.amount_in_cents,
+    p_currency: tx.currency,
+    p_method: tx.payment_method_type,
+    p_environment: environment,
+    p_raw: raw ?? null
+  });
   if (error) throw new Error(error.message);
-  if (!payment) return "unknown-reference";
+  const result = data as ApplyResult;
+  if (!RESULTS.has(result)) throw new Error("Respuesta inesperada de apply_wompi_transaction");
+  return result;
+}
 
-  let status: WompiTransaction["status"] = tx.status;
-  if (Number(payment.amount_in_cents) !== tx.amount_in_cents || tx.currency !== "COP") {
-    console.error("wompi: monto o moneda no cuadran", tx.reference, tx.amount_in_cents, tx.currency);
-    status = "ERROR";
-  }
-
-  const voidingApproved = payment.status === "APPROVED" && status === "VOIDED";
-  if (FINAL.has(payment.status) && !voidingApproved) {
-    return payment.status === status ? "unchanged" : "ignored";
-  }
-  if (payment.status === status && payment.wompi_transaction_id === tx.id) return "unchanged";
-
-  const now = new Date().toISOString();
-  // Condicionado al estado leído: si otro camino ya lo cambió, este no pisa.
-  const { data: changed, error: updateError } = await supabase
-    .from("payments")
-    .update({
-      status,
-      wompi_transaction_id: tx.id,
-      payment_method_type: tx.payment_method_type,
-      environment,
-      raw: raw ?? null,
-      updated_at: now
-    })
-    .eq("id", payment.id)
-    .eq("status", payment.status)
-    .select("id");
-  if (updateError) throw new Error(updateError.message);
-  if (!changed?.length) return "unchanged";
-
-  if (status === "APPROVED") {
-    // Un cobro cancelado en el panel que el cliente igual pagó: entró la
-    // plata, así que cuenta como pagado (Natalia decide si lo devuelve).
-    const { error: orderError } = await supabase
-      .from("orders")
-      .update({ status: "pagado", paid_at: now, payment_method: tx.payment_method_type, updated_at: now })
-      .eq("id", payment.order_id)
-      .in("status", ["esperando_pago", "cancelado"]);
-    if (orderError) throw new Error(orderError.message);
-  } else if (voidingApproved) {
-    const { error: orderError } = await supabase
-      .from("orders")
-      .update({ status: "esperando_pago", paid_at: null, updated_at: now })
-      .eq("id", payment.order_id)
-      .eq("status", "pagado");
-    if (orderError) throw new Error(orderError.message);
-  }
-  return "updated";
+/** Huella de la IP del comprador (sha256 con sal): sirve para contar, no para identificar. */
+export function ipFingerprint(ip: string | null, salt: string) {
+  if (!ip) return null;
+  return createHash("sha256").update(`${salt}:${ip}`).digest("hex").slice(0, 32);
 }
 
 /**
- * Freno a pedidos en masa desde la tienda: pocos por celular y un tope
- * general por cuarto de hora. No reemplaza a Wompi (que cobra), solo evita
- * que alguien llene la tabla de pedidos falsos.
+ * Freno a pedidos en masa desde la tienda, por cuarto de hora: pocos por
+ * celular y por IP, y un tope general alto solo como red de seguridad. No
+ * reemplaza a Wompi (que cobra), solo evita que alguien llene la tabla de
+ * pedidos falsos. El conteo no es atómico: frena abusos, no es exacto.
  */
-export async function storeOrderAllowed(supabase: Admin, phone: string) {
+export async function storeOrderAllowed(supabase: Admin, phone: string, ipHash: string | null) {
   const since = new Date(Date.now() - 15 * 60 * 1000).toISOString();
-  const [samePhone, all] = await Promise.all([
-    supabase
-      .from("orders")
-      .select("id", { count: "exact", head: true })
-      .eq("customer_phone", phone)
-      .gte("created_at", since),
-    supabase
-      .from("orders")
-      .select("id", { count: "exact", head: true })
-      .eq("kind", "tienda")
-      .gte("created_at", since)
+  const count = (column: "customer_phone" | "client_ip_hash" | "kind", value: string) =>
+    supabase.from("orders").select("id", { count: "exact", head: true }).eq(column, value).gte("created_at", since);
+  const [samePhone, sameIp, all] = await Promise.all([
+    count("customer_phone", phone),
+    ipHash ? count("client_ip_hash", ipHash) : Promise.resolve({ count: 0, error: null }),
+    count("kind", "tienda")
   ]);
-  if (samePhone.error || all.error) throw new Error((samePhone.error ?? all.error)!.message);
-  return (samePhone.count ?? 0) < 5 && (all.count ?? 0) < 120;
+  const failed = samePhone.error ?? sameIp.error ?? all.error;
+  if (failed) throw new Error(failed.message);
+  return (samePhone.count ?? 0) < 5 && (sameIp.count ?? 0) < 8 && (all.count ?? 0) < 400;
 }
+
+/** Tope de intentos de pago por pedido: 10 por hora. */
+export async function paymentAttemptAllowed(supabase: Admin, orderId: string) {
+  const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const { count, error } = await supabase
+    .from("payments")
+    .select("id", { count: "exact", head: true })
+    .eq("order_id", orderId)
+    .gte("created_at", since);
+  if (error) throw new Error(error.message);
+  return (count ?? 0) < 10;
+}
+
+/** Un pedido de la tienda guarda el precio del día: vence a las 48 horas. */
+export const STORE_ORDER_TTL_MS = 48 * 60 * 60 * 1000;

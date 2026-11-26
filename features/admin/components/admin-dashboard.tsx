@@ -6,7 +6,7 @@ import { Toaster } from "sonner";
 import { BusyOverlay } from "@/components/ui/busy-overlay";
 import { AdminBottomNav, AdminSideNav } from "@/features/admin/components/admin-nav";
 import { ConfirmHost } from "@/features/admin/components/confirm-host";
-import { Loading, SkeletonList } from "@/features/admin/components/primitives";
+import { EmptyState, Loading, SkeletonList, TabHeader } from "@/features/admin/components/primitives";
 import { useBusyStore } from "@/features/admin/lib/feedback";
 import { useActiveTab } from "@/features/admin/lib/tabs";
 import { useAdminStore } from "@/features/admin/store/admin-data";
@@ -61,7 +61,15 @@ function preloadTabs() {
 function ActiveTab({ tab, canPurge }: { tab: TabKey; canPurge: boolean }) {
   switch (tab) {
     case "sales":
-      return <SalesTab />;
+      // Plata y datos de clientes: solo el administrador (la API también lo exige).
+      return canPurge ? (
+        <SalesTab />
+      ) : (
+        <>
+          <TabHeader title="Ventas" />
+          <EmptyState title="Solo el administrador ve las ventas">Pídele a quien administra la tienda que te cuente cómo van.</EmptyState>
+        </>
+      );
     case "catalog":
       return <DesignsTab />;
     case "gallery":

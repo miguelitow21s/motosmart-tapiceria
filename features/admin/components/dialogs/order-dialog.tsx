@@ -194,7 +194,10 @@ export function OrderDialog({ order, onClose }: { order: Order; onClose: () => v
             <span className="tabular text-lg font-semibold">{formatCOP(order.amount_cop)}</span>
           </Row>
           <Row label="Estado">
-            <Badge tone={STATUS_TONE[order.status]}>{STATUS_LABEL[order.status]}</Badge>
+            <span className="flex flex-wrap justify-end gap-1.5">
+              <Badge tone={STATUS_TONE[order.status]}>{STATUS_LABEL[order.status]}</Badge>
+              {order.is_test ? <Badge tone="neutral">Prueba: no cuenta como venta</Badge> : null}
+            </span>
           </Row>
           {order.payment_method || order.paid_at ? (
             <Row label="Pago">

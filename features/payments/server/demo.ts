@@ -28,6 +28,7 @@ export function demoOrder(token: string): Order | null {
     cost_cop: null,
     payment_method: status === "pagado" ? "NEQUI" : null,
     paid_at: status === "pagado" ? now : null,
+    is_test: false,
     created_at: now,
     updated_at: now
   };

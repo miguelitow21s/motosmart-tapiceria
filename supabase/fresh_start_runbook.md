@@ -85,9 +85,11 @@ where r.name = 'admin'
 
 ## 7) Validaciones finales
 
-SQL validacion de esquema completo (debe devolver las 13 tablas, todas con
-`relrowsecurity = true` y `policies > 0`; si alguna sale con 0 policies,
-falta correr una de las migraciones 7-11):
+SQL validacion de esquema completo (todas las tablas con
+`relrowsecurity = true` y `policies > 0`, SALVO `orders` y `payments`: esas
+tienen 0 policies a proposito, solo las toca el servidor con la service_role.
+No les añadas policies. Si otra sale con 0 policies, falta correr una de las
+migraciones 7-11):
 
 select c.relname, c.relrowsecurity, count(p.polname) as policies
 from pg_class c

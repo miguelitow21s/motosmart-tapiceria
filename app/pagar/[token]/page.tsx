@@ -6,9 +6,9 @@ import { WhatsAppLink } from "@/components/shared/whatsapp-link";
 import { Button } from "@/components/ui/button";
 import { WhatsAppIcon } from "@/components/ui/whatsapp-icon";
 import { ChargeForm } from "@/features/payments/components/checkout-form";
+import { payAccess, TEST_MODE_NOTE } from "@/features/payments/server/access";
 import { findOrderByToken } from "@/features/payments/server/orders";
 import { isPaidStatus, type Order } from "@/features/payments/types";
-import { arePaymentsReady } from "@/lib/feature-flags";
 import { buildWhatsAppUrl, getSiteSettings } from "@/lib/settings";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { formatCOP } from "@/lib/utils";
@@ -33,7 +33,8 @@ async function loadOrder(token: string): Promise<Order | null> {
 /** Enlace de un cobro que Natalia armó en el panel y mandó por WhatsApp. */
 export default async function PayPage({ params }: Props) {
   const { token } = await params;
-  const [order, ready, settings] = await Promise.all([loadOrder(token), arePaymentsReady(), getSiteSettings()]);
+  const [order, access, settings] = await Promise.all([loadOrder(token), payAccess(), getSiteSettings()]);
+  const ready = access.ok;
   const help = buildWhatsAppUrl(
     settings.whatsapp_number,
     order ? `Hola MotoSmart, tengo una pregunta sobre el cobro ${order.code}.` : "Hola MotoSmart, tengo un problema con un enlace de pago."
@@ -82,7 +83,12 @@ export default async function PayPage({ params }: Props) {
             </div>
           </dl>
           <p className="mt-3 text-sm text-ink-3">Código {order.code}</p>
-          <div className="mt-8">
+          <div className="mt-8 space-y-4">
+            {access.test ? (
+              <p role="status" className="rounded-md border border-line bg-surface px-4 py-3 text-sm text-ink-2">
+                {TEST_MODE_NOTE}
+              </p>
+            ) : null}
             {ready ? (
               <ChargeForm token={token} amount={order.amount_cop} />
             ) : (

@@ -75,6 +75,8 @@ export type Order = {
   cost_cop: number | null;
   payment_method: string | null;
   paid_at: string | null;
+  /** Pagado con llaves de pruebas de Wompi: un ensayo, no cuenta como venta. */
+  is_test: boolean;
   created_at: string;
   updated_at: string;
 };

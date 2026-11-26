@@ -6,12 +6,12 @@ import { containerClasses } from "@/components/shared/section";
 import { WhatsAppLink } from "@/components/shared/whatsapp-link";
 import { Button } from "@/components/ui/button";
 import { WhatsAppIcon } from "@/components/ui/whatsapp-icon";
-import { applyTransaction, findOrderByToken, latestAttempt } from "@/features/payments/server/orders";
+import { AutoRefresh } from "@/features/payments/components/auto-refresh";
+import { findOrderByToken, latestAttempt } from "@/features/payments/server/orders";
 import { isPaidStatus, methodLabel, type Order, type PaymentAttempt } from "@/features/payments/types";
 import { buildWhatsAppUrl, getSiteSettings } from "@/lib/settings";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { formatCOP } from "@/lib/utils";
-import { fetchTransaction, wompiConfig } from "@/lib/wompi";
 import { cn } from "@/lib/cn";
 import { demoOrder } from "@/features/payments/server/demo";
 
@@ -29,33 +29,23 @@ type Outcome = "aprobado" | "pendiente" | "rechazado" | "desconocido";
 const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value) ?? "";
 
 /**
- * Al volver de Wompi (?pedido=<token>&id=<transacción>). No se cree en la URL:
- * se le pregunta a Wompi por la transacción y, si es de este pedido, se
- * aplica igual que si hubiera llegado el evento (el evento puede tardar).
+ * Al volver de Wompi (?pedido=<token>&id=<transacción>). La URL no cuenta
+ * nada: el pedido solo cambia con el evento firmado de Wompi
+ * (/api/pagos/wompi), que llega en segundos. Mientras tanto la página dice
+ * «en proceso» y se vuelve a leer sola.
  */
-async function resolve(token: string, transactionId: string): Promise<{ order: Order | null; attempt: PaymentAttempt | null }> {
+async function resolve(token: string): Promise<{ order: Order | null; attempt: PaymentAttempt | null }> {
   const supabase = createAdminSupabaseClient();
   const order = await findOrderByToken(supabase, token);
   if (!order) return { order: null, attempt: null };
-  const config = wompiConfig();
-  if (config && transactionId && !isPaidStatus(order.status)) {
-    const tx = await fetchTransaction(config, transactionId);
-    if (tx && tx.reference.startsWith(`${order.code}-`)) {
-      try {
-        await applyTransaction(supabase, tx, config.environment, tx);
-      } catch (error) {
-        console.error("pago/resultado", error instanceof Error ? error.message : error);
-      }
-    }
-  }
-  const [fresh, attempt] = await Promise.all([findOrderByToken(supabase, token), latestAttempt(supabase, order.id)]);
-  return { order: fresh, attempt };
+  return { order, attempt: await latestAttempt(supabase, order.id) };
 }
 
 function outcomeOf(order: Order | null, attempt: PaymentAttempt | null): Outcome {
   if (!order) return "desconocido";
   if (isPaidStatus(order.status)) return "aprobado";
-  if (!attempt || attempt.status === "PENDING") return "pendiente";
+  // Aprobado en Wompi pero el pedido aún no lo refleja: nunca decir "no se cobró".
+  if (!attempt || attempt.status === "PENDING" || attempt.status === "APPROVED") return "pendiente";
   return "rechazado";
 }
 
@@ -76,7 +66,7 @@ export default async function PaymentResultPage({ searchParams }: Props) {
   const { order, attempt } = demo
     ? { order: demoOrder(first(params.demo) === "1" ? "demo-pagado" : token), attempt: null }
     : token
-      ? await resolve(token, first(params.id))
+      ? await resolve(token)
       : { order: null, attempt: null };
   const outcome = outcomeOf(order, attempt);
   const settings = await getSiteSettings();
@@ -92,10 +82,12 @@ export default async function PaymentResultPage({ searchParams }: Props) {
 
   return (
     <>
+      {outcome === "pendiente" && !demo ? <AutoRefresh /> : null}
       <PageIntro title={COPY[outcome].title} lead={COPY[outcome].lead} />
       <div className={cn(containerClasses, "py-10 md:py-14")}>
         <div className="mx-auto max-w-lg">
           <p
+            role="status"
             className={cn(
               "flex items-center gap-2 font-semibold",
               outcome === "aprobado" ? "text-success" : outcome === "pendiente" ? "text-warning" : "text-danger"
