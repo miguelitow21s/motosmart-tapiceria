@@ -227,7 +227,7 @@ export const getCarouselSlides = cache(async (): Promise<CarouselSlide[]> => {
     const title = design?.name || row.alt_text || brand?.name || "Trabajo reciente";
     const href = brand?.slug
       ? design?.slug
-        ? `/marca/${brand.slug}#diseno-${design.slug}`
+        ? `/marca/${brand.slug}/${design.slug}`
         : `/marca/${brand.slug}`
       : "/catalogo";
 

@@ -16,3 +16,6 @@ supabase/.temp
 
 # Capturas de revisión de diseño (impeccable): se regeneran, pesan ~16 MB.
 .impeccable/review/
+
+# Moldes, medidas y estampados del taller (material interno, pesado y con logos de terceros)
+/supabase/moldes/

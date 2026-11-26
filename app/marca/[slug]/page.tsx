@@ -91,7 +91,7 @@ function brandJsonLd(brand: { name: string; slug: string }, designs: DesignWithB
           "@type": "Offer",
           price: priceToday(design),
           priceCurrency: "COP",
-          url: `${url}#diseno-${design.slug}`
+          url: `${url}/${design.slug}`
         }
       }))
   ];

@@ -1,11 +1,12 @@
 import type { MetadataRoute } from "next";
 import { siteConfig } from "@/config/site";
+import { designHref } from "@/features/catalog/lib/links";
 import { getStoreDesigns, getBrands } from "@/features/catalog/services/catalog.service";
 import { isCustomizerEnabled, isFeatureEnabled } from "@/lib/feature-flags";
 
 /**
  * Solo páginas que Google debe indexar: sin /login (bloqueada en robots.txt) y
- * con cada marca que tiene diseños publicados, que es por donde llega quien
+ * con cada marca que tiene diseños publicados y cada diseño, que es por donde llega quien
  * busca "tapicería moto Yamaha". Sin lastModified: no hay una fecha real por
  * página y la del build diría que todo cambió hoy.
  */
@@ -26,6 +27,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "",
     ...(catalogOn ? ["/catalogo"] : []),
     ...brands.filter((brand) => withDesigns.has(brand.id)).map((brand) => `/marca/${brand.slug}`),
+    ...designs.map((design) => designHref(design)),
     ...(customizerOn ? ["/arma-tu-silla"] : []),
     ...(ridersOn ? ["/pilotos"] : []),
     "/sobre-nosotros",

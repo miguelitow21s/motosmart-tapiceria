@@ -16,6 +16,8 @@ import {
   CapsuleGeometry,
   Color,
   DirectionalLight,
+  DoubleSide,
+  FrontSide,
   Group,
   HemisphereLight,
   InstancedMesh,
@@ -90,16 +92,41 @@ const VIEW_MS = 650;
 /** Tras elegir una vista, la silla se queda quieta este tiempo antes de volver a girar sola. */
 const VIEW_HOLD_MS = 6000;
 
+/**
+ * Cómo se hace una silla, por capas (página Nosotros): despiece (las capas
+ * separadas en el aire), la base sola, la espuma encima, el forro y, al
+ * final, la costura y el bordado.
+ */
+export type AssemblyStage = "despiece" | "base" | "espuma" | "forro" | "terminada";
+
+/** Altura de cada capa sobre su lugar (m); null, escondida. */
+const ASSEMBLY: Record<AssemblyStage, { foam: number | null; cover: number | null; sewn: boolean }> = {
+  despiece: { foam: 0.12, cover: 0.27, sewn: true },
+  base: { foam: null, cover: null, sewn: false },
+  espuma: { foam: 0, cover: null, sewn: false },
+  forro: { foam: 0, cover: 0, sewn: false },
+  terminada: { foam: 0, cover: 0, sewn: true }
+};
+/** Viaje de las capas al cambiar de paso, y cuánto tarda la costura en recorrer la silla. */
+const ASSEMBLY_MS = 800;
+const SEW_MS = 1100;
+/** Una capa que aparece cae desde esta altura sobre su lugar. */
+const DROP_M = 0.12;
+
 export type SeatScene = {
   update(look: SeatLook): void;
   rotateBy(radians: number): void;
   /** Lleva la cámara a una vista guardada (de lado se lee el bordado). */
   setView(view: SeatView): void;
+  /** Solo con options.assembly: muestra un paso de cómo se hace la silla. */
+  setAssembly(stage: AssemblyStage): void;
   dispose(): void;
 };
 
 export type SeatSceneOptions = {
   reducedMotion: boolean;
+  /** Muestra la silla por capas (despiece y pasos) en vez de entera. */
+  assembly?: AssemblyStage;
   /** Se llama una vez, cuando el primer cuadro ya está pintado. */
   onReady?: () => void;
   /** No se pudo preparar la silla (texturas o WebGL). */
@@ -181,7 +208,15 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
   bandMaterial.clearcoat = 0;
   bandMaterial.sheen = 0;
   // Plástico negro con algo de brillo: el contraluz le marca el canto sobre el fondo negro.
-  const panMaterial = new MeshStandardMaterial({ color: 0x171717, roughness: 0.42, metalness: 0 });
+  // En el despiece la base va sola sobre el fondo negro: ahí se pinta gris
+  // plástico para que se lea como pieza y no como un hueco.
+  const panMaterial = new MeshStandardMaterial({
+    color: options.assembly ? 0x5a5e63 : 0x171717,
+    roughness: options.assembly ? 0.55 : 0.42,
+    metalness: 0,
+    // La base es una concha abierta por arriba: sola, se ve por dentro.
+    side: options.assembly ? DoubleSide : FrontSide
+  });
   const stitchMaterial = new MeshStandardMaterial({ color: new Color(initial.stitch), roughness: 0.62 });
   let diamondColor: CanvasTexture | null = null;
   // Hilo de bordado: satín brillante, con el brillo estirado a lo largo de
@@ -217,6 +252,12 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
   /* ------------------------------------------------------------ Piezas */
 
   const seat = new Group();
+  // Capas: la base plástica, la espuma (solo en el despiece) y el forro con
+  // su costura y bordado. En "Arma tu silla" las tres quedan en su lugar.
+  const panLayer = new Group();
+  const foamLayer = new Group();
+  const coverLayer = new Group();
+  seat.add(panLayer, foamLayer, coverLayer);
   let current: SeatGeometries = buildSeatGeometries(seatShape(initial.shape));
   let shapeId = initial.shape;
   const materials: Record<Piece, MeshPhysicalMaterial | MeshStandardMaterial> = {
@@ -234,7 +275,24 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
     // recorte guardada ya no sirve y la silla podría desaparecer.
     mesh.frustumCulled = false;
     meshes[piece] = mesh;
-    seat.add(mesh);
+    (piece === "pan" ? panLayer : coverLayer).add(mesh);
+  }
+
+  // Espuma de poliuretano: la misma forma que el forro, un poco más chica para
+  // que el forro la tape sin pelear por el mismo lugar. Solo en el despiece.
+  const foamMaterial = new MeshStandardMaterial({
+    color: 0xd9c690,
+    roughness: 0.97,
+    metalness: 0,
+    normalScale: new Vector2(0.7, 0.7)
+  });
+  if (options.assembly) {
+    for (const piece of ["center", "rightSide", "leftSide"] as const) {
+      const mesh = new Mesh(current[piece], foamMaterial);
+      mesh.frustumCulled = false;
+      foamLayer.add(mesh);
+    }
+    foamLayer.scale.set(0.985, 0.975, 0.97);
   }
 
   const stitchShape = new CapsuleGeometry(0.0017, 0.0075, 3, 6);
@@ -246,14 +304,14 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
     return mesh;
   }
   let stitches = makeStitches(current.stitches);
-  seat.add(stitches);
+  coverLayer.add(stitches);
 
   // Franja que cruza el asiento (Calle, Deportiva, Enduro), del color de los costados.
   const emptyGeometry = new BufferGeometry();
   const bandMesh = new Mesh(current.band ?? emptyGeometry, bandMaterial);
   bandMesh.visible = current.band !== null;
   bandMesh.frustumCulled = false;
-  seat.add(bandMesh);
+  coverLayer.add(bandMesh);
 
   // Marca bordada en los dos costados: hilo en relieve y su sombra sobre el cuero.
   const embroideryMeshes = {
@@ -271,10 +329,14 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
   for (const mesh of Object.values(embroideryMeshes)) {
     mesh.visible = false;
     mesh.frustumCulled = false;
-    seat.add(mesh);
+    coverLayer.add(mesh);
   }
+  // En el despiece el bordado espera a que termine la costura.
+  let embroideryAllowed = true;
+  let embroideryReady = false;
   function showEmbroidery(show: boolean) {
-    for (const mesh of Object.values(embroideryMeshes)) mesh.visible = show;
+    embroideryReady = show;
+    for (const mesh of Object.values(embroideryMeshes)) mesh.visible = show && embroideryAllowed;
   }
 
   /**
@@ -371,10 +433,10 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
       if (shown !== target[piece]) shown.dispose();
       if (current[piece] !== target[piece] && current[piece] !== shown) current[piece].dispose();
     }
-    seat.remove(stitches);
+    coverLayer.remove(stitches);
     stitches.dispose();
     stitches = makeStitches(target.stitches);
-    seat.add(stitches);
+    coverLayer.add(stitches);
     if (bandMesh.geometry !== emptyGeometry && bandMesh.geometry !== target.band) bandMesh.geometry.dispose();
     bandMesh.geometry = target.band ?? emptyGeometry;
     bandMesh.visible = target.band !== null;
@@ -539,6 +601,9 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
       sideMaterial.needsUpdate = true;
       bandMaterial.normalMap = textures.grainNormal;
       bandMaterial.needsUpdate = true;
+      // Poros de la espuma: el mismo grano fino de la lija, más suave.
+      foamMaterial.normalMap = textures.gritNormal;
+      foamMaterial.needsUpdate = true;
       applyLook(currentLook);
       // Compila los shaders sin bloquear la página (KHR_parallel_shader_compile)
       // antes del primer cuadro; mientras tanto se sigue viendo la foto fija.
@@ -554,6 +619,8 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
   /* ------------------------------------------------ Tamaño y encuadre */
 
   let elevation = CAMERA_ELEVATION;
+  // Altura de la capa más alta del despiece: la cámara se aleja y sube para que quepan todas.
+  let lift = 0;
 
   function placeCamera() {
     // Encuadre: la silla ocupa ~85 % del ancho disponible, sea del largo que sea.
@@ -562,13 +629,14 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
     const distance = fit / (2 * Math.tan((camera.fov * Math.PI) / 360)) / Math.max(0.75, Math.min(1.6, camera.aspect));
     // Cámara baja (unos 24°): se lee el perfil, que es lo que cambia de una moto a otra.
     // Desde arriba la punta queda más cerca de la cámara: se aleja un poco para que quepa.
-    const reach = distance * CAMERA_REACH * (1 + 0.22 * Math.max(0, elevation - CAMERA_ELEVATION));
+    const reach =
+      distance * CAMERA_REACH * (1 + 0.22 * Math.max(0, elevation - CAMERA_ELEVATION)) * (1 + lift * 1.5);
     camera.position.set(
       reach * Math.cos(elevation) * Math.sin(CAMERA_AZIMUTH),
-      reach * Math.sin(elevation),
+      reach * Math.sin(elevation) + lift * 0.5,
       reach * Math.cos(elevation) * Math.cos(CAMERA_AZIMUTH)
     );
-    camera.lookAt(0, seatMiddle, 0);
+    camera.lookAt(0, seatMiddle + lift * 0.5, 0);
     camera.updateProjectionMatrix();
     needsRender = true;
   }
@@ -624,6 +692,104 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
     if (t >= 1) viewTween = null;
     lastInteraction = now + VIEW_HOLD_MS - 2600;
     return true;
+  }
+
+  /* ------------------------------------------------------- Despiece */
+
+  type LayerMotion = { from: number; to: number };
+  let assemblyStage: AssemblyStage | null = options.assembly ?? null;
+  let assemblyTween: { start: number; foam: LayerMotion; cover: LayerMotion; lift: LayerMotion } | null = null;
+  // La costura arranca cuando el forro termina de caer.
+  let pendingSew = false;
+  let sewStart: number | null = null;
+
+  const liftOf = (stage: AssemblyStage) => Math.max(ASSEMBLY[stage].foam ?? 0, ASSEMBLY[stage].cover ?? 0);
+
+  /** Puntadas cosidas, de la punta hacia atrás (0 a 1). */
+  function sew(fraction: number) {
+    stitches.count = Math.round(current.stitches.length * fraction);
+  }
+
+  function placeAssembly(stage: AssemblyStage) {
+    const layout = ASSEMBLY[stage];
+    foamLayer.visible = layout.foam !== null;
+    foamLayer.position.y = layout.foam ?? 0;
+    coverLayer.visible = layout.cover !== null;
+    coverLayer.position.y = layout.cover ?? 0;
+    lift = liftOf(stage);
+    sew(layout.sewn ? 1 : 0);
+    embroideryAllowed = layout.sewn;
+    showEmbroidery(embroideryReady);
+    placeCamera();
+  }
+  if (assemblyStage) placeAssembly(assemblyStage);
+
+  function stepAssembly(now: number) {
+    if (assemblyTween) {
+      const t = Math.min(1, (now - assemblyTween.start) / ASSEMBLY_MS);
+      const e = easeInOut(t);
+      const at = (motion: LayerMotion) => motion.from + (motion.to - motion.from) * e;
+      foamLayer.position.y = at(assemblyTween.foam);
+      coverLayer.position.y = at(assemblyTween.cover);
+      lift = at(assemblyTween.lift);
+      placeCamera();
+      if (t >= 1) {
+        assemblyTween = null;
+        if (pendingSew) {
+          pendingSew = false;
+          sewStart = now;
+        }
+      }
+      return true;
+    }
+    if (sewStart !== null) {
+      const t = Math.min(1, (now - sewStart) / SEW_MS);
+      sew(t);
+      if (t >= 1) {
+        sewStart = null;
+        embroideryAllowed = true;
+        showEmbroidery(embroideryReady);
+      }
+      return true;
+    }
+    return false;
+  }
+
+  function changeAssembly(stage: AssemblyStage) {
+    if (!assemblyStage || stage === assemblyStage) return;
+    assemblyStage = stage;
+    const layout = ASSEMBLY[stage];
+    pendingSew = false;
+    sewStart = null;
+    if (options.reducedMotion || !compiled) {
+      assemblyTween = null;
+      placeAssembly(stage);
+      return;
+    }
+    // Una capa que aparece cae desde arriba; una que sobra se va enseguida.
+    const motion = (layer: Group, target: number | null): LayerMotion => {
+      if (target === null) {
+        layer.visible = false;
+        return { from: layer.position.y, to: layer.position.y };
+      }
+      const from = layer.visible ? layer.position.y : target + DROP_M;
+      layer.visible = true;
+      layer.position.y = from;
+      return { from, to: target };
+    };
+    assemblyTween = {
+      start: performance.now(),
+      foam: motion(foamLayer, layout.foam),
+      cover: motion(coverLayer, layout.cover),
+      lift: { from: lift, to: liftOf(stage) }
+    };
+    if (!layout.sewn) {
+      sew(0);
+      embroideryAllowed = false;
+      showEmbroidery(embroideryReady);
+    } else if (stitches.count < current.stitches.length) {
+      pendingSew = true;
+    }
   }
 
   const onPointerDown = (event: PointerEvent) => {
@@ -700,6 +866,7 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
     previous = now;
     let moving = morph !== null;
     stepMorph(now);
+    if (stepAssembly(now)) moving = true;
     if (stepView(now)) moving = true;
     else if (!dragging) {
       if (Math.abs(velocity) > 0.01) {
@@ -772,6 +939,11 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
       needsRender = true;
       wake();
     },
+    setAssembly(stage) {
+      changeAssembly(stage);
+      needsRender = true;
+      wake();
+    },
     rotateBy(radians) {
       viewTween = null;
       yaw += radians;
@@ -807,6 +979,7 @@ export function mountSeatScene(canvas: HTMLCanvasElement, initial: SeatLook, opt
         sideMaterial,
         bandMaterial,
         panMaterial,
+        foamMaterial,
         stitchMaterial,
         threadMaterial,
         embroideryShadowMaterial,

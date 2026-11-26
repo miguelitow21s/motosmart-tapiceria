@@ -88,7 +88,7 @@ export function SeatConfigurator({
   const motoId = useId();
   const embroideryId = useId();
   const shape = seatShape(shapeId);
-  const embroidery = customEmbroidery ?? (moto.trim().split(/s+/)[0]?.toUpperCase().slice(0, EMBROIDERY_MAX) || shape.brand);
+  const embroidery = customEmbroidery ?? (moto.trim().split(/\s+/)[0]?.toUpperCase().slice(0, EMBROIDERY_MAX) || shape.brand);
 
   const look = useMemo<SeatLook>(
     () => ({
