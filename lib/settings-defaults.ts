@@ -39,6 +39,20 @@ export type SiteSettings = {
   configurator_text: string;
   configurator_colors: string;
   closing_text: string;
+  process_1_title: string;
+  process_1_text: string;
+  process_2_title: string;
+  process_2_text: string;
+  process_3_title: string;
+  process_3_text: string;
+  process_4_title: string;
+  process_4_text: string;
+  howto_1_title: string;
+  howto_1_text: string;
+  howto_2_title: string;
+  howto_2_text: string;
+  howto_3_title: string;
+  howto_3_text: string;
   payment_note: string;
   molde_models: string;
   meta_title: string;
@@ -80,6 +94,20 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   configurator_text:
     "Elige tu tipo de moto, los colores, la textura y la marca bordada en los costados. Te la cotizamos por WhatsApp y la cortamos a la medida de tu moto.",
   configurator_colors: DEFAULT_SEAT_COLORS_TEXT,
+  process_1_title: "La base",
+  process_1_text: "Partimos de la base de tu silla: la revisamos y la dejamos lista para trabajar.",
+  process_2_title: "La espuma",
+  process_2_text: "Se repara o se cambia por espuma nueva, con la forma y la firmeza que pides.",
+  process_3_title: "El forro",
+  process_3_text: "Lo cortamos a la medida de tu moto, en el cuero y el antideslizante que elijas.",
+  process_4_title: "Costura y bordado",
+  process_4_text: "Costuras, franja y tu marca bordada en los costados. Lista para instalar.",
+  howto_1_title: "Nos escribes",
+  howto_1_text: "Con tu moto (marca, modelo y año) y, si puedes, una foto de la silla como está hoy.",
+  howto_2_title: "Te cotizamos",
+  howto_2_text: "Te mandamos el precio y las opciones de color, textura y bordado por WhatsApp.",
+  howto_3_title: "Hacemos tu silla",
+  howto_3_text: "La hacemos a mano en Medellín. La instalas en el taller o te la enviamos.",
   payment_note:
     "Después del pago te escribimos por WhatsApp para confirmar la medida de tu moto, la fecha de entrega y si la instalas en el taller o te la enviamos.",
   molde_models: DEFAULT_MOLDES_TEXT,
@@ -106,6 +134,27 @@ export const OPTIONAL_SETTING_KEYS = new Set<keyof SiteSettings>([
  * is_public = true para que una clave nueva nunca quede invisible.
  */
 export const PUBLIC_SETTING_KEYS = new Set<string>([...Object.keys(DEFAULT_SETTINGS), "carousel_order"]);
+
+type Step = { title: string; text: string };
+
+/** Los 4 pasos de «Así se hace tu silla», uno por capa del 3D. */
+export function processSteps(s: SiteSettings): Step[] {
+  return [
+    { title: s.process_1_title, text: s.process_1_text },
+    { title: s.process_2_title, text: s.process_2_text },
+    { title: s.process_3_title, text: s.process_3_text },
+    { title: s.process_4_title, text: s.process_4_text }
+  ];
+}
+
+/** Los 3 pasos de «Así funciona»: qué pasa después de escribir. */
+export function howtoSteps(s: SiteSettings): Step[] {
+  return [
+    { title: s.howto_1_title, text: s.howto_1_text },
+    { title: s.howto_2_title, text: s.howto_2_text },
+    { title: s.howto_3_title, text: s.howto_3_text }
+  ];
+}
 
 /** Enlace de WhatsApp ya armado, para no repetir la plantilla en cada sitio. */
 export function buildWhatsAppUrl(number: string, message: string) {

@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { getCarouselSlides } from "@/features/catalog/services/catalog.service";
 import { ContactForm } from "@/features/contact/components/contact-form";
 import { pageMetadata } from "@/lib/seo";
-import { getSiteSettings } from "@/lib/settings";
+import { getSiteSettings, howtoSteps } from "@/lib/settings";
 import { cn } from "@/lib/cn";
 
 export function generateMetadata(): Promise<Metadata> {
@@ -17,13 +17,6 @@ export function generateMetadata(): Promise<Metadata> {
     path: "/contactanos"
   });
 }
-
-/** Lo que pasa después de escribir: así nadie se queda preguntando qué sigue. */
-const STEPS = [
-  { title: "Nos escribes", text: "Con tu moto (marca, modelo y año) y, si puedes, una foto de la silla como está hoy." },
-  { title: "Te cotizamos", text: "Te mandamos el precio y las opciones de color, textura y bordado por WhatsApp." },
-  { title: "Hacemos tu silla", text: "La hacemos a mano en Medellín. La instalas en el taller o te la enviamos." }
-];
 
 export default async function ContactanosPage() {
   const [settings, slides] = await Promise.all([getSiteSettings(), getCarouselSlides()]);
@@ -56,7 +49,7 @@ export default async function ContactanosPage() {
             Así funciona
           </h2>
           <ol className="mt-8 grid gap-x-8 border-t-2 border-ink md:grid-cols-3">
-            {STEPS.map((step, index) => (
+            {howtoSteps(settings).map((step, index) => (
               <li key={step.title} className="grid grid-cols-[3.25rem_1fr] gap-x-4 border-b border-line py-5 md:block md:border-b-0 md:py-6">
                 <span aria-hidden="true" className="type-display tabular row-span-2 text-4xl leading-none text-brand md:text-5xl">
                   {String(index + 1).padStart(2, "0")}

@@ -144,6 +144,35 @@ export const SETTING_GROUPS: SettingGroup[] = [
     ]
   },
   {
+    id: "como-se-hace",
+    title: "Así se hace tu silla",
+    description:
+      "Los 4 pasos del taller, al lado de la silla en 3D (portada y «Nosotros»). Son siempre 4 porque el 3D se arma en 4 capas: base, espuma, forro y costura.",
+    fields: [
+      { key: "process_1_title", label: "Paso 1: título", kind: "text", min: 2, max: 60 },
+      { key: "process_1_text", label: "Paso 1: texto", kind: "textarea", min: 2, max: 200 },
+      { key: "process_2_title", label: "Paso 2: título", kind: "text", min: 2, max: 60 },
+      { key: "process_2_text", label: "Paso 2: texto", kind: "textarea", min: 2, max: 200 },
+      { key: "process_3_title", label: "Paso 3: título", kind: "text", min: 2, max: 60 },
+      { key: "process_3_text", label: "Paso 3: texto", kind: "textarea", min: 2, max: 200 },
+      { key: "process_4_title", label: "Paso 4: título", kind: "text", min: 2, max: 60 },
+      { key: "process_4_text", label: "Paso 4: texto", kind: "textarea", min: 2, max: 200 }
+    ]
+  },
+  {
+    id: "como-funciona",
+    title: "Así funciona",
+    description: "Los 3 pasos de lo que pasa después de escribir por WhatsApp (página de contacto).",
+    fields: [
+      { key: "howto_1_title", label: "Paso 1: título", kind: "text", min: 2, max: 60 },
+      { key: "howto_1_text", label: "Paso 1: texto", kind: "textarea", min: 2, max: 200 },
+      { key: "howto_2_title", label: "Paso 2: título", kind: "text", min: 2, max: 60 },
+      { key: "howto_2_text", label: "Paso 2: texto", kind: "textarea", min: 2, max: 200 },
+      { key: "howto_3_title", label: "Paso 3: título", kind: "text", min: 2, max: 60 },
+      { key: "howto_3_text", label: "Paso 3: texto", kind: "textarea", min: 2, max: 200 }
+    ]
+  },
+  {
     id: "nosotros",
     title: "Nosotros y cierre",
     description: "La página «Nosotros» y el bloque final de cada página.",

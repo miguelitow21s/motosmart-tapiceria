@@ -4,7 +4,8 @@
 
 insert into public.features(name, enabled)
 values ('customizer_enabled', false)
-on conflict (name) do update set enabled = excluded.enabled, updated_at = now();
+-- do nothing: reejecutarla no apaga un módulo que el panel ya encendió.
+on conflict (name) do nothing;
 
 do $$
 declare

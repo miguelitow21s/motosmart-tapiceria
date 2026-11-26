@@ -7,13 +7,10 @@ import { DEFAULT_SEAT_SHAPE } from "../lib/shapes";
 
 type Status = "idle" | "loading" | "ready" | "fallback";
 
-/** Pasos de cómo se hace una silla, en el orden del taller. */
-const STEPS: Array<{ id: Exclude<AssemblyStage, "despiece">; title: string; text: string }> = [
-  { id: "base", title: "La base", text: "Partimos de la base de tu silla: la revisamos y la dejamos lista para trabajar." },
-  { id: "espuma", title: "La espuma", text: "Se repara o se cambia por espuma nueva, con la forma y la firmeza que pides." },
-  { id: "forro", title: "El forro", text: "Lo cortamos a la medida de tu moto, en el cuero y el antideslizante que elijas." },
-  { id: "terminada", title: "Costura y bordado", text: "Costuras, franja y tu marca bordada en los costados. Lista para instalar." }
-];
+/** Las 4 capas del 3D, en el orden del taller. Los textos salen del panel. */
+const STAGES: Array<Exclude<AssemblyStage, "despiece">> = ["base", "espuma", "forro", "terminada"];
+
+export type ProcessStep = { title: string; text: string };
 
 // Una silla de muestra: centro negro antideslizante, costados y costura rojos.
 const LOOK: SeatLook = {
@@ -44,7 +41,7 @@ function canUseWebGL() {
  * silla puntada a puntada. three.js se baja solo cuando la sección se acerca;
  * sin WebGL se ve la foto fija del despiece y los pasos siguen leyéndose.
  */
-export function SeatProcess({ poster }: { poster: { narrow: string; wide: string } }) {
+export function SeatProcess({ poster, steps }: { poster: { narrow: string; wide: string }; steps: ProcessStep[] }) {
   const stageRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sceneRef = useRef<SeatScene | null>(null);
@@ -153,16 +150,17 @@ export function SeatProcess({ poster }: { poster: { narrow: string; wide: string
 
       <div>
         <ol className="space-y-2">
-          {STEPS.map((step, index) => {
-            const active = live && stage === step.id;
+          {STAGES.map((id, index) => {
+            const step = steps[index] ?? { title: "", text: "" };
+            const active = live && stage === id;
             return (
-              <li key={step.id}>
+              <li key={id}>
                 {/* Sin 3D los pasos se leen igual, como lista. */}
                 {live ? (
                   <button
                     type="button"
                     aria-pressed={active}
-                    onClick={() => choose(step.id)}
+                    onClick={() => choose(id)}
                     className={cx(
                       "flex w-full gap-4 rounded-lg border px-4 py-3 text-left transition-[background-color,border-color,scale] duration-150 ease-out active:scale-[0.99]",
                       active ? "border-ink bg-surface-2" : "border-line hover:border-ink-3"

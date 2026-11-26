@@ -10,7 +10,7 @@ import { getCarouselSlides } from "@/features/catalog/services/catalog.service";
 import { SeatProcess } from "@/features/configurator/components/seat-process";
 import { isCustomizerEnabled } from "@/lib/feature-flags";
 import { pageMetadata } from "@/lib/seo";
-import { getSiteSettings } from "@/lib/settings";
+import { getSiteSettings, processSteps } from "@/lib/settings";
 import { cn } from "@/lib/cn";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -85,7 +85,7 @@ export default async function SobreNosotrosPage() {
           </p>
         </div>
         <div className="mt-8 md:mt-10">
-          <SeatProcess poster={PROCESS_POSTER} />
+          <SeatProcess poster={PROCESS_POSTER} steps={processSteps(settings)} />
         </div>
         {customizerOn ? (
           <p className="mt-6">
