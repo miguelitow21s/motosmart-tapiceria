@@ -113,6 +113,21 @@ export const SETTING_GROUPS: SettingGroup[] = [
     ]
   },
   {
+    id: "pagos",
+    title: "Pagos en línea",
+    description: "Lo que el cliente lee antes de pagar con Wompi. Los pagos se encienden en «Módulos».",
+    fields: [
+      {
+        key: "payment_note",
+        label: "Qué pasa después de pagar",
+        hint: "Cuéntale al cliente cómo sigue: medida, entrega, envío o instalación.",
+        kind: "textarea",
+        min: 10,
+        max: 400
+      }
+    ]
+  },
+  {
     id: "nosotros",
     title: "Nosotros y cierre",
     description: "La página «Nosotros» y el bloque final de cada página.",

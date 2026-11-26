@@ -61,10 +61,16 @@ alter default privileges in schema public revoke select on tables from anon, aut
 -- 3) features: solo los 3 flags que el codigo publico consulta.
 --    admin_uploads_enabled no es informacion para el visitante.
 ------------------------------------------------------------------------
+--    Qué flag es público vive en la fila (is_public), no en la política:
+--    así correr de nuevo esta migración no esconde los flags que vinieron
+--    después (riders_enabled en la 012, payments_enabled en la 016).
+alter table public.features add column if not exists is_public boolean not null default false;
+update public.features set is_public = true
+where is_public = false and name in ('catalog_enabled','customizer_enabled','checkout_enabled');
 drop policy if exists "public read features" on public.features;
 create policy "public read features" on public.features
 for select to anon, authenticated
-using (name in ('catalog_enabled','customizer_enabled','checkout_enabled'));
+using (is_public = true);
 
 ------------------------------------------------------------------------
 -- 4) FK sin indice en la columna hija: cada delete en users forzaba un seq

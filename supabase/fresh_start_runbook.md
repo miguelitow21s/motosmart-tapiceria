@@ -37,6 +37,8 @@ En Supabase SQL Editor ejecuta, en este orden:
 12. supabase/migrations/012_rider_photos.sql
 13. supabase/migrations/013_fix_catalog_photos_in_carousel.sql
 14. supabase/migrations/014_seed_business_settings.sql
+15. supabase/migrations/015_arma_tu_silla.sql
+16. supabase/migrations/016_pagos_wompi.sql
 
 Nota:
 - No ejecutar repair_current_auth.sql ni emergency_bootstrap_admin_auth.sql en proyecto nuevo.
@@ -83,9 +85,11 @@ where r.name = 'admin'
 
 ## 7) Validaciones finales
 
-SQL validacion de esquema completo (debe devolver las 13 tablas, todas con
-`relrowsecurity = true` y `policies > 0`; si alguna sale con 0 policies,
-falta correr una de las migraciones 7-11):
+SQL validacion de esquema completo (todas las tablas con
+`relrowsecurity = true` y `policies > 0`, SALVO `orders` y `payments`: esas
+tienen 0 policies a proposito, solo las toca el servidor con la service_role.
+No les añadas policies. Si otra sale con 0 policies, falta correr una de las
+migraciones 7-11):
 
 select c.relname, c.relrowsecurity, count(p.polname) as policies
 from pg_class c

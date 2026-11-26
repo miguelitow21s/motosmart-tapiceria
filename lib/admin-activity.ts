@@ -6,10 +6,12 @@ export async function logAdminActivity(params: {
   entity: string;
   entityId?: string | null;
   detail?: Record<string, unknown>;
+  /** false: el cambio no se ve en la tienda (pedidos, ventas) y no hace falta regenerarla. */
+  refresh?: boolean;
 }) {
   // Todo cambio del panel pasa por aquí (cada handler de escritura lo
   // registra): es el punto único para regenerar la tienda.
-  refreshStore();
+  if (params.refresh !== false) refreshStore();
   const supabase = await createServerSupabaseClient();
   const {
     data: { user }

@@ -44,8 +44,6 @@ insert into public.features(name, enabled)
 values ('riders_enabled', true)
 on conflict (name) do nothing;
 
--- La 011 acoto "public read features" a 3 nombres fijos; hay que sumar el nuevo.
-drop policy if exists "public read features" on public.features;
-create policy "public read features" on public.features
-for select to anon, authenticated
-using (name in ('catalog_enabled','customizer_enabled','checkout_enabled','riders_enabled'));
+-- La tienda lo lee: se marca publico en la fila (politica de la 011, is_public).
+alter table public.features add column if not exists is_public boolean not null default false;
+update public.features set is_public = true where name = 'riders_enabled';

@@ -24,6 +24,12 @@ export const FEATURE_INFO: Record<string, { label: string; description: string; 
     description: "Apagado, nadie puede subir fotos nuevas (ni de diseños, ni del carrusel, ni de pilotos).",
     order: 5
   },
+  payments_enabled: {
+    label: "Pagos en línea (Wompi)",
+    description:
+      "El botón «Comprar y pagar en línea» en cada diseño y los cobros por enlace desde «Ventas». Necesita las llaves de Wompi en Vercel. Apagado, solo se cotiza por WhatsApp.",
+    order: 6
+  },
   customizer_enabled: {
     label: "Arma tu silla",
     description:

@@ -71,6 +71,7 @@ export type RiderPhoto = {
 
 export type TabKey =
   | "overview"
+  | "sales"
   | "catalog"
   | "brands"
   | "carousel"

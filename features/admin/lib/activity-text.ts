@@ -1,5 +1,6 @@
 import { FEATURE_INFO } from "@/features/admin/lib/features-info";
 import { SETTING_LABELS } from "@/features/admin/lib/settings-keys";
+import { STATUS_LABEL } from "@/features/payments/types";
 import type { ActivityEntry, Brand, Design } from "@/features/admin/types";
 
 /*
@@ -23,6 +24,8 @@ export const ACTIVITY_KIND_LABELS: Record<ActivityKind, string> = {
 export function activityKind(entry: ActivityEntry): ActivityKind {
   switch (entry.action) {
     case "create":
+    case "create_charge":
+    case "register_sale":
       return "create";
     case "delete":
     case "clear":
@@ -97,6 +100,15 @@ export function describeActivity(entry: ActivityEntry, { designs, brands }: Look
       if (entry.action === "create") return `Creó el producto${quoted(sku)}`;
       if (entry.action === "delete") return "Eliminó un producto";
       return `Editó el producto${quoted(sku)}`;
+    }
+    case "order": {
+      const code = str(detail.code);
+      if (entry.action === "create_charge") return `Creó el cobro${quoted(code)}`;
+      if (entry.action === "register_sale") return `Registró la venta${quoted(code)}`;
+      const status = str(detail.status);
+      const label = status && status in STATUS_LABEL ? STATUS_LABEL[status as keyof typeof STATUS_LABEL] : null;
+      if (label) return `Marcó el pedido${quoted(code)} como «${label}»`;
+      return `Editó el pedido${quoted(code)}`;
     }
     case "admin_activity_logs":
       return "Borró la actividad de hace más de 90 días";
