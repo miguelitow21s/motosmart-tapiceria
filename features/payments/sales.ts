@@ -100,8 +100,12 @@ export function monthlySales(orders: Order[], now: number, count = 12): MonthBuc
 }
 
 /** Cobros enviados que aún no se pagan (los cancelados no cuentan). */
+/**
+ * Lo que falta por cobrar: cobros por enlace y ventas sin pagar. Una compra de
+ * la tienda sin pagar es alguien que abrió Wompi y se fue: no es una deuda.
+ */
 export function receivable(orders: Order[]): { total: number; count: number } {
-  const open = orders.filter((order) => order.status === "esperando_pago");
+  const open = orders.filter((order) => order.status === "esperando_pago" && order.kind !== "tienda");
   return { total: open.reduce((sum, order) => sum + order.amount_cop, 0), count: open.length };
 }
 

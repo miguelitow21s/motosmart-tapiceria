@@ -48,7 +48,9 @@ test("solo cuentan los pedidos pagados, por la fecha del pago", () => {
   const orders = [
     order({ amount_cop: 200000, cost_cop: 120000 }),
     order({ status: "entregado", amount_cop: 100000 }),
-    order({ status: "esperando_pago", paid_at: null, amount_cop: 999000 }),
+    order({ kind: "cobro", status: "esperando_pago", paid_at: null, amount_cop: 999000 }),
+    // Compra de la tienda que el cliente no pagó: no es «por cobrar».
+    order({ kind: "tienda", status: "esperando_pago", paid_at: null, amount_cop: 444000 }),
     order({ status: "cancelado", paid_at: null, amount_cop: 50000 }),
     // Pagado con llaves de pruebas: no es venta.
     order({ is_test: true, amount_cop: 777000 }),

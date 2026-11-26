@@ -121,8 +121,16 @@ export async function GET(request: Request) {
   }
 
   const [orders, payments] = await Promise.all([allOrders(supabase), setup()]);
+  if (orders.error && missingTable(orders.error)) {
+    return NextResponse.json({ data: [], setup: { ...payments, migrationPending: true }, site: siteConfig.url });
+  }
   if (orders.error) return internalError("orders GET", orders.error);
   return NextResponse.json({ data: orders.data, setup: payments, site: siteConfig.url });
+}
+
+/** La tabla no existe todavía: 42P01 en Postgres, PGRST205 en PostgREST (caché de esquema). */
+function missingTable(error: { code?: string }) {
+  return error.code === "42P01" || error.code === "PGRST205";
 }
 
 /** Todos los pedidos, de 1000 en 1000 (las cifras de ventas se suman sobre la lista completa). */

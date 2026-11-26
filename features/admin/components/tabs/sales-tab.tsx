@@ -196,14 +196,25 @@ function SetupNotice({ setup, siteUrl }: { setup: PaymentsSetup | null; siteUrl:
   if (!setup) return null;
   const eventsUrl = `${(siteUrl || window.location.origin).replace(/\/$/, "")}/api/pagos/wompi`;
 
+  if (setup.migrationPending) {
+    return (
+      <Panel title="Falta preparar la base de datos" description="Antes de registrar ventas o cobrar en línea.">
+        <p className="text-ink-2">
+          Hay que correr una sola vez la migración <code className="rounded bg-surface px-1.5 py-0.5 text-sm text-ink">016_pagos_wompi.sql</code>{" "}
+          en Supabase (SQL Editor). Después vuelve a esta pestaña.
+        </p>
+      </Panel>
+    );
+  }
+
   if (setup.environment && !setup.mixed && setup.enabled) {
     return setup.environment === "test" ? (
       <p role="status" className="flex items-start gap-2.5 rounded-lg border border-warning/30 bg-warning/5 px-4 py-3 text-ink">
         <TriangleAlert aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-warning" />
         <span>
-          <strong className="font-semibold">Modo de pruebas.</strong> Los clientes todavía no ven «Comprar»: solo tú puedes ensayar, en este
-          navegador con la sesión abierta, con las tarjetas de prueba de Wompi (crea un cobro y abre su enlace). Esos pedidos salen como
-          «Prueba» y no cuentan como ventas. Cuando todo funcione, cambia en Vercel a las llaves de producción.
+          <strong className="font-semibold">Modo de pruebas.</strong> Solo tú puedes ensayar (en este navegador) con las tarjetas de prueba de
+          Wompi; los clientes aún no ven «Comprar». Esos pedidos salen como «Prueba» y no cuentan. Luego cambia en Vercel a las llaves de
+          producción.
         </span>
       </p>
     ) : (
@@ -570,7 +581,7 @@ function MeterList({ shares, empty }: { shares: Share[]; empty: string }) {
 
 const FILTERS: { key: StatusFilter; label: string }[] = [
   { key: "all", label: "Todos" },
-  ...ORDER_STATUSES.map((status) => ({ key: status, label: status === "esperando_pago" ? "Por cobrar" : STATUS_LABEL[status] }))
+  ...ORDER_STATUSES.map((status) => ({ key: status, label: STATUS_LABEL[status] }))
 ];
 
 function matches(order: Order, query: string) {

@@ -109,6 +109,8 @@ export type PaymentsSetup = {
   environment: "test" | "prod" | null;
   /** Variables de Vercel vacías. */
   missing: string[];
+  /** Las tablas de pedidos todavía no existen (falta correr la migración 016). */
+  migrationPending?: boolean;
   /** Las cuatro están, pero mezclan pruebas y producción. */
   mixed: boolean;
 };
