@@ -7,10 +7,11 @@ import { containerClasses } from "@/components/shared/section";
 import { siteConfig } from "@/config/site";
 import { BrandBar } from "@/features/catalog/components/brand-bar";
 import { DesignGrid } from "@/features/catalog/components/design-grid";
-import { getStoreDesigns, getBrands, type DesignWithBrand } from "@/features/catalog/services/catalog.service";
+import { getStoreDesigns, getBrands, sortForStore, type DesignWithBrand } from "@/features/catalog/services/catalog.service";
+import { currentPrice } from "@/components/ui/price";
 import { pageMetadata } from "@/lib/seo";
 import { cn } from "@/lib/cn";
-import { getPromotionMeta } from "@/lib/utils";
+import { formatCOP, getPromotionMeta } from "@/lib/utils";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -102,7 +103,10 @@ export default async function MarcaPage({ params }: Props) {
   const { brands, brand, designs } = await loadBrand(slug);
   if (!brand) notFound();
 
-  const count = designs.length === 1 ? "1 diseño" : `${designs.length} diseños`;
+  // La foto de la cabecera: la primera silla en el orden de la tienda.
+  const cover = sortForStore(designs).find((design) => design.image_url);
+  const prices = designs.map((design) => currentPrice(design)).filter((price) => price.showable);
+  const lowest = prices.length ? Math.min(...prices.map((price) => price.value)) : null;
 
   return (
     <>
@@ -111,9 +115,12 @@ export default async function MarcaPage({ params }: Props) {
         title={`Tapicería para moto ${brand.name}`}
         crumbs={[{ label: "Catálogo", href: "/catalogo" }, { label: brand.name }]}
         lead={brand.description?.trim() || undefined}
-      >
-        {designs.length ? <p className="mt-2 text-sm text-ink-3">{count}</p> : null}
-      </PageIntro>
+        photo={cover?.image_url ? { src: cover.image_url, alt: `Silla de moto ${cover.name} (${brand.name}) tapizada por MotoSmart` } : null}
+        facts={[
+          designs.length ? { value: designs.length, label: designs.length === 1 ? "diseño" : "diseños" } : null,
+          lowest ? { value: formatCOP(lowest), label: "precio desde" } : null
+        ].filter((fact) => fact !== null)}
+      />
       <BrandBar brands={brands} active={brand.slug} />
 
       <section aria-labelledby="sillas-marca" className={cn(containerClasses, "py-8 md:py-10")}>

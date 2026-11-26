@@ -51,11 +51,11 @@ export async function Footer({ customizerOn }: { customizerOn: boolean }) {
       </div>
 
       {/* El nombre a lo ancho del pie, como firma. Decoración: el nombre ya está en el logo y abajo. */}
-      <div aria-hidden="true" className={cn(containerClasses, "overflow-hidden select-none")}>
+      <div aria-hidden="true" className={cn(containerClasses, "pt-4 pb-10 select-none md:pt-6 md:pb-14")}>
         <p
-          className="type-display -mb-[0.12em] text-center leading-[0.8] tracking-[-0.03em] whitespace-nowrap text-white uppercase"
-          // Cada letra mide ~0,58 em: el tamaño sale del largo del nombre para que llene el ancho sin partirse.
-          style={{ fontSize: `calc(min(100vw - 4rem, 76rem) / ${(Math.max(wordmark.length, 4) * 0.6).toFixed(2)})` }}
+          className="type-display text-center leading-[0.9] tracking-[-0.02em] whitespace-nowrap text-white/90 uppercase"
+          // Cada letra mide ~0,58 em: el tamaño sale del largo del nombre, sin partirse; tope de 46 rem de ancho para que acompañe y no tape.
+          style={{ fontSize: `calc(min(100vw - 4rem, 46rem) / ${(Math.max(wordmark.length, 4) * 0.6).toFixed(2)})` }}
         >
           {wordmark}
         </p>

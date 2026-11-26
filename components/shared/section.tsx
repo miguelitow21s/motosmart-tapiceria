@@ -4,6 +4,9 @@ import type { HTMLAttributes, ReactNode } from "react";
 /** Ancho y márgenes laterales de toda la tienda: los bordes izquierdo y derecho siempre coinciden. */
 export const containerClasses = "mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8";
 
+/** Títulos de sección con la voz del inicio: gigantes, condensados y en mayúsculas. */
+export const megaTitleClasses = "text-[clamp(2.5rem,1.1rem+5.6vw,6.5rem)] leading-[0.88] tracking-[-0.02em] text-balance uppercase";
+
 export function Section({
   children,
   className,

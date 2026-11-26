@@ -183,7 +183,7 @@ export function SeatTeaserLive({
       <div className="space-y-6 lg:order-1">
         <fieldset>
           <legend className="text-sm font-semibold text-ink-2">
-            <span className="text-brand">1.</span> Tu tipo de moto
+            <span className="text-ink">1.</span> Tu tipo de moto
           </legend>
           <div className="mt-2 grid grid-cols-3 gap-1 rounded-lg bg-surface p-1">
             {SHAPE_OPTIONS.map((option) => {
@@ -221,7 +221,7 @@ export function SeatTeaserLive({
 
         <fieldset>
           <legend className="text-sm font-semibold text-ink-2">
-            <span className="text-brand">2.</span> Color de los costados: <span className="text-ink">{sides.name}</span>
+            <span className="text-ink">2.</span> Color de los costados: <span className="text-ink">{sides.name}</span>
           </legend>
           <div className="mt-2 flex flex-wrap gap-2">
             {colors.map((color) => {
@@ -253,7 +253,7 @@ export function SeatTeaserLive({
 
         <div>
           <label htmlFor={`${ids}-bordado`} className="text-sm font-semibold text-ink-2">
-            <span className="text-brand">3.</span> Bordado en el costado
+            <span className="text-ink">3.</span> Bordado en el costado
           </label>
           <input
             id={`${ids}-bordado`}

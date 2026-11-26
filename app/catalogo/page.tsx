@@ -8,7 +8,7 @@ import { BrandBar } from "@/features/catalog/components/brand-bar";
 import { CatalogSearch } from "@/features/catalog/components/catalog-search";
 import { DesignGrid } from "@/features/catalog/components/design-grid";
 import { MoldeDirectory } from "@/features/catalog/components/molde-directory";
-import { getStoreDesigns, getBrands, sortForStore } from "@/features/catalog/services/catalog.service";
+import { getCarouselSlides, getStoreDesigns, getBrands, sortForStore } from "@/features/catalog/services/catalog.service";
 import { isFeatureEnabled } from "@/lib/feature-flags";
 import { pageMetadata } from "@/lib/seo";
 import { cn } from "@/lib/cn";
@@ -32,22 +32,31 @@ const PER_BRAND = 4;
 const SPAN = { 1: "lg:col-span-1", 2: "lg:col-span-2", 3: "lg:col-span-3", 4: "lg:col-span-4" } as const;
 
 export default async function CatalogoPage() {
-  const [enabled, brands, designs] = await Promise.all([
+  const [enabled, brands, designs, slides] = await Promise.all([
     isFeatureEnabled("catalog_enabled", { onError: "open" }),
     getBrands(),
-    getStoreDesigns()
+    getStoreDesigns(),
+    getCarouselSlides()
   ]);
   if (!enabled) redirect("/");
 
   const groups = brands
     .map((brand) => ({ brand, designs: sortForStore(designs.filter((design) => design.brand_id === brand.id)) }))
     .filter((group) => group.designs.length > 0);
+  // Un trabajo real del carrusel semanal (la segunda foto: la primera abre el inicio).
+  const cover = slides[1] ?? slides[0] ?? null;
+  const motoBrands = groups.filter((group) => group.brand.slug !== "varios").length;
 
   return (
     <>
       <PageIntro
         title="Catálogo"
         lead="Fundas y tapicería para moto por marca, con precio de referencia. Busca tu modelo o elige la marca."
+        photo={cover ? { src: cover.image, alt: cover.alt } : null}
+        facts={[
+          designs.length ? { value: designs.length, label: designs.length === 1 ? "diseño con foto" : "diseños con foto" } : null,
+          motoBrands ? { value: motoBrands, label: motoBrands === 1 ? "marca de moto" : "marcas de moto" } : null
+        ].filter((fact) => fact !== null)}
       >
         <CatalogSearch />
       </PageIntro>

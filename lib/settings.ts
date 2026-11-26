@@ -5,6 +5,7 @@ import { DEFAULT_SETTINGS, OPTIONAL_SETTING_KEYS, type SiteSettings } from "@/li
 export {
   buildWhatsAppUrl,
   howtoSteps,
+  quickMessages,
   DEFAULT_SETTINGS,
   instagramHandle,
   OPTIONAL_SETTING_KEYS,

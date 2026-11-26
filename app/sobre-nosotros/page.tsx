@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ClosingCta } from "@/components/shared/closing-cta";
 import { ContactDetails } from "@/components/shared/contact-details";
 import { PageIntro } from "@/components/shared/page-intro";
-import { containerClasses } from "@/components/shared/section";
+import { containerClasses, megaTitleClasses } from "@/components/shared/section";
 import { ServicesList } from "@/components/shared/services-list";
 import { SmartImage } from "@/components/shared/smart-image";
 import { getCarouselSlides } from "@/features/catalog/services/catalog.service";
@@ -76,11 +76,11 @@ export default async function SobreNosotrosPage() {
       ) : null}
 
       <section aria-labelledby="como-se-hace" className={cn(containerClasses, "py-12 md:py-20")}>
-        <div className="max-w-2xl">
-          <h2 id="como-se-hace" className="text-title">
+        <div className="max-w-4xl">
+          <h2 id="como-se-hace" className={megaTitleClasses}>
             Así se hace tu silla
           </h2>
-          <p className="mt-3 text-lg text-ink-2">
+          <p className="mt-4 text-lg text-ink-2">
             Cuatro capas, de la base a la marca bordada. Elige un paso para verlo armarse en 3D.
           </p>
         </div>
@@ -105,10 +105,10 @@ export default async function SobreNosotrosPage() {
           )}
         >
           <section aria-labelledby="que-hacemos">
-            <h2 id="que-hacemos" className="text-title">
+            <h2 id="que-hacemos" className={cn(megaTitleClasses, "hyphens-auto lg:text-[4.25rem]")}>
               {settings.services_title}
             </h2>
-            <p className="mt-3 max-w-2xl text-lg text-ink-2">{settings.services_text}</p>
+            <p className="mt-4 max-w-2xl text-lg text-ink-2">{settings.services_text}</p>
             <ServicesList settings={settings} className="mt-8" />
           </section>
           {hasPlace ? (
