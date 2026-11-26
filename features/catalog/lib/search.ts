@@ -32,7 +32,7 @@ const GENERIC_WORDS = new Set([
 ]);
 
 /** Minúsculas, sin tildes y solo letras y números: "N-MAX 155" → "nmax155". */
-function compact(text: string) {
+export function compactText(text: string) {
   return text
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
@@ -46,21 +46,26 @@ export function readQuery(raw: string | string[] | undefined) {
   return (value ?? "").replace(/\s+/g, " ").trim().slice(0, SEARCH_MAX_LENGTH);
 }
 
+/** Las palabras que distinguen la búsqueda, ya compactadas ("silla N-MAX" → ["nmax"]). */
+export function queryWords(query: string) {
+  return query
+    .split(" ")
+    .map(compactText)
+    .filter((word) => word && !GENERIC_WORDS.has(word));
+}
+
 /**
  * Diseños cuyo nombre o marca contienen cada palabra buscada, sin importar
  * mayúsculas, tildes, guiones ni espacios: "nmax", "N-MAX" y "yamaha n max"
  * encuentran la misma silla.
  */
 export function searchDesigns(designs: DesignWithBrand[], query: string) {
-  const words = query
-    .split(" ")
-    .map(compact)
-    .filter((word) => word && !GENERIC_WORDS.has(word));
+  const words = queryWords(query);
   if (!words.length) return designs;
 
   const joined = words.join("");
   return designs.filter((design) => {
-    const haystack = compact(`${design.brand_name} ${design.name}`);
+    const haystack = compactText(`${design.brand_name} ${design.name}`);
     // "n max" escrito separado también encuentra "NMAX".
     return words.every((word) => haystack.includes(word)) || haystack.includes(joined);
   });

@@ -1,3 +1,4 @@
+import { DEFAULT_MOLDES_TEXT } from "@/features/catalog/lib/moldes";
 import { DEFAULT_SEAT_COLORS_TEXT } from "@/features/configurator/lib/options";
 
 // Sin imports de servidor: el panel (componente de cliente) también lo usa
@@ -39,6 +40,7 @@ export type SiteSettings = {
   configurator_colors: string;
   closing_text: string;
   payment_note: string;
+  molde_models: string;
   meta_title: string;
   meta_description: string;
 };
@@ -80,6 +82,7 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   configurator_colors: DEFAULT_SEAT_COLORS_TEXT,
   payment_note:
     "Después del pago te escribimos por WhatsApp para confirmar la medida de tu moto, la fecha de entrega y si la instalas en el taller o te la enviamos.",
+  molde_models: DEFAULT_MOLDES_TEXT,
   meta_title: "MotoSmart Tapicería | Tapicería premium en Medellín",
   meta_description:
     "Tapicería premium para motos en Medellín. Asientos a medida, materiales de alto agarre y acabados profesionales. Cotiza por WhatsApp."
@@ -94,7 +97,8 @@ export const OPTIONAL_SETTING_KEYS = new Set<keyof SiteSettings>([
   "hero_note",
   "business_district",
   "business_hours",
-  "instagram_url"
+  "instagram_url",
+  "molde_models"
 ]);
 
 /**

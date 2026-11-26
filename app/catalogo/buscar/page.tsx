@@ -9,6 +9,8 @@ import { WhatsAppIcon } from "@/components/ui/whatsapp-icon";
 import { BrandBar } from "@/features/catalog/components/brand-bar";
 import { CatalogSearch } from "@/features/catalog/components/catalog-search";
 import { DesignGrid } from "@/features/catalog/components/design-grid";
+import { MoldeMatches } from "@/features/catalog/components/molde-matches";
+import { parseMoldes, searchMoldes } from "@/features/catalog/lib/moldes";
 import { readQuery, searchDesigns } from "@/features/catalog/lib/search";
 import { getBrands, getSearchableDesigns } from "@/features/catalog/services/catalog.service";
 import { isFeatureEnabled } from "@/lib/feature-flags";
@@ -60,6 +62,8 @@ export default async function BuscarPage({ searchParams }: Props) {
   }
 
   const results = searchDesigns(designs, query);
+  // La moto que no tiene diseño publicado puede tener molde en el taller.
+  const moldes = searchMoldes(parseMoldes(settings.molde_models), query);
   const quoteHref = buildWhatsAppUrl(
     settings.whatsapp_number,
     `Hola, quiero cotizar la tapicería para mi moto: ${query.replace(/[.!?]+$/, "")}.`
@@ -78,7 +82,21 @@ export default async function BuscarPage({ searchParams }: Props) {
 
       <div className={cn(containerClasses, "py-10 md:py-12")}>
         {results.length ? (
-          <DesignGrid designs={results} priorityCount={2} />
+          <>
+            <DesignGrid designs={results} priorityCount={2} />
+            <MoldeMatches
+              matches={moldes}
+              whatsappNumber={settings.whatsapp_number}
+              lead="Cualquier diseño se corta con el molde de tu modelo. Te cotizamos por WhatsApp:"
+              className="mt-14 md:mt-16"
+            />
+          </>
+        ) : moldes.length ? (
+          <MoldeMatches
+            matches={moldes}
+            whatsappNumber={settings.whatsapp_number}
+            lead="Todavía no hay fotos publicadas de esa moto, pero la silla se corta con su molde. Escríbenos y te cotizamos el color, la textura y el bordado:"
+          />
         ) : (
           <div className="max-w-2xl">
             <h2 className="text-2xl md:text-3xl">La hacemos a la medida de tu moto</h2>

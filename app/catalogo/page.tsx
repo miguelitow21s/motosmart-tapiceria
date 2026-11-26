@@ -7,6 +7,7 @@ import { containerClasses } from "@/components/shared/section";
 import { BrandBar } from "@/features/catalog/components/brand-bar";
 import { CatalogSearch } from "@/features/catalog/components/catalog-search";
 import { DesignGrid } from "@/features/catalog/components/design-grid";
+import { MoldeDirectory } from "@/features/catalog/components/molde-directory";
 import { getStoreDesigns, getBrands, sortForStore } from "@/features/catalog/services/catalog.service";
 import { isFeatureEnabled } from "@/lib/feature-flags";
 import { pageMetadata } from "@/lib/seo";
@@ -102,6 +103,7 @@ export default async function CatalogoPage() {
         )}
       </div>
 
+      <MoldeDirectory />
       <ClosingCta />
     </>
   );
