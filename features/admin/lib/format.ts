@@ -22,6 +22,14 @@ export const INCOMPLETE_PRICE_TEXT = "El precio parece incompleto: escríbelo co
 export { MAX_PRICE };
 export const TOO_HIGH_PRICE_TEXT = "El precio es demasiado alto: revisa que no sobre un cero.";
 
+/**
+ * Nombre de relleno que viene de los datos viejos («Diseno 2 para Yamaha»,
+ * «AKT Design 4»): en la tienda y en Google se ve mejor un nombre de verdad.
+ */
+export function designNameIsGeneric(name: string) {
+  return /\b(dise[ñn]o|design)\s*\d+\b/i.test(name);
+}
+
 /** Precio mal escrito: le faltan los miles o le sobra un cero (datos viejos). */
 export function priceNeedsReview(price: number | null | undefined) {
   return priceLooksIncomplete(price) || (price != null && price > MAX_PRICE);

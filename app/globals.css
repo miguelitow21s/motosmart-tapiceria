@@ -513,3 +513,30 @@
   animation-duration: 220ms;
   animation-timing-function: var(--ease-out);
 }
+
+/*
+  Franja de palabras gigantes (WordMarquee): corre de lado a velocidad fija,
+  se para con el puntero encima, con el botón «Pausar» y con «reducir
+  movimiento». Solo transform: no repinta ni mueve el resto de la página.
+*/
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+.marquee-track {
+  animation: marquee 48s linear infinite;
+}
+.marquee:hover .marquee-track,
+.marquee[data-paused] .marquee-track {
+  animation-play-state: paused;
+}
+.marquee-outline {
+  color: transparent;
+  -webkit-text-stroke: 1.5px var(--ink);
+}
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track {
+    animation: none;
+  }
+}

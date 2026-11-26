@@ -16,6 +16,7 @@ const shopLinks = [
 // Pie negro, igual que la cabecera: el logo solo se lee sobre negro.
 export async function Footer({ customizerOn }: { customizerOn: boolean }) {
   const settings = await getSiteSettings();
+  const wordmark = settings.business_name.trim().split(/\s+/)[0] ?? "";
   const year = new Date().getFullYear();
   // "Arma tu silla" solo existe con su módulo encendido.
   const links = customizerOn ? shopLinks : shopLinks.filter((link) => link.href !== "/arma-tu-silla");
@@ -47,6 +48,17 @@ export async function Footer({ customizerOn }: { customizerOn: boolean }) {
           <h2 className="text-lg text-white">Contacto</h2>
           <ContactDetails tone="dark" className="mt-4" />
         </div>
+      </div>
+
+      {/* El nombre a lo ancho del pie, como firma. Decoración: el nombre ya está en el logo y abajo. */}
+      <div aria-hidden="true" className={cn(containerClasses, "overflow-hidden select-none")}>
+        <p
+          className="type-display -mb-[0.12em] text-center leading-[0.8] tracking-[-0.03em] whitespace-nowrap text-white uppercase"
+          // Cada letra mide ~0,58 em: el tamaño sale del largo del nombre para que llene el ancho sin partirse.
+          style={{ fontSize: `calc(min(100vw - 4rem, 76rem) / ${(Math.max(wordmark.length, 4) * 0.6).toFixed(2)})` }}
+        >
+          {wordmark}
+        </p>
       </div>
 
       <div className="border-t border-white/15">

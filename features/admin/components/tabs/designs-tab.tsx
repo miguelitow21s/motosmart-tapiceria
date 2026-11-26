@@ -21,6 +21,7 @@ import {
   INCOMPLETE_PRICE_TEXT,
   MAX_PRICE,
   TOO_HIGH_PRICE_TEXT,
+  designNameIsGeneric,
   plural,
   priceLooksIncomplete,
   priceNeedsReview
@@ -40,7 +41,8 @@ const FILTER_LABELS = {
   hidden: "Ocultos",
   promo: "En promoción",
   "no-photo": "Sin foto",
-  "check-price": "Revisar precio"
+  "check-price": "Revisar precio",
+  "generic-name": "Nombre por cambiar"
 } as const;
 
 export function DesignsTab() {
@@ -64,6 +66,7 @@ export function DesignsTab() {
       if (filter === "promo" && !design.promotion_active) return false;
       if (filter === "no-photo" && ownPhoto(design.image_url)) return false;
       if (filter === "check-price" && !designPriceNeedsReview(design)) return false;
+      if (filter === "generic-name" && !designNameIsGeneric(design.name)) return false;
       return true;
     });
     if (sort === "price") return list.sort((a, b) => a.base_price - b.base_price);

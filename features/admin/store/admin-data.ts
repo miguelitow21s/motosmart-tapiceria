@@ -29,7 +29,7 @@ import type { ActivityEntry, AdminImage, Brand, Design, Feature, Product, RiderP
 export type DataKey = "designs" | "brands" | "images" | "settings" | "features" | "activity" | "products" | "riders" | "orders";
 type Status = "idle" | "loading" | "ready" | "error";
 
-type DesignFilter = "all" | "active" | "hidden" | "promo" | "no-photo" | "check-price";
+type DesignFilter = "all" | "active" | "hidden" | "promo" | "no-photo" | "check-price" | "generic-name";
 
 export type AdminState = {
   designs: Design[];

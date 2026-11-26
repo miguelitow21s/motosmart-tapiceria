@@ -11,7 +11,10 @@ import { WeeklyWork } from "@/features/catalog/components/weekly-work";
 import { parseMoldes } from "@/features/catalog/lib/moldes";
 import { getBrands, getCarouselSlides, getFeaturedDesigns, getStoreDesigns } from "@/features/catalog/services/catalog.service";
 import { ConfiguratorTeaser } from "@/features/configurator/components/configurator-teaser";
-import { isCustomizerEnabled } from "@/lib/feature-flags";
+import { RidersStrip } from "@/features/riders/components/riders-strip";
+import { getRiderPhotos } from "@/features/riders/services/rider-photos.service";
+import { WordMarquee } from "@/components/shared/word-marquee";
+import { isCustomizerEnabled, isFeatureEnabled } from "@/lib/feature-flags";
 import { JsonLd } from "@/components/seo/json-ld";
 import { siteConfig } from "@/config/site";
 import { pageMetadata } from "@/lib/seo";
@@ -66,20 +69,29 @@ function businessJsonLd(settings: SiteSettings) {
 }
 
 export default async function HomePage() {
-  const [brands, featuredDesigns, designs, slides, settings, customizerOn] = await Promise.all([
+  const [brands, featuredDesigns, designs, slides, settings, customizerOn, ridersOn] = await Promise.all([
     getBrands(),
     getFeaturedDesigns(),
     getStoreDesigns(),
     getCarouselSlides(),
     getSiteSettings(),
-    isCustomizerEnabled()
+    isCustomizerEnabled(),
+    isFeatureEnabled("riders_enabled")
   ]);
+  // Las fotos de pilotos solo se piden con su módulo encendido.
+  const riderPhotos = ridersOn ? await getRiderPhotos() : [];
 
   const featured = slides[0] ?? null;
   // Para el bloque de moldes, la foto más lejos de la primera (que ya está
   // en el héroe).
   const moldesPhoto = slides.length > 1 ? slides[slides.length - 1] : null;
   const moldeCount = parseMoldes(settings.molde_models).length;
+  // Las marcas que tienen sillas en la tienda, más el taller: la franja que corre.
+  const brandIds = new Set(designs.map((design) => design.brand_id));
+  const marqueeWords = brands
+    .filter((brand) => brandIds.has(brand.id) && brand.slug !== "varios")
+    .map((brand) => brand.name);
+  if (marqueeWords.length) marqueeWords.push("Hecho en Medellín");
 
   return (
     <>
@@ -106,12 +118,14 @@ export default async function HomePage() {
         </Section>
       ) : null}
 
+      <WordMarquee words={marqueeWords} label="Marcas que trabajamos" />
       {customizerOn ? <ConfiguratorTeaser /> : null}
+      <RidersStrip photos={riderPhotos} />
 
       {/* Los servicios viven en «Nosotros»; aquí, la pregunta del que llega:
           ¿me la hacen para mi moto? La lista sale de Textos > «Modelos con molde». */}
       {moldeCount ? (
-        <section aria-labelledby="molde-inicio" className={cn(!customizerOn && "border-t border-line")}>
+        <section aria-labelledby="molde-inicio">
           <div
             className={cn(
               containerClasses,
