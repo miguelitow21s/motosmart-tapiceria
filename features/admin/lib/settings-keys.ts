@@ -84,7 +84,7 @@ export const SETTING_GROUPS: SettingGroup[] = [
   {
     id: "servicios",
     title: "Servicios",
-    description: "La sección de servicios de la portada.",
+    description: "La sección de servicios de la página «Nosotros».",
     fields: [
       { key: "services_title", label: "Título de la sección", kind: "text", min: 2, max: 120 },
       { key: "services_text", label: "Texto de la sección", kind: "textarea", min: 2, max: 400 },
@@ -117,7 +117,7 @@ export const SETTING_GROUPS: SettingGroup[] = [
     id: "modelos",
     title: "Modelos con molde",
     description:
-      "Las motos que el taller ya tiene en molde. Salen en el catálogo y en el buscador: quien busca su moto ve que se la cortan a la medida.",
+      "Las motos que el taller ya tiene en molde. Salen en la portada, el catálogo y el buscador: quien busca su moto ve que se la cortan a la medida.",
     fields: [
       {
         key: "molde_models",
