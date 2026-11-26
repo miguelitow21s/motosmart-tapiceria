@@ -26,6 +26,7 @@ export type SiteSettings = {
   business_district: string;
   business_hours: string;
   instagram_url: string;
+  contact_quick_messages: string;
   services_title: string;
   services_text: string;
   service_1_title: string;
@@ -78,6 +79,8 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   business_district: "",
   business_hours: "",
   instagram_url: "",
+  contact_quick_messages:
+    "Quiero cotizar la silla de mi moto\n¿Tienen el molde de mi moto?\nQuiero cambiar la espuma de mi silla\nQuiero mi marca bordada en la silla",
   services_title: "Servicios de tapicería y personalización",
   services_text:
     "Diseños a medida, materiales premium y acabados listos para instalar. Pide tu estilo y lo fabricamos.",
@@ -126,6 +129,7 @@ export const OPTIONAL_SETTING_KEYS = new Set<keyof SiteSettings>([
   "business_district",
   "business_hours",
   "instagram_url",
+  "contact_quick_messages",
   "molde_models"
 ]);
 
@@ -134,6 +138,19 @@ export const OPTIONAL_SETTING_KEYS = new Set<keyof SiteSettings>([
  * is_public = true para que una clave nueva nunca quede invisible.
  */
 export const PUBLIC_SETTING_KEYS = new Set<string>([...Object.keys(DEFAULT_SETTINGS), "carousel_order"]);
+
+/** Hasta cuántos mensajes rápidos muestra Contacto y cuánto puede medir cada uno. */
+export const QUICK_MESSAGES_MAX = 6;
+export const QUICK_MESSAGE_LENGTH = 90;
+
+/** Los mensajes rápidos de Contacto: uno por línea, sin vacíos ni repetidos. */
+export function quickMessages(s: Pick<SiteSettings, "contact_quick_messages">) {
+  const lines = s.contact_quick_messages
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0 && line.length <= QUICK_MESSAGE_LENGTH);
+  return [...new Set(lines)].slice(0, QUICK_MESSAGES_MAX);
+}
 
 type Step = { title: string; text: string };
 

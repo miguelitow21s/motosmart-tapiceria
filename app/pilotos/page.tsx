@@ -40,6 +40,7 @@ export default async function PilotosPage() {
       <PageIntro
         title="Nuestros pilotos"
         lead="Motos reales de clientes reales, con su silla MotoSmart. Cuando recibas la tuya, mándanos la foto por WhatsApp."
+        facts={photos.length ? [{ value: photos.length, label: photos.length === 1 ? "piloto con su silla" : "pilotos con su silla" }] : undefined}
       />
       {/* Galería en el escenario negro de la cabecera: las fotos de los pilotos
           son de noche y de taller, y sobre negro se ven como una exposición. */}

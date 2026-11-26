@@ -59,6 +59,13 @@ export const SETTING_GROUPS: SettingGroup[] = [
         max: 300
       },
       {
+        key: "contact_quick_messages",
+        label: "Mensajes rápidos (página de contacto)",
+        hint: "Uno por línea, hasta 6 y de máximo 90 letras cada uno. El cliente toca uno y se abre WhatsApp con ese mensaje. Si lo dejas vacío, no se muestran.",
+        kind: "textarea",
+        max: 600
+      },
+      {
         key: "business_district",
         label: "Barrio o sector",
         hint: `Sin la dirección exacta. ${EMPTY_HIDES}`,
